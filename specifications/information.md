@@ -18,11 +18,7 @@ Contains a json file.
 
 Contains a json file.
 
-### Function
-
-Contains a json file.
-
-### Operator
+### Operation
 
 Contains a json file.
 
