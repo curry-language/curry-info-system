@@ -65,21 +65,16 @@ The respective json files contain the following information.
 * Methods ([Signature])
 * Definition (TypeClass)
 
-### Function
+### Operations
 
 * Documentation (Doc)
 * Source Code (Doc)
 * Signature (Signature)
+* Infix (Infix/InfixL/InfixR)
+* Precedence (Int)
 * Determinism/Nondeterminism (Det/NDet)
 * Demandedness ([Int])
 * Indeterminism (Bool)
 * Solution Completeness (Bool)
 * Termination (Bool)
 * Totally Defined (Bool)
-
-### Operator
-
-* Same as function
-* Infix (Infix/InfixL/InfixR)
-* Precedence (Int)
-* Nondeterminism (Curry Term)
