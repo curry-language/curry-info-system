@@ -8,7 +8,7 @@ Contains a json file and a directory called 'modules'.
 
 ### Module
 
-Contains a json file, a directory called 'types', a directory called 'typeclasses', a directory called 'functions' and a directory called 'operators', .
+Contains a json file, a directory called 'types', a directory called 'typeclasses' and a directory called 'operations'.
 
 ### Type
 
