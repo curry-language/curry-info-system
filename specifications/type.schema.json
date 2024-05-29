@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/type.schema.json",
+    "title": "Type",
+    "description": "A type defined in a module.",
+    "type": "object",
+    "properties": {
+        "typeName": {
+            "description": "The name of the type.",
+            "type": "string"
+        },
+        "documentation": {
+            "description": "The documentation of the type.",
+            "type": "string"
+        },
+        "definition": {
+            "description": "The definition of the type.",
+            "type": "string"
+        },
+        "constructors": {
+            "description": "The constructors of the type",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["typeName", "documentation", "definition"]
+}

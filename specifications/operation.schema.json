@@ -1,0 +1,66 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/operation.schema.json",
+    "title": "Operation",
+    "description": "An operation defined in a module.",
+    "type": "object",
+    "properties": {
+        "operation": {
+            "description": "The name of the operation.",
+            "type": "string"
+        },
+        "documentation": {
+            "description": "The documentation of the operation.",
+            "type": "string"
+        },
+        "sourceCode": {
+            "description": "The source code of the typeclass.",
+            "type": "string"
+        },
+        "signature": {
+            "description": "The signature of the operation.",
+            "type": "string"
+        },
+        "infix": {
+            "description": "What kind of infix the operation is when used infix.",
+            "type": "string",
+            "pattern": "Infix(L|R)?"
+        },
+        "precedence": {
+            "description": "The precedence of the operation when used infix",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
+        },
+        "determinism": {
+            "description": "Whether the operation is deterministic or non-deterministic.",
+            "type": "string",
+            "pattern": "(Det|NDet)"
+        },
+        "demandness": {
+            "description": "List of argument indeces that are required to compute a result.",
+            "type": "array",
+            "items": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        "indeterminism": {
+            "description": "Whether the operation is indeterministic.",
+            "type": "boolean"
+        },
+        "solutionCompleteness": {
+            "description": "Whether the operation is solution complete.",
+            "type": "boolean"
+        },
+        "termination": {
+            "description": "Whether the operation is sure to always terminate.",
+            "type": "boolean"
+        },
+        "totallyDefined": {
+            "description": "Whether the operation is totally defined.",
+            "type": "boolean"
+        }
+    },
+    "required": ["operation", "documentation", "signature"]
+}

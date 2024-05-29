@@ -32,9 +32,9 @@ The respective json files contain the following information.
 
 ### Version
 
+* Version (String)
 * Documentation (Doc)
 * Categories ([String])
-* Version (String)
 * Modules ([String])
 
 ### Module
@@ -45,21 +45,20 @@ The respective json files contain the following information.
 * Exports ([Export])
 * Typeclasses ([Typeclass])
 * Types ([Type])
-* Functions ([Function])
-* Operators ([Operator])
+* Operations ([Operation])
 * Analysis Table (Analysis results for functions, types and typeclasses)
 
 ### Type
 
 * Documentation (Doc)
-* External/Constructors (Either External [Constructor])
 * Definition (Type)
+* External/Constructors (Either External [Constructor])
 
 ### Typeclass
 
 * Documentation (Doc)
-* Methods ([Signature])
 * Definition (TypeClass)
+* Methods ([Signature])
 
 ### Operations
 

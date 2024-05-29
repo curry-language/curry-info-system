@@ -1,0 +1,32 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/version.schema.json",
+    "title": "Version",
+    "description": "The version of a package.",
+    "type": "object",
+    "properties": {
+        "version": {
+            "description": "The version number.",
+            "type": "string"
+        },
+        "documentation": {
+            "description": "The description of the package of this version.",
+            "type": "string"
+        },
+        "categories": {
+            "description": "The categories this version of the package belongs to.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "modules": {
+            "description": "The modules this version contains.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["version", "documentation", "modules"]
+}

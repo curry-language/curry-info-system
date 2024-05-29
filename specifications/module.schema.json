@@ -1,0 +1,55 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/module.schema.json",
+    "title": "Module",
+    "description": "A module of a package.",
+    "type": "object",
+    "properties": {
+        "module": {
+            "description": "The name of the module.",
+            "type": "string"
+        },
+        "documentation": {
+            "description": "The documentation of the module.",
+            "type": "string"
+        },
+        "sourceCode": {
+            "description": "The source code of the module.",
+            "type": "string"
+        },
+        "unsafe": {
+            "description": "True if module is unsafe, False if module is safe.",
+            "type": "boolean"
+        },
+        "exports": {
+            "description": "Types, Typeclasses and Operations the module exports.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 1
+        },
+        "typeclasses": {
+            "description": "The typeclasses defined in the module.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "types": {
+            "description": "The types defined in the module.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "operations": {
+            "description": "The operations defined in the module.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["module", "documentation", "sourceCode", "exports"]
+}

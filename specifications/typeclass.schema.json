@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/typeclass.schema.json",
+    "title": "Typeclass",
+    "description": "A typeclass defined in a module.",
+    "type": "object",
+    "properties": {
+        "typeclass": {
+            "description": "The name of the typeclass.",
+            "type": "string"
+        },
+        "documentation": {
+            "description": "The documentation of the typeclass.",
+            "type": "string"
+        },
+        "definition": {
+            "description": "The definition of the typeclass.",
+            "type": "string"
+        },
+        "methods": {
+            "description": "The methods of the typeclass.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["typeclass", "documentation", "definition", "methods"]
+}
