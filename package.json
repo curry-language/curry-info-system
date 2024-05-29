@@ -1,0 +1,13 @@
+{
+  "name": "CurryAnalysisInfrastructure",
+  "version": "0.0.1",
+  "author": "YOUR NAME <YOUR EMAIL ADDRESS>",
+  "synopsis": "PLEASE PROVIDE A ONE-LINE SUMMARY ABOUT THE PACKAGE",
+  "category": [ "Programming" ],
+  "license": "BSD-3-Clause",
+  "licenseFile": "LICENSE",
+  "dependencies": {
+    "base": " ^3.2.0",
+    "wl-pprint": " >= 3.0.0,  < 4.0.0"
+  }
+}
