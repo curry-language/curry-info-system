@@ -2,6 +2,16 @@ module CurryAnalysisInfrastructure.Types where
 
 import Text.Pretty (Doc)
 
+data PackageInformation
+    = PackageName String
+    | PackageVersions [Version]
+
+data VersionInformation
+    = VersionVersion Version
+    | VersionDocumentation Doc
+    | VersionCategories [Category]
+    | VersionModules [Module]
+
 data ModuleInformation
     = ModuleDocumentation Doc
     | ModuleSourceCode Doc
@@ -9,7 +19,7 @@ data ModuleInformation
     | ModuleExports [Export]
     | ModuleTypeclasses [Typeclass]
     | ModuleTypes [Type]
-    | MoudleOperations [Operation]
+    | ModuleOperations [Operation]
 
 data TypeInformation
     = TypeDocumentation Doc
@@ -40,6 +50,7 @@ data Infix = Infix | InfixL | InfixR
 type Precedence = Int
 
 data Determinism = Det | NDet
+    deriving (Read, Show)
 
 type External = ()
 
@@ -53,4 +64,10 @@ type Typeclass = String
 
 type Export = String
 
-data Signature 
+type Signature = String
+
+type Version = String
+
+type Module = String
+
+type Category = String
