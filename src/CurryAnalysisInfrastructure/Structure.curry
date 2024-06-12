@@ -1,6 +1,6 @@
 module CurryAnalysisInfrastructure.Structure where
 
-import CurryAnalysisInfrastructure.Paths (index, root)
+import CurryAnalysisInfrastructure.Paths
 
 import System.Directory
 
@@ -14,23 +14,26 @@ initializePackageDirectory pkg = do
     -- Jump to home directory
     setCurrentDirectory home
 
-    -- Get information about pkg
-    i <- index
-    b <- doesDirectoryExist (i ++ pkg)
+    {-
     tmp <- getDirectoryContents (home ++ "/.cpm/index")
     print tmp
     tmp <- doesDirectoryExist (home ++ "/.cpm/index")
     print tmp
+    -}
+
+    -- Create pkg directory
+    path <- packagesPath
+    createDirectoryIfMissing True (path ++ pkg)
+    setCurrentDirectory (path ++ pkg)
+
+    -- Get information about pkg
+    i <- index
+    b <- doesDirectoryExist (i ++ pkg)
     versions <- if b then do
                     contents <- getDirectoryContents (i ++ pkg)
                     return (drop 2 contents)
                 else do
                     return []
-
-    -- Create pkg directory
-    r <- root
-    createDirectoryIfMissing True (r ++ pkg)
-    setCurrentDirectory (r ++ pkg)
 
     -- Create directories for each version
     mapM_ (initializeVersionDirectory pkg) versions
@@ -44,13 +47,13 @@ initializeVersionDirectory pkg vsn = do
     -- Save current directory
     current <- getCurrentDirectory
 
+    -- Create version directory
+    path <- versionsPath pkg
+    createDirectoryIfMissing True (path ++ vsn)
+    setCurrentDirectory (path ++ vsn)
+
     -- Get information about vsn in pkg
     ---
-
-    -- Create version directory
-    let r = "versions/"
-    createDirectoryIfMissing True (r ++ vsn)
-    setCurrentDirectory (r ++ vsn)
 
     -- Create directories for each module
     let mods = []
@@ -65,13 +68,13 @@ initializeModuleDirectory pkg vsn m = do
     -- Save current directory
     current <- getCurrentDirectory
 
+    -- Create module directory
+    path <- modulesPath pkg vsn
+    createDirectoryIfMissing True (path ++ m)
+    setCurrentDirectory (path ++ m)
+
     -- Get information about m in vsn in pkg
     ---
-
-    -- Create module directory
-    let r = "modules/"
-    createDirectoryIfMissing True (r ++ m)
-    setCurrentDirectory (r ++ m)
 
     -- Create directories for each operation
     let ops = []
