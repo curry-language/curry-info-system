@@ -11,7 +11,7 @@ import JSON.Parser
 readPackage :: String -> IO (Maybe [PackageInformation])
 readPackage pkg = do
     path <- packagesPath
-    let filename = path ++ pkg ++ ".json"
+    let filename = path ++ pkg ++ "/" ++ pkg ++ ".json"
     b <- doesFileExist filename
     if b
         then do
