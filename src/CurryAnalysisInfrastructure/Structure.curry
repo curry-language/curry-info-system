@@ -4,6 +4,7 @@ import CurryAnalysisInfrastructure.Paths (index, root)
 
 import System.Directory
 
+--- This functions generates a directory structure for the given package. Only directories are created.
 initializePackageDirectory :: String -> IO ()
 initializePackageDirectory pkg = do
     -- Save current directory
@@ -37,6 +38,7 @@ initializePackageDirectory pkg = do
     -- Return to initial directory
     setCurrentDirectory current
 
+--- This function generates a directory structure for a version of a package. Only directories are created.
 initializeVersionDirectory :: String -> String -> IO ()
 initializeVersionDirectory pkg vsn = do
     -- Save current directory
@@ -57,6 +59,7 @@ initializeVersionDirectory pkg vsn = do
     -- Return to initial directory
     setCurrentDirectory current
 
+--- This function generates a directory structure for a module of a version of a package. Only directories are created.
 initializeModuleDirectory :: String -> String -> String -> IO ()
 initializeModuleDirectory pkg vsn m = do
     -- Save current directory
@@ -85,11 +88,14 @@ initializeModuleDirectory pkg vsn m = do
     -- Return to initial directory
     setCurrentDirectory current
 
+--- This function generates a directory structure for a operation of a module of a version of a package. Only directories are created.
 initializeOperationDirectory :: String -> String -> String -> String -> IO ()
 initializeOperationDirectory pkg vsn m op = return ()
 
+--- This function generates a directory structure for a type of a module of a version of a package. Only directories are created.
 initializeTypeDirectory :: String -> String -> String -> String -> IO ()
 initializeTypeDirectory pkg vsn m t = return ()
 
+--- This function generates a directory structure for a typeclass of a module of a version of a package. Only directories are created.
 initializeTypeClassDirectory :: String -> String -> String -> String -> IO ()
 initializeTypeClassDirectory pkg vsn m tc = return ()
