@@ -2,9 +2,6 @@ module CurryAnalysisInfrastructure.Structure where
 
 import System.Directory
 
-index :: String
-index = "~/.cpm/index/"
-
 initializePackageDirectory :: String -> IO ()
 initializePackageDirectory pkg = do
     -- Save current directory
@@ -15,17 +12,22 @@ initializePackageDirectory pkg = do
     setCurrentDirectory home
 
     -- Get information about pkg
-    b <- doesDirectoryExist (index ++ pkg)
+    i <- index
+    b <- doesDirectoryExist (i ++ pkg)
+    tmp <- getDirectoryContents (home ++ "/.cpm/index")
+    print tmp
+    tmp <- doesDirectoryExist (home ++ "/.cpm/index")
+    print tmp
     versions <- if b then do
-                    contents <- getDirectoryContents (index ++ pkg)
+                    contents <- getDirectoryContents (i ++ pkg)
                     return (drop 2 contents)
                 else do
                     return []
 
     -- Create pkg directory
-    let root = home ++ ".curryanalysis/"
-    createDirectoryIfMissing True (root ++ pkg)
-    setCurrentDirectory (root ++ pkg)
+    r <- root
+    createDirectoryIfMissing True (r ++ pkg)
+    setCurrentDirectory (r ++ pkg)
 
     -- Create directories for each version
     mapM_ (initializeVersionDirectory pkg) versions
@@ -42,9 +44,9 @@ initializeVersionDirectory pkg vsn = do
     ---
 
     -- Create version directory
-    let root = "versions"
-    createDirectoryIfMissing True (root ++ vsn)
-    setCurrentDirectory (root ++ vsn)
+    let r = "versions/"
+    createDirectoryIfMissing True (r ++ vsn)
+    setCurrentDirectory (r ++ vsn)
 
     -- Create directories for each module
     let mods = []
@@ -62,9 +64,9 @@ initializeModuleDirectory pkg vsn m = do
     ---
 
     -- Create module directory
-    let root = "modules"
-    createDirectoryIfMissing True (root ++ m)
-    setCurrentDirectory (root ++ m)
+    let r = "modules/"
+    createDirectoryIfMissing True (r ++ m)
+    setCurrentDirectory (r ++ m)
 
     -- Create directories for each operation
     let ops = []
