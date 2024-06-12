@@ -1,5 +1,7 @@
 module CurryAnalysisInfrastructure.Structure where
 
+import CurryAnalysisInfrastructure.Paths (index, root)
+
 import System.Directory
 
 initializePackageDirectory :: String -> IO ()
