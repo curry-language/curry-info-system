@@ -6,7 +6,9 @@ import CurryAnalysisInfrastructure.Paths
 import System.Directory
 import JSON.Parser
 
+-- PACKAGE
 
+--- This function reads the given json file and returns the parsed result. If the file does not exist, Nothing is returned.
 readJSONFile :: JParser a => String -> IO (Maybe [a])
 readJSONFile filename = do
     b <- doesFileExist filename
@@ -39,3 +41,34 @@ getPackageVersions pkginfos = case pkginfos of
     PackageVersions vsns : _ -> Just (PackageVersions vsns)
     _ : xs -> getPackageVersions xs
     [] -> Nothing
+
+-- VERSION
+
+readVersion :: String -> String -> IO (Maybe [VersionInformation])
+readVersion pkg vsn = do
+    filename <- getVersionFilePath pkg vsn
+    readJSONFile filename
+
+getVersionVersion :: [VersionInformation] -> Maybe VersionInformation
+getVersionVersion vsninfos = case vsninfos of
+    VersionVersion vsn : _ -> Just (VersionVersion vsn)
+    _ : xs -> getVersionVersion xs
+    _ -> Nothing
+
+getVersionDocumentation :: [VersionInformation] -> Maybe VersionInformation
+getVersionDocumentation vsninfos = case vsninfos of
+    VersionDocumentation doc : _ -> Just (VersionDocumentation doc)
+    _ : xs -> getVersionVersion xs
+    _ -> Nothing
+
+getVersionCategories :: [VersionInformation] -> Maybe VersionInformation
+getVersionCategories vsninfos = case vsninfos of
+    VersionCategories cats : _ -> Just (VersionCategories cats)
+    _ : xs -> getVersionCategories xs
+    _ -> Nothing
+
+getVersionModules :: [VersionInformation] -> Maybe VersionInformation
+getVersionModules vsninfos = case vsninfos of
+    VersionModules mods : _ -> Just (VersionModules mods)
+    _ : xs -> getVersionModules xs
+    _ -> Nothing

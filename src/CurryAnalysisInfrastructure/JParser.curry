@@ -3,6 +3,7 @@ module CurryAnalysisInfrastructure.JParser where
 import CurryAnalysisInfrastructure.Types
 
 import JSON.Data
+import Text.Pretty (text)
 
 --- This function takes a json value and returns the parsed list of fields, if every field is parsed successfully.
 --- If any field fails to be parsed, Nothing is returned.
@@ -16,6 +17,8 @@ jparse jv = case jv of
 class JParser a where
     jparseField :: (String, JValue) -> Maybe a
 
+-- PACKAGE
+
 instance JParser PackageInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "Package" -> case fieldvalue of 
@@ -23,10 +26,32 @@ instance JParser PackageInformation where
             _ -> Nothing
         "Versions" -> case fieldvalue of
             JArray jvsns -> case sequence $ map getString jvsns of
-                Just vsns -> Just (PackageVersions vsns)
+                Just vsns -> return (PackageVersions vsns)
                 Nothing -> Nothing
             _ -> Nothing
         _ -> Nothing
+
+-- VERSION
+
+instance JParser VersionInformation where
+    jparseField (fieldname, fieldvalue) = case fieldname of
+        "Version" -> case fieldvalue of
+            JString vsn -> return (VersionVersion vsn)
+            _ -> Nothing
+        "Documentation" -> case fieldvalue of
+            JString doc -> return (VersionDocumentation (text doc))
+            _ -> Nothing
+        "Categories" -> case fieldvalue of
+            JArray jcats -> case sequence $ map getString jcats of
+                Just cats -> return (VersionCategories cats)
+                Nothing -> Nothing
+            _ -> Nothing
+        "Modules" -> case fieldvalue of 
+            JArray jmods -> case sequence $ map getString jmods of
+                Just mods -> return (VersionModules mods)
+                Nothing -> Nothing
+            _ -> Nothing 
+        _ -> Nothing 
 
 ------------------------------------------------------------------------
 
