@@ -9,7 +9,8 @@ import JSON.Data
 jparse :: JParser a => JValue -> Maybe [a]
 jparse jv = case jv of
     JObject fields ->
-        sequence (map jparseField fields)
+        let parsedFields = map jparseField fields
+        in sequence parsedFields
     _ -> Nothing
 
 class JParser a where
@@ -17,7 +18,7 @@ class JParser a where
 
 instance JParser PackageInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Name" -> case fieldvalue of 
+        "Package" -> case fieldvalue of 
             JString name -> return (PackageName name)
             _ -> Nothing
         "Versions" -> case fieldvalue of

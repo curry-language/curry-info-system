@@ -1,25 +1,28 @@
 module CurryAnalysisInfrastructure.InformationRead where
 
-import CurryAnalysisInfrastructure.JParser (jparse)
+import CurryAnalysisInfrastructure.JParser (JParser, jparse)
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import System.Directory
 import JSON.Parser
+
+
+readJSONFile :: JParser a => String -> IO (Maybe [a])
+readJSONFile filename = do
+    b <- doesFileExist filename
+    if b
+        then do
+            text <- readFile filename
+            return (maybe Nothing jparse (parseJSON text))
+        else do
+            return Nothing
 
 --- This function looks for a json-file for the given package. If it finds the file, it is read and parsed to get the information out of it.
 --- If any field does not match the scheme, Nothing is returned. If the files doesn't exists, Nothing is returned.
 readPackage :: String -> IO (Maybe [PackageInformation])
 readPackage pkg = do
     filename <- getPackageFilePath pkg
-    b <- doesFileExist filename
-    if b
-        then do
-            text <- readFile filename
-            case parseJSON text of
-                Just jvalue -> return (jparse jvalue)
-                Nothing -> return Nothing
-        else do
-            return Nothing
+    readJSONFile filename
 
 --- This function looks for the name of a package in a list of information about a package. Only the first instance of such an information is returned.
 --- If no name is in the list, Nothing is returned.
