@@ -51,3 +51,13 @@ operationsPath :: String -> String -> String -> IO String
 operationsPath pkg vsn m = do 
     path <- modulesPath pkg vsn
     return (path ++ m ++ "/operations/")
+
+getPackageFilePath :: String -> IO String
+getPackageFilePath pkg = do
+    path <- packagesPath
+    return (path ++ pkg ++ "/" ++ pkg ++ ".json")
+
+getVersionFilePath :: String -> String -> IO String
+getVersionFilePath pkg vsn = do
+    path <- versionsPath pkg
+    return (path ++ vsn ++ "/" ++ vsn ++ ".json")

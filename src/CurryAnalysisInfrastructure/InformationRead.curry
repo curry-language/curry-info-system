@@ -2,7 +2,7 @@ module CurryAnalysisInfrastructure.InformationRead where
 
 import CurryAnalysisInfrastructure.JParser (jparse)
 import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Paths (packagesPath)
+import CurryAnalysisInfrastructure.Paths
 import System.Directory
 import JSON.Parser
 
@@ -10,8 +10,7 @@ import JSON.Parser
 --- If any field does not match the scheme, Nothing is returned. If the files doesn't exists, Nothing is returned.
 readPackage :: String -> IO (Maybe [PackageInformation])
 readPackage pkg = do
-    path <- packagesPath
-    let filename = path ++ pkg ++ "/" ++ pkg ++ ".json"
+    filename <- getPackageFilePath pkg
     b <- doesFileExist filename
     if b
         then do
