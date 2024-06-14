@@ -1,6 +1,6 @@
 module CurryAnalysisInfrastructure.InformationGenerate where
 
-import CurryAnalysisInfrastructure.InformationRead (readPackage)
+import CurryAnalysisInfrastructure.InformationRead (readPackage, readVersion)
 import CurryAnalysisInfrastructure.JPretty (json)
 import CurryAnalysisInfrastructure.JParser (jparse)
 import CurryAnalysisInfrastructure.Types
@@ -8,21 +8,24 @@ import CurryAnalysisInfrastructure.Paths
 import System.Directory
 import JSON.Pretty (ppJSON)
 
+import Text.Pretty (Doc, empty)
+
 getInfos :: Maybe [a] -> [a]
 getInfos = maybe [] id
 
+findAndReplace :: (a -> Bool) -> a -> [a] -> [a]
+findAndReplace _ x [] = [x]
+findAndReplace check x (y:ys) 
+    | check y = x:ys
+    | otherwise = y : findAndReplace check x ys
+
+-- Package
+
 overwritePackageName :: String -> [PackageInformation] -> [PackageInformation]
-overwritePackageName name infos = case infos of
-    (PackageName _) : xs -> (PackageName name) : xs
-    x : xs -> x : overwritePackageName name xs
-    [] -> [PackageName name]
+overwritePackageName name = findAndReplace isPackageName (PackageName name)
 
 overwritePackageVersions :: [String] -> [PackageInformation] -> [PackageInformation]
-overwritePackageVersions vsns infos = case infos of
-    (PackageVersions _) : xs -> (PackageVersions vsns) : xs
-    x : xs -> x : overwritePackageVersions vsns xs
-    [] -> [PackageVersions vsns]
-    
+overwritePackageVersions vsns = findAndReplace isPackageVersions (PackageVersions vsns)
 
 generatePackageName :: String -> IO ()
 generatePackageName pkg = do
@@ -53,4 +56,79 @@ generatePackageVersions pkg = do
     
     -- Write updated information back to json file
     filename <- getPackageFilePath pkg
+    writeFile filename jtext
+
+-- VERSION
+
+overwriteVersionVersion :: String -> [VersionInformation] -> [VersionInformation]
+overwriteVersionVersion vsn = findAndReplace isVersionVersion (VersionVersion vsn)
+
+overwriteVersionDocumentation :: Doc -> [VersionInformation] -> [VersionInformation]
+overwriteVersionDocumentation doc = findAndReplace isVersionDocumentation (VersionDocumentation doc)
+
+overwriteVersionCategories :: [String] -> [VersionInformation] -> [VersionInformation]
+overwriteVersionCategories cats = findAndReplace isVersionCategories (VersionCategories cats)
+
+overwriteVersionModules :: [String] -> [VersionInformation] -> [VersionInformation]
+overwriteVersionModules mods = findAndReplace isVersionModules (VersionModules mods)
+
+generateVersionVersion :: String -> String -> IO ()
+generateVersionVersion pkg vsn = do
+    -- Read vsn.json
+    result <- readVersion pkg vsn
+    let vsninfos = getInfos result
+
+    -- Add or overwrite old value with generated value
+    let jtext = (ppJSON . json) (overwriteVersionVersion vsn vsninfos)
+
+    -- Write updated information back to json file
+    filename <- getVersionFilePath pkg vsn
+    writeFile filename jtext
+
+generateVersionDocumentation :: String -> String -> IO ()
+generateVersionDocumentation pkg vsn = do
+    -- Read vsn.json
+    result <- readVersion pkg vsn
+    let vsninfos = getInfos result
+
+    -- Get information
+    let doc = Text.Pretty.empty
+
+    -- Add or overwrite old value with generated value
+    let jtext = (ppJSON . json) (overwriteVersionDocumentation doc vsninfos)
+
+    -- Write updated information back to json file
+    filename <- getVersionFilePath pkg vsn
+    writeFile filename jtext
+
+generateVersionCategories :: String -> String -> IO ()
+generateVersionCategories pkg vsn = do
+    -- Read vsn.json
+    result <- readVersion pkg vsn
+    let vsninfos = getInfos result
+
+    -- Get information
+    let cats = []
+
+    -- Add or overwrite old value with generated value
+    let jtext = (ppJSON . json) (overwriteVersionCategories cats vsninfos)
+
+    -- Write updated information back to json file
+    filename <- getVersionFilePath pkg vsn
+    writeFile filename jtext
+
+generateVersionModules :: String -> String -> IO ()
+generateVersionModules pkg vsn = do
+    -- Read vsn.json
+    result <- readVersion pkg vsn
+    let vsninfos = getInfos result
+
+    -- Get information
+    let mods = []
+
+    -- Add or overwrite old value with generated value
+    let jtext = (ppJSON . json) (overwriteVersionModules mods vsninfos)
+
+    -- Write updated information back to json file
+    filename <- getVersionFilePath pkg vsn
     writeFile filename jtext
