@@ -30,8 +30,7 @@ initializePackageDirectory pkg = do
     i <- index
     b <- doesDirectoryExist (i ++ pkg)
     versions <- if b then do
-                    contents <- getDirectoryContents (i ++ pkg)
-                    return (drop 2 contents)
+                    getReducedDirectoryContents (i ++ pkg)
                 else do
                     return []
 

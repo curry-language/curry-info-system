@@ -2,6 +2,9 @@ module CurryAnalysisInfrastructure.Paths where
 
 import System.Directory
 
+getReducedDirectoryContents :: String -> IO [String]
+getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
+
 --- This action returns the path to the index of the package manager.
 index :: IO String
 index = do

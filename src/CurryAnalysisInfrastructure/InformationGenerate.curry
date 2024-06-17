@@ -50,10 +50,10 @@ generatePackageVersions pkg = do
     -- Get information from index
     i <- index
     let packageDir = i ++ pkg ++ "/"
-    contents <- getDirectoryContents packageDir
+    contents <- getReducedDirectoryContents packageDir
 
     -- Add or overwrite old value with generated value
-    let jtext = (ppJSON . json) (overwritePackageVersions (drop 2 contents) pkginfos)
+    let jtext = (ppJSON . json) (overwritePackageVersions contents pkginfos)
     
     -- Write updated information back to json file
     filename <- getPackageFilePath pkg
