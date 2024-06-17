@@ -94,7 +94,6 @@ generateVersionDocumentation pkg vsn = do
 
     -- Get information
     t <- readInstalledPackageREADME pkg vsn
-    print (take 20 t)
     let doc = text t 
 
     -- Add or overwrite old value with generated value
@@ -128,7 +127,8 @@ generateVersionModules pkg vsn = do
     let vsninfos = getInfos result
 
     -- Get information
-    let mods = []
+    jvalue <- readIndexJSON pkg vsn
+    let mods = maybe [] (\x -> maybe [] id (getExportedModules x)) jvalue
 
     -- Add or overwrite old value with generated value
     let jtext = (ppJSON . json) (overwriteVersionModules mods vsninfos)
@@ -143,6 +143,15 @@ getCategories :: JValue -> Maybe [String]
 getCategories jvalue = case jvalue of
     JObject fields -> do
         value <- lookupField "category" fields
+        case value of
+            JArray arr -> sequence $ map getString arr
+            _ -> Nothing
+    _ -> Nothing
+
+getExportedModules :: JValue -> Maybe [String]
+getExportedModules jvalue = case jvalue of
+    JObject fields -> do
+        value <- lookupField "exportedModules" fields
         case value of
             JArray arr -> sequence $ map getString arr
             _ -> Nothing
