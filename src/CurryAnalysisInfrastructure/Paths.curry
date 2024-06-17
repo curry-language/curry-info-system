@@ -15,6 +15,11 @@ root = do
     home <- getHomeDirectory
     return (home ++ "/tmp" ++ "/.curryanalysis/")
 
+installedPackagesPath :: IO String
+installedPackagesPath = do
+    home <- getHomeDirectory
+    return (home ++ "/.cpm/packages/")
+
 --- This action returns the path where the directories for the packages are saved,
 --- for which information has been gathered.
 packagesPath :: IO String

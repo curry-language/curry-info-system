@@ -1,6 +1,6 @@
 module CurryAnalysisInfrastructure.InformationGenerate where
 
-import CurryAnalysisInfrastructure.InformationRead (readIndexJSON, readPackage, readVersion)
+import CurryAnalysisInfrastructure.InformationRead (readIndexJSON, readInstalledPackageREADME, readPackage, readVersion)
 import CurryAnalysisInfrastructure.JPretty (json)
 import CurryAnalysisInfrastructure.JParser (jparse, lookupField, getString)
 import CurryAnalysisInfrastructure.Types
@@ -9,7 +9,7 @@ import System.Directory
 import JSON.Pretty (ppJSON)
 import JSON.Data
 
-import Text.Pretty (Doc, empty)
+import Text.Pretty (Doc, empty, text)
 
 getInfos :: Maybe [a] -> [a]
 getInfos = maybe [] id
@@ -93,7 +93,9 @@ generateVersionDocumentation pkg vsn = do
     let vsninfos = getInfos result
 
     -- Get information
-    let doc = Text.Pretty.empty
+    t <- readInstalledPackageREADME pkg vsn
+    print (take 20 t)
+    let doc = text t 
 
     -- Add or overwrite old value with generated value
     let jtext = (ppJSON . json) (overwriteVersionDocumentation doc vsninfos)
@@ -111,7 +113,6 @@ generateVersionCategories pkg vsn = do
     -- Get information
     jvalue <- readIndexJSON pkg vsn
     let cats = maybe [] (\x -> maybe [] id (getCategories x)) jvalue
-    print cats
 
     -- Add or overwrite old value with generated value
     let jtext = (ppJSON . json) (overwriteVersionCategories cats vsninfos)

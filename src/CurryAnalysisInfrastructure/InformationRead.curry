@@ -81,3 +81,9 @@ readIndexJSON pkg vsn = do
     path <- index
     t <- readFile (path ++ pkg ++ "/" ++ vsn ++ "/package.json")
     return (parseJSON t)
+
+readInstalledPackageREADME :: String -> String -> IO String
+readInstalledPackageREADME pkg vsn = do
+    path <- installedPackagesPath
+    t <- readFile (path ++ pkg ++ "-" ++ vsn ++ "/README.md")
+    return t
