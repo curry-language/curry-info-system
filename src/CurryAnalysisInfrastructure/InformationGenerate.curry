@@ -1,12 +1,13 @@
 module CurryAnalysisInfrastructure.InformationGenerate where
 
-import CurryAnalysisInfrastructure.InformationRead (readPackage, readVersion)
+import CurryAnalysisInfrastructure.InformationRead (readIndexJSON, readPackage, readVersion)
 import CurryAnalysisInfrastructure.JPretty (json)
-import CurryAnalysisInfrastructure.JParser (jparse)
+import CurryAnalysisInfrastructure.JParser (jparse, lookupField, getString)
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import System.Directory
 import JSON.Pretty (ppJSON)
+import JSON.Data
 
 import Text.Pretty (Doc, empty)
 
@@ -108,7 +109,9 @@ generateVersionCategories pkg vsn = do
     let vsninfos = getInfos result
 
     -- Get information
-    let cats = []
+    jvalue <- readIndexJSON pkg vsn
+    let cats = maybe [] (\x -> maybe [] id (getCategories x)) jvalue
+    print cats
 
     -- Add or overwrite old value with generated value
     let jtext = (ppJSON . json) (overwriteVersionCategories cats vsninfos)
@@ -132,3 +135,14 @@ generateVersionModules pkg vsn = do
     -- Write updated information back to json file
     filename <- getVersionFilePath pkg vsn
     writeFile filename jtext
+
+-- HELPER
+
+getCategories :: JValue -> Maybe [String]
+getCategories jvalue = case jvalue of
+    JObject fields -> do
+        value <- lookupField "category" fields
+        case value of
+            JArray arr -> sequence $ map getString arr
+            _ -> Nothing
+    _ -> Nothing

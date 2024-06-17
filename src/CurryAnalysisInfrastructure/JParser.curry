@@ -4,6 +4,7 @@ import CurryAnalysisInfrastructure.Types
 
 import JSON.Data
 import Text.Pretty (text)
+import Data.List (find)
 
 --- This function takes a json value and returns the parsed list of fields, if every field is parsed successfully.
 --- If any field fails to be parsed, Nothing is returned.
@@ -76,3 +77,6 @@ getNumber :: JValue -> Maybe Float
 getNumber jv = case jv of 
     JNumber n -> Just n
     _ -> Nothing
+
+lookupField :: Eq a => a -> [(a, b)] -> Maybe b
+lookupField fieldname fields = fmap snd $ find (\(name, _) -> name == fieldname) fields

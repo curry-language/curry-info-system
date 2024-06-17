@@ -4,6 +4,7 @@ import CurryAnalysisInfrastructure.JParser (JParser, jparse)
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import System.Directory
+import JSON.Data (JValue)
 import JSON.Parser
 
 -- PACKAGE
@@ -72,3 +73,11 @@ getVersionModules vsninfos = case vsninfos of
     VersionModules mods : _ -> Just (VersionModules mods)
     _ : xs -> getVersionModules xs
     _ -> Nothing
+
+-- HELPER
+
+readIndexJSON :: String -> String -> IO (Maybe JValue)
+readIndexJSON pkg vsn = do
+    path <- index
+    t <- readFile (path ++ pkg ++ "/" ++ vsn ++ "/package.json")
+    return (parseJSON t)
