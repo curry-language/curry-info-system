@@ -69,3 +69,8 @@ getVersionFilePath :: String -> String -> IO String
 getVersionFilePath pkg vsn = do
     path <- versionsPath pkg
     return (path ++ vsn ++ "/" ++ vsn ++ ".json")
+
+getModuleFilePath :: String -> String -> String -> IO String
+getModuleFilePath pkg vsn m = do
+    path <- modulesPath pkg vsn
+    return (path ++ m ++ "/" ++ m ++ ".json")
