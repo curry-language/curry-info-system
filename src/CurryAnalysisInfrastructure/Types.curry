@@ -43,13 +43,54 @@ isVersionModules x = case x of
     _ -> False
 
 data ModuleInformation
-    = ModuleDocumentation Doc
+    = ModuleName String
+    | ModuleDocumentation Doc
     | ModuleSourceCode Doc
     | ModuleUnsafe Bool
     | ModuleExports [Export]
     | ModuleTypeclasses [Typeclass]
     | ModuleTypes [Type]
     | ModuleOperations [Operation]
+
+isModuleName :: ModuleInformation -> Bool
+isModuleName x = case x of
+    ModuleName _ -> True 
+    _ -> False
+
+isModuleDocumentation :: ModuleInformation -> Bool
+isModuleDocumentation x = case x of
+    ModuleDocumentation _ -> True 
+    _ -> False
+
+isModuleSourceCode :: ModuleInformation -> Bool
+isModuleSourceCode x = case x of
+    ModuleSourceCode _ -> True 
+    _ -> False
+
+isModuleUnsafe :: ModuleInformation -> Bool
+isModuleUnsafe x = case x of
+    ModuleUnsafe _ -> True 
+    _ -> False
+
+isModuleExports :: ModuleInformation -> Bool
+isModuleExports x = case x of
+    ModuleExports _ -> True 
+    _ -> False
+
+isModuleTypeclasses :: ModuleInformation -> Bool
+isModuleTypeclasses x = case x of
+    ModuleTypeclasses _ -> True 
+    _ -> False
+
+isModuleTypes :: ModuleInformation -> Bool
+isModuleTypes x = case x of
+    ModuleTypes _ -> True 
+    _ -> False
+
+isModuleOperations :: ModuleInformation -> Bool
+isModuleOperations x = case x of
+    ModuleOperations _ -> True 
+    _ -> False
 
 data TypeInformation
     = TypeDocumentation Doc
