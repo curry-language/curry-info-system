@@ -54,6 +54,44 @@ instance JParser VersionInformation where
             _ -> Nothing 
         _ -> Nothing 
 
+-- MODULE
+
+instance JParser ModuleInformation where
+    jparseField (fieldname, fieldvalue) = case fieldname of
+        "Module" -> case fieldvalue of
+            JString m -> return (ModuleName m)
+            _ -> Nothing
+        "Documentation" -> case fieldvalue of
+            JString doc -> return (ModuleDocumentation (text doc))
+            _ -> Nothing
+        "SourceCode" -> case fieldvalue of
+            JString source -> return (ModuleSourceCode (text source))
+            _ -> Nothing
+        "Unsafe" -> case fieldvalue of 
+            JTrue -> return (ModuleUnsafe True)
+            JFalse -> return (ModuleUnsafe False)
+            _ -> Nothing 
+        "Exports" -> case fieldvalue of
+            JArray jexports -> case sequence $ map getString jexports of
+                Just exports -> return (ModuleExports exports)
+                Nothing -> Nothing
+            _ -> Nothing
+        "Typeclasses" -> case fieldvalue of
+            JArray jtypeclasses -> case sequence $ map getString jtypeclasses of
+                Just typeclasses -> return (ModuleExports typeclasses)
+                Nothing -> Nothing
+            _ -> Nothing
+        "Types" -> case fieldvalue of
+            JArray jtypes -> case sequence $ map getString jtypes of
+                Just types -> return (ModuleExports types)
+                Nothing -> Nothing
+            _ -> Nothing
+        "Operations" -> case fieldvalue of
+            JArray joperations -> case sequence $ map getString joperations of
+                Just operations -> return (ModuleExports operations)
+                Nothing -> Nothing
+            _ -> Nothing
+        _ -> Nothing 
 ------------------------------------------------------------------------
 
 --- This function converts a string json value into a regular string.
