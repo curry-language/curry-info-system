@@ -2,6 +2,22 @@ module CurryAnalysisInfrastructure.Types where
 
 import Text.Pretty (Doc)
 
+-- INPUT TYPES
+
+data CurryPackage = CurryPackage Package
+
+data CurryVersion = CurryVersion Package Version
+
+data CurryModule = CurryModule Package Version Module
+
+data CurryType = CurryType Package Version Module Type
+
+data CurryTypeclass = CurryTypeclass Package Version Module Typeclass
+
+data CurryOperation = CurryOperation Package Version Module Operation
+
+-- INFORMATION TYPES
+
 data PackageInformation
     = PackageName String
     | PackageVersions [Version]
@@ -142,3 +158,5 @@ type Version = String
 type Module = String
 
 type Category = String
+
+type Package = String
