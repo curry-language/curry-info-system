@@ -5,93 +5,51 @@ import CurryAnalysisInfrastructure.Types
 import JSON.Data
 import Text.Pretty (text)
 import Data.List (find)
+import Control.Monad (join)
+
+type Field = (String, JValue)
 
 --- This function takes a json value and returns the parsed list of fields, if every field is parsed successfully.
 --- If any field fails to be parsed, Nothing is returned.
 jparse :: JParser a => JValue -> Maybe [a]
-jparse jv = case jv of
-    JObject fields ->
-        let parsedFields = map jparseField fields
-        in sequence parsedFields
-    _ -> Nothing
+jparse jv = join $ mapM jparseField <$> getFields jv
+
 
 class JParser a where
-    jparseField :: (String, JValue) -> Maybe a
+    jparseField :: Field -> Maybe a
 
 -- PACKAGE
 
 instance JParser PackageInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Package" -> case fieldvalue of 
-            JString name -> return (PackageName name)
-            _ -> Nothing
-        "Versions" -> case fieldvalue of
-            JArray jvsns -> case sequence $ map getString jvsns of
-                Just vsns -> return (PackageVersions vsns)
-                Nothing -> Nothing
-            _ -> Nothing
+        "Package" -> PackageName <$> getString fieldvalue
+        "Versions" -> PackageVersions <$> (join $ mapM getString <$> getArray fieldvalue)
         _ -> Nothing
 
 -- VERSION
 
 instance JParser VersionInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Version" -> case fieldvalue of
-            JString vsn -> return (VersionVersion vsn)
-            _ -> Nothing
-        "Documentation" -> case fieldvalue of
-            JString doc -> return (VersionDocumentation (text doc))
-            _ -> Nothing
-        "Categories" -> case fieldvalue of
-            JArray jcats -> case sequence $ map getString jcats of
-                Just cats -> return (VersionCategories cats)
-                Nothing -> Nothing
-            _ -> Nothing
-        "Modules" -> case fieldvalue of 
-            JArray jmods -> case sequence $ map getString jmods of
-                Just mods -> return (VersionModules mods)
-                Nothing -> Nothing
-            _ -> Nothing 
+        "Version" -> VersionVersion <$> getString fieldvalue
+        "Documentation" -> (VersionDocumentation . text) <$> getString fieldvalue
+        "Categories" -> VersionCategories <$> (join $ mapM getString <$> getArray fieldvalue)
+        "Modules" -> VersionModules <$> (join $ mapM getString <$> getArray fieldvalue)
         _ -> Nothing 
 
 -- MODULE
 
 instance JParser ModuleInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Module" -> case fieldvalue of
-            JString m -> return (ModuleName m)
-            _ -> Nothing
-        "Documentation" -> case fieldvalue of
-            JString doc -> return (ModuleDocumentation (text doc))
-            _ -> Nothing
-        "SourceCode" -> case fieldvalue of
-            JString source -> return (ModuleSourceCode (text source))
-            _ -> Nothing
-        "Unsafe" -> case fieldvalue of 
-            JTrue -> return (ModuleUnsafe True)
-            JFalse -> return (ModuleUnsafe False)
-            _ -> Nothing 
-        "Exports" -> case fieldvalue of
-            JArray jexports -> case sequence $ map getString jexports of
-                Just exports -> return (ModuleExports exports)
-                Nothing -> Nothing
-            _ -> Nothing
-        "Typeclasses" -> case fieldvalue of
-            JArray jtypeclasses -> case sequence $ map getString jtypeclasses of
-                Just typeclasses -> return (ModuleExports typeclasses)
-                Nothing -> Nothing
-            _ -> Nothing
-        "Types" -> case fieldvalue of
-            JArray jtypes -> case sequence $ map getString jtypes of
-                Just types -> return (ModuleExports types)
-                Nothing -> Nothing
-            _ -> Nothing
-        "Operations" -> case fieldvalue of
-            JArray joperations -> case sequence $ map getString joperations of
-                Just operations -> return (ModuleExports operations)
-                Nothing -> Nothing
-            _ -> Nothing
-        _ -> Nothing 
+        "Module" -> ModuleName <$> getString fieldvalue
+        "Documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
+        "SourceCode" -> (ModuleSourceCode . text) <$> getString fieldvalue
+        "Unsafe" -> ModuleUnsafe <$> getBool fieldvalue
+        "Exports" -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
+        "Typeclasses" -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
+        "Types" -> ModuleTypes <$> (join $ mapM getString <$> getArray fieldvalue)
+        "Operations" -> ModuleOperations <$> (join $ mapM getString <$> getArray fieldvalue)
+        _ -> Nothing
+
 ------------------------------------------------------------------------
 
 --- This function converts a string json value into a regular string.
@@ -114,6 +72,16 @@ getBool jv = case jv of
 getNumber :: JValue -> Maybe Float
 getNumber jv = case jv of 
     JNumber n -> Just n
+    _ -> Nothing
+
+getArray :: JValue -> Maybe [JValue]
+getArray jv = case jv of
+    JArray x -> Just x
+    _ -> Nothing
+
+getFields :: JValue -> Maybe [Field]
+getFields jv = case jv of
+    JObject x -> Just x
     _ -> Nothing
 
 lookupField :: Eq a => a -> [(a, b)] -> Maybe b
