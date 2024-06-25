@@ -1,6 +1,66 @@
 module CurryAnalysisInfrastructure.Paths where
 
+import CurryAnalysisInfrastructure.Types
+
 import System.Directory
+
+class Path a where
+    getDirectoryPath :: a -> IO String
+    getJSONPath :: a -> IO String
+
+instance Path CurryPackage where
+    getDirectoryPath (CurryPackage pkg) = do
+        path <- root
+        return (path ++ "packages/" ++ pkg ++ "/")
+    
+    getJSONPath x@(CurryPackage pkg) = do
+        path <- getDirectoryPath x
+        return (path ++ pkg ++ ".json")
+
+instance Path CurryVersion where
+    getDirectoryPath (CurryVersion pkg vsn) = do
+        path <- getDirectoryPath (CurryPackage pkg)
+        return (path ++ "versions/" ++ vsn ++ "/")
+    
+    getJSONPath x@(CurryVersion _ vsn) = do
+        path <- getDirectoryPath x
+        return (path ++ vsn ++ ".json")
+
+instance Path CurryModule where
+    getDirectoryPath (CurryModule pkg vsn m) = do
+        path <- getDirectoryPath (CurryVersion pkg vsn)
+        return (path ++ "modules/" ++ m ++ "/")
+    
+    getJSONPath x@(CurryModule _ _ m) = do
+        path <- getDirectoryPath x
+        return (path ++ m ++ ".json")
+
+instance Path CurryType where 
+    getDirectoryPath (CurryType pkg vsn m t) = do
+        path <- getDirectoryPath (CurryModule pkg vsn m)
+        return (path ++ "types/" ++ t ++ "/")
+    
+    getJSONPath x@(CurryType _ _ _ t) = do
+        path <- getDirectoryPath x
+        return (path ++ t ++ ".json")
+
+instance Path CurryTypeclass where 
+    getDirectoryPath (CurryTypeclass pkg vsn m t) = do
+        path <- getDirectoryPath (CurryModule pkg vsn m)
+        return (path ++ "typeclasses/" ++ t ++ "/")
+    
+    getJSONPath x@(CurryTypeclass _ _ _ t) = do
+        path <- getDirectoryPath x
+        return (path ++ t ++ ".json")
+
+instance Path CurryOperation where 
+    getDirectoryPath (CurryOperation pkg vsn m op) = do
+        path <- getDirectoryPath (CurryModule pkg vsn m)
+        return (path ++ "operations/" ++ op ++ "/")
+    
+    getJSONPath x@(CurryOperation _ _ _ op) = do
+        path <- getDirectoryPath x
+        return (path ++ op ++ ".json")    
 
 getReducedDirectoryContents :: String -> IO [String]
 getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
