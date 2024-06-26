@@ -4,6 +4,11 @@ import CurryAnalysisInfrastructure.Paths
 
 import System.Directory
 
+initialize :: IO ()
+initialize = do
+    path <- root
+    createDirectoryIfMissing True (path ++ "checkouts")
+
 --- This functions generates a directory structure for the given package. Only directories are created.
 initializePackageDirectory :: String -> IO ()
 initializePackageDirectory pkg = do
