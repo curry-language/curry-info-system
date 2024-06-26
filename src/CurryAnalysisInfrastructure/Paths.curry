@@ -62,6 +62,12 @@ instance Path CurryOperation where
         path <- getDirectoryPath x
         return (path ++ op ++ ".json")    
 
+toCheckout :: Package -> Version -> String
+toCheckout pkg vsn = pkg ++ "-" ++ vsn
+
+moduleToPath :: Module -> String
+moduleToPath = map (\c -> if c == '.' then '/' else c)
+
 getReducedDirectoryContents :: String -> IO [String]
 getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
 
@@ -77,6 +83,16 @@ root :: IO String
 root = do
     home <- getHomeDirectory
     return (home ++ "/tmp" ++ "/.curryanalysis/")
+
+checkouts :: IO String
+checkouts = do
+    path <- root
+    return (path ++ "checkouts/")
+
+getCheckoutPath :: Package -> Version -> IO String
+getCheckoutPath pkg vsn = do
+    path <- checkouts
+    return (path ++ toCheckout pkg vsn)
 
 installedPackagesPath :: IO String
 installedPackagesPath = do
