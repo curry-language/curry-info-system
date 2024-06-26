@@ -10,8 +10,9 @@ import JSON.Parser (parseJSON)
 
 import System.IOExts (evalCmd)
 import System.Directory (doesDirectoryExist)
+import System.CurryPath (curryModulesInDirectory)
 
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, union)
 
 checkoutIfMissing :: Package -> Version -> IO (Maybe String)
 checkoutIfMissing pkg vsn = do
@@ -73,10 +74,17 @@ generateVersionCategories (CurryVersion pkg vsn) = do
 
 generateVersionModules :: VersionGenerator
 generateVersionModules (CurryVersion pkg vsn) = do
-    -- Get information
-    jvalue <- readIndexJSON pkg vsn
-    let mods = maybe [] (\x -> maybe [] id (getExportedModules x)) jvalue
-    return $ Just $ VersionModules mods
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return Nothing
+        Just dir -> do
+            let src = dir ++ "/src"
+            mods <- curryModulesInDirectory src
+
+            jvalue <- readIndexJSON pkg vsn
+            let exportedMods = maybe [] (\x -> maybe [] id (getExportedModules x)) jvalue
+
+            return $ Just $ VersionModules (union mods exportedMods)
 
 -- MODULE
 
