@@ -9,10 +9,10 @@ import JSON.Data
 import JSON.Parser (parseJSON)
 
 import System.IOExts (evalCmd)
-import System.Directory (doesDirectoryExist)
+import System.Directory (doesDirectoryExist, doesFileExist)
 import System.CurryPath (curryModulesInDirectory)
 
-import Data.List (isPrefixOf, union)
+import Data.List (isPrefixOf, intersect)
 
 checkoutIfMissing :: Package -> Version -> IO (Maybe String)
 checkoutIfMissing pkg vsn = do
@@ -60,36 +60,24 @@ generateVersionVersion (CurryVersion _ vsn) = return $ Just $ VersionVersion vsn
 
 generateVersionDocumentation :: VersionGenerator
 generateVersionDocumentation (CurryVersion pkg vsn) = do
-    -- Get information
-    t <- readInstalledPackageREADME pkg vsn
+    t <- readPackageREADME pkg vsn
     let doc = text t 
     return $ Just $ VersionDocumentation doc
 
 generateVersionCategories :: VersionGenerator
 generateVersionCategories (CurryVersion pkg vsn) = do
-    result <- checkoutIfMissing pkg vsn
-    case result of
-        Nothing -> return Nothing
-        Just dir -> do
-            let packageJSON = dir ++ "/package.json"
-            content <- readFile packageJSON
-            let jvalue = parseJSON content
-            let cats = maybe [] (\x -> maybe [] id (getCategories x)) jvalue
-            return $ Just $ VersionCategories cats
+    packageJSON <- readPackageJSON pkg vsn
+    let cats = maybe [] (\x -> maybe [] id (getCategories x)) (parseJSON packageJSON)
+    return $ Just $ VersionCategories cats
 
 generateVersionModules :: VersionGenerator
 generateVersionModules (CurryVersion pkg vsn) = do
-    result <- checkoutIfMissing pkg vsn
-    case result of
-        Nothing -> return Nothing
-        Just dir -> do
-            let src = dir ++ "/src"
-            mods <- curryModulesInDirectory src
+    allMods <- readPackageModules pkg vsn
 
-            jvalue <- readIndexJSON pkg vsn
-            let exportedMods = maybe [] (\x -> maybe [] id (getExportedModules x)) jvalue
+    packageJSON <- readPackageJSON pkg vsn
+    let exportedMods = maybe [] (\x -> maybe [] id (getExportedModules x)) (parseJSON packageJSON)
 
-            return $ Just $ VersionModules (union mods exportedMods)
+    return $ Just $ VersionModules (intersect allMods exportedMods)
 
 -- MODULE
 
@@ -100,13 +88,8 @@ generateModuleName (CurryModule _ _ m) = return $ Just $ ModuleName m
 
 generateModuleDocumentation :: ModuleGenerator
 generateModuleDocumentation x@(CurryModule pkg vsn m) = do
-    result <- checkoutIfMissing pkg vsn
-    case result of
-        Nothing -> return Nothing
-        Just dir -> do
-            let src = dir ++ "/src/" ++ moduleToPath m ++ ".curry"
-            content <- readFile src
-            return $ Just $ (ModuleDocumentation . text) $ unlines $ takeWhile ("--" `isPrefixOf`) (lines content)
+    srcContent <- readModuleSourceFile pkg vsn m
+    return $ Just $ (ModuleDocumentation . text) $ unlines $ takeWhile ("--" `isPrefixOf`) (lines srcContent)
 
 
 generateModuleSourceCode :: ModuleGenerator
@@ -147,14 +130,49 @@ getExportedModules jvalue = case jvalue of
             _ -> Nothing
     _ -> Nothing
 
-readIndexJSON :: String -> String -> IO (Maybe JValue)
-readIndexJSON pkg vsn = do
-    path <- index
-    t <- readFile (path ++ pkg ++ "/" ++ vsn ++ "/package.json")
-    return (parseJSON t)
+readPackageModules :: Package -> Version -> IO [Module]
+readPackageModules pkg vsn = do
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return []
+        Just dir -> do
+            let src = dir ++ "/src"
+            curryModulesInDirectory src
 
-readInstalledPackageREADME :: String -> String -> IO String
-readInstalledPackageREADME pkg vsn = do
-    path <- installedPackagesPath
-    t <- readFile (path ++ pkg ++ "-" ++ vsn ++ "/README.md")
-    return t
+readPackageJSON :: Package -> Version -> IO String
+readPackageJSON pkg vsn = do
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return "{}"
+        Just dir -> do
+            let packageJSON = dir ++ "/package.json"
+            b <- doesFileExist packageJSON
+            case b of
+                False -> return "{}"
+                True -> readFile packageJSON
+
+readPackageREADME :: Package -> Version -> IO String
+readPackageREADME pkg vsn = do
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return ""
+        Just dir -> do
+            let readme = dir ++ "/README.md"
+            b <- doesFileExist readme
+            case b of
+                False -> return ""
+                True -> readFile readme
+
+readModuleSourceFile :: Package -> Version -> Module -> IO String
+readModuleSourceFile pkg vsn m = do
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return ""
+        Just dir -> do
+            let src = dir ++ "/src/" ++ moduleToPath m ++ ".curry"
+            b <- doesFileExist src
+            case b of 
+                False -> do
+                    print $ "File " ++ src ++ " does not exist"
+                    return ""
+                True -> readFile src
