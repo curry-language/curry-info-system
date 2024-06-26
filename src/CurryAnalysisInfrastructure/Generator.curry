@@ -67,10 +67,15 @@ generateVersionDocumentation (CurryVersion pkg vsn) = do
 
 generateVersionCategories :: VersionGenerator
 generateVersionCategories (CurryVersion pkg vsn) = do
-    -- Get information
-    jvalue <- readIndexJSON pkg vsn
-    let cats = maybe [] (\x -> maybe [] id (getCategories x)) jvalue
-    return $ Just $ VersionCategories cats
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return Nothing
+        Just dir -> do
+            let packageJSON = dir ++ "/package.json"
+            content <- readFile packageJSON
+            let jvalue = parseJSON content
+            let cats = maybe [] (\x -> maybe [] id (getCategories x)) jvalue
+            return $ Just $ VersionCategories cats
 
 generateVersionModules :: VersionGenerator
 generateVersionModules (CurryVersion pkg vsn) = do
