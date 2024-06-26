@@ -8,15 +8,42 @@ import Text.Pretty (text)
 import JSON.Data
 import JSON.Parser (parseJSON)
 
+import System.IOExts (evalCmd)
+import System.Directory (doesDirectoryExist)
+
+import Data.List (isPrefixOf)
+
+checkoutIfMissing :: Package -> Version -> IO (Maybe String)
+checkoutIfMissing pkg vsn = do
+    path <- getCheckoutPath pkg vsn
+    b1 <- doesDirectoryExist path
+    case b1 of
+        True -> return $ Just path
+        False -> do
+            --"cypm checkout -o DIR PACKAGE VERSION"
+            let cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
+            print cmd
+            evalCmd cmd [] ""
+            --evalCmd "cypm checkout -o" [path, pkg, vsn] ""
+
+            -- wait for cmd to finish -> HOW?
+
+            b2 <- doesDirectoryExist path
+            case b2 of
+                True -> return $ Just path
+                False -> do
+                    print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
+                    return Nothing
+
 -- PACKAGE
 
-type PackageGenerator = String -> IO (Maybe PackageInformation)
+type PackageGenerator = CurryPackage -> IO (Maybe PackageInformation)
 
 generatePackageName :: PackageGenerator
-generatePackageName pkg = return $ Just $ PackageName pkg
+generatePackageName (CurryPackage pkg) = return $ Just $ PackageName pkg
 
 generatePackageVersions :: PackageGenerator
-generatePackageVersions pkg = do
+generatePackageVersions (CurryPackage pkg) = do
     -- Get information from index
     i <- index
     let packageDir = i ++ pkg ++ "/"
@@ -25,27 +52,27 @@ generatePackageVersions pkg = do
 
 -- VERSION
 
-type VersionGenerator = String -> String -> IO (Maybe VersionInformation)
+type VersionGenerator = CurryVersion -> IO (Maybe VersionInformation)
 
 generateVersionVersion :: VersionGenerator
-generateVersionVersion _ vsn = return $ Just $ VersionVersion vsn
+generateVersionVersion (CurryVersion _ vsn) = return $ Just $ VersionVersion vsn
 
 generateVersionDocumentation :: VersionGenerator
-generateVersionDocumentation pkg vsn = do
+generateVersionDocumentation (CurryVersion pkg vsn) = do
     -- Get information
     t <- readInstalledPackageREADME pkg vsn
     let doc = text t 
     return $ Just $ VersionDocumentation doc
 
 generateVersionCategories :: VersionGenerator
-generateVersionCategories pkg vsn = do
+generateVersionCategories (CurryVersion pkg vsn) = do
     -- Get information
     jvalue <- readIndexJSON pkg vsn
     let cats = maybe [] (\x -> maybe [] id (getCategories x)) jvalue
     return $ Just $ VersionCategories cats
 
 generateVersionModules :: VersionGenerator
-generateVersionModules pkg vsn = do
+generateVersionModules (CurryVersion pkg vsn) = do
     -- Get information
     jvalue <- readIndexJSON pkg vsn
     let mods = maybe [] (\x -> maybe [] id (getExportedModules x)) jvalue
@@ -53,13 +80,21 @@ generateVersionModules pkg vsn = do
 
 -- MODULE
 
-type ModuleGenerator = String -> String -> String -> IO (Maybe ModuleInformation)
+type ModuleGenerator = CurryModule -> IO (Maybe ModuleInformation)
 
 generateModuleName :: ModuleGenerator
-generateModuleName = failed
+generateModuleName (CurryModule _ _ m) = return $ Just $ ModuleName m
 
 generateModuleDocumentation :: ModuleGenerator
-generateModuleDocumentation = failed
+generateModuleDocumentation x@(CurryModule pkg vsn m) = do
+    result <- checkoutIfMissing pkg vsn
+    case result of
+        Nothing -> return Nothing
+        Just dir -> do
+            let src = dir ++ "/src/" ++ moduleToPath m ++ ".curry"
+            content <- readFile src
+            return $ Just $ (ModuleDocumentation . text) $ unlines $ takeWhile ("--" `isPrefixOf`) (lines content)
+
 
 generateModuleSourceCode :: ModuleGenerator
 generateModuleSourceCode = failed
