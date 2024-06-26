@@ -93,7 +93,9 @@ generateModuleDocumentation x@(CurryModule pkg vsn m) = do
 
 
 generateModuleSourceCode :: ModuleGenerator
-generateModuleSourceCode = failed
+generateModuleSourceCode x@(CurryModule pkg vsn m) = do
+    srcContent <- readModuleSourceFile pkg vsn m
+    return $ Just $ (ModuleSourceCode . text) srcContent
 
 generateModuleUnsafe :: ModuleGenerator
 generateModuleUnsafe = failed
