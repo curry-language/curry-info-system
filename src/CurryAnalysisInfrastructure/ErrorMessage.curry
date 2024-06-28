@@ -13,16 +13,3 @@ instance ErrorMessage CurryVersion where
 
 instance ErrorMessage CurryModule where
     errorMessage (CurryModule pkg vsn m) = "JSON file for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-
-{-
-type ErrorMessage a = a -> String
-
-errorMessagePackage :: ErrorMessage CurryPackage
-errorMessagePackage (CurryPackage pkg) = "JSON file for package " ++ pkg ++ " could not be read."
-
-errorMessageVersion :: ErrorMessage CurryVersion
-errorMessageVersion (CurryVersion pkg vsn) = "JSON file for version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-
-errorMessageModule :: ErrorMessage CurryModule
-errorMessageModule (CurryModule pkg vsn m) = "JSON file for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
--}

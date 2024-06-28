@@ -1,23 +1,21 @@
 module CurryAnalysisInfrastructure.Interface where
 
-import CurryAnalysisInfrastructure.JParser
-import CurryAnalysisInfrastructure.JPretty
+import CurryAnalysisInfrastructure.JParser (JParser)
+import CurryAnalysisInfrastructure.JPretty (JPretty, jsonOutput)
 import CurryAnalysisInfrastructure.Configuration
-import CurryAnalysisInfrastructure.Paths
+import CurryAnalysisInfrastructure.Paths (Path, initialize)
 import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Reader
-import CurryAnalysisInfrastructure.Writer
-import CurryAnalysisInfrastructure.ErrorMessage
+import CurryAnalysisInfrastructure.Reader (Reader, readInformation)
+import CurryAnalysisInfrastructure.Writer (Writer, writeInformation)
+import CurryAnalysisInfrastructure.ErrorMessage (ErrorMessage, errorMessage)
 
 import JSON.Parser (parseJSON)
-import JSON.Data
 import JSON.Pretty (ppJSON)
-
-import System.Directory
 
 import Data.Maybe (catMaybes)
 import Data.List (nubBy)
 
+-- This action extracts or generates the requested information for the given object.
 getInfos :: [String] -> [String] -> IO Output
 getInfos location requests = case location of
         [pkg] -> getInfos'   packageConfiguration  (CurryPackage pkg) requests
@@ -49,15 +47,20 @@ getInfos location requests = case location of
                     return $ generateOutput requests results
         -}
 
+-- This action extracts or generates the requested information for the input, depending on whether the information
+-- already exists or not.
 extractOrGenerate :: Configuration a b -> a -> [b] -> String -> IO (Maybe b)
 extractOrGenerate conf input infos request = case lookup request conf of
     Nothing -> return Nothing
     Just (extractor, generator) -> maybe (generator input) (return . Just) (extractor infos)
 
+-- This function generates an output for the fields and respective results of extracting or generating.
 generateOutput :: JPretty a => [String] -> [Maybe a] -> Output
 generateOutput fields results =
     let outputs = zipWith (\f r -> maybe (f, "failed") jsonOutput r) fields results
     in OutputText $ unlines $ map (\(f, m) -> f ++ ": " ++ m) outputs
 
+-- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
+-- to get an updated list.
 (<+>) :: EqInfo a => [a] -> [a] -> [a]
 info1 <+> info2 = nubBy sameInfo (info1 ++ info2)

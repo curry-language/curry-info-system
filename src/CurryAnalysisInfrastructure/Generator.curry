@@ -14,6 +14,7 @@ import System.CurryPath (curryModulesInDirectory)
 
 import Data.List (isPrefixOf, intersect)
 
+-- This action creates a checkout for the given version of the given package.
 checkoutIfMissing :: Package -> Version -> IO (Maybe String)
 checkoutIfMissing pkg vsn = do
     path <- getCheckoutPath pkg vsn
@@ -69,7 +70,7 @@ generateVersionDocumentation (CurryVersion pkg vsn) = do
 generateVersionCategories :: VersionGenerator
 generateVersionCategories (CurryVersion pkg vsn) = do
     packageJSON <- readPackageJSON pkg vsn
-    let cats = maybe [] (\x -> maybe [] id (getCategories x)) (parseJSON packageJSON)
+    let cats = maybe [] id (parseJSON packageJSON >>= getCategories)
     return $ Just $ VersionCategories cats
 
 generateVersionModules :: VersionGenerator
@@ -77,7 +78,7 @@ generateVersionModules (CurryVersion pkg vsn) = do
     allMods <- readPackageModules pkg vsn
 
     packageJSON <- readPackageJSON pkg vsn
-    let exportedMods = maybe [] (\x -> maybe [] id (getExportedModules x)) (parseJSON packageJSON)
+    let exportedMods = maybe allMods id (parseJSON packageJSON >>= getExportedModules)
 
     return $ Just $ VersionModules (intersect allMods exportedMods)
 
@@ -89,13 +90,13 @@ generateModuleName :: ModuleGenerator
 generateModuleName (CurryModule _ _ m) = return $ Just $ ModuleName m
 
 generateModuleDocumentation :: ModuleGenerator
-generateModuleDocumentation x@(CurryModule pkg vsn m) = do
+generateModuleDocumentation (CurryModule pkg vsn m) = do
     srcContent <- readModuleSourceFile pkg vsn m
     return $ Just $ (ModuleDocumentation . text) $ unlines $ takeWhile ("--" `isPrefixOf`) (lines srcContent)
 
 
 generateModuleSourceCode :: ModuleGenerator
-generateModuleSourceCode x@(CurryModule pkg vsn m) = do
+generateModuleSourceCode (CurryModule pkg vsn m) = do
     srcContent <- readModuleSourceFile pkg vsn m
     return $ Just $ (ModuleSourceCode . text) srcContent
 

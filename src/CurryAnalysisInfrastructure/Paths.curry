@@ -4,15 +4,23 @@ import CurryAnalysisInfrastructure.Types
 
 import System.Directory (createDirectoryIfMissing, getDirectoryContents, getHomeDirectory, doesFileExist)
 
+-- This action initializes the directory and json file for the given data. If the json file does not exist,
+-- it will be initialized with "{}". If the json already exists, it will remain unchanged.
 initialize :: Path a => a -> IO ()
 initialize x = do
+    -- Create directory
     dir <- getDirectoryPath x
     createDirectoryIfMissing True dir
 
+    -- Find path to json file
     jfile <- getJSONPath x
+
+    -- Check whether json file exists
     b <- doesFileExist jfile
     case b of
+        -- Initialize new json file with "{}"
         False -> writeFile jfile "{}"
+        -- Do nothing
         True -> return ()
 
 class Path a where
@@ -73,12 +81,16 @@ instance Path CurryOperation where
         path <- getDirectoryPath x
         return (path ++ op ++ ".json")    
 
+-- This functions generates the directory name for a given package and version. It is used for
+-- checkout.
 toCheckout :: Package -> Version -> String
 toCheckout pkg vsn = pkg ++ "-" ++ vsn
 
+-- This function converts a module string to a filesystem path by replacing every '.' with '/'.
 moduleToPath :: Module -> String
 moduleToPath = map (\c -> if c == '.' then '/' else c)
 
+-- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]
 getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
 
@@ -95,69 +107,15 @@ root = do
     home <- getHomeDirectory
     return (home ++ "/tmp" ++ "/.curryanalysis/")
 
+-- This actions returns the path to the directory used for checkouts.
 checkouts :: IO String
 checkouts = do
     path <- root
     return (path ++ "checkouts/")
 
+-- This action returns the path to the directory, in which the checkout of the given version
+-- of the given package is stored or will be stored.
 getCheckoutPath :: Package -> Version -> IO String
 getCheckoutPath pkg vsn = do
     path <- checkouts
     return (path ++ toCheckout pkg vsn)
-
-installedPackagesPath :: IO String
-installedPackagesPath = do
-    home <- getHomeDirectory
-    return (home ++ "/.cpm/packages/")
-
---- This action returns the path where the directories for the packages are saved,
---- for which information has been gathered.
-packagesPath :: IO String
-packagesPath = do 
-    r <- root
-    return (r ++ "packages/")
-
---- This actions returns the path where the versions of a given package are saved.
-versionsPath :: String -> IO String
-versionsPath pkg = do
-    path <- packagesPath
-    return (path ++ pkg ++ "/versions/")
-
---- This actions returns the path where the modules of a version of a package are saved.
-modulesPath :: String -> String -> IO String
-modulesPath pkg vsn = do
-    path <- versionsPath pkg
-    return (path ++ vsn ++ "/modules/")
-
---- This actions returns the path where the types of a module of a version of a package are saved.
-typesPath :: String -> String -> String -> IO String
-typesPath pkg vsn m = do 
-    path <- modulesPath pkg vsn
-    return (path ++ m ++ "/types/")
-
---- This actions returns the path where the typeclasses of a module of a version of a package are saved.
-typeclassesPath :: String -> String -> String -> IO String
-typeclassesPath pkg vsn m = do 
-    path <- modulesPath pkg vsn
-    return (path ++ m ++ "/typeclasses/")
-
---- This actions returns the path where the operations of a module of a version of a package are saved.
-operationsPath :: String -> String -> String -> IO String
-operationsPath pkg vsn m = do 
-    path <- modulesPath pkg vsn
-    return (path ++ m ++ "/operations/")
-
-getPackageFilePath :: String -> IO String
-getPackageFilePath pkg = do
-    path <- packagesPath
-    return (path ++ pkg ++ "/" ++ pkg ++ ".json")
-
-getVersionFilePath :: String -> String -> IO String
-getVersionFilePath pkg vsn = do
-    path <- versionsPath pkg
-    return (path ++ vsn ++ "/" ++ vsn ++ ".json")
-
-getModuleFilePath :: String -> String -> String -> IO String
-getModuleFilePath pkg vsn m = do
-    path <- modulesPath pkg vsn
-    return (path ++ m ++ "/" ++ m ++ ".json")
