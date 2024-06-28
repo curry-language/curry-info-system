@@ -2,7 +2,18 @@ module CurryAnalysisInfrastructure.Paths where
 
 import CurryAnalysisInfrastructure.Types
 
-import System.Directory
+import System.Directory (createDirectoryIfMissing, getDirectoryContents, getHomeDirectory, doesFileExist)
+
+initialize :: Path a => a -> IO ()
+initialize x = do
+    dir <- getDirectoryPath x
+    createDirectoryIfMissing True dir
+
+    jfile <- getJSONPath x
+    b <- doesFileExist jfile
+    case b of
+        False -> writeFile jfile "{}"
+        True -> return ()
 
 class Path a where
     getDirectoryPath :: a -> IO String

@@ -2,6 +2,41 @@ module CurryAnalysisInfrastructure.Types where
 
 import Text.Pretty (Doc)
 
+class EqInfo a where
+    sameInfo :: a -> a -> Bool
+
+instance EqInfo PackageInformation where
+    sameInfo x y = case (x, y) of
+        (PackageName _, PackageName _) -> True
+        (PackageVersions _, PackageVersions _) -> True
+        _ -> False
+
+instance EqInfo VersionInformation where
+    sameInfo x y = case (x, y) of
+        (VersionVersion _, VersionVersion _) -> True
+        (VersionDocumentation _, VersionDocumentation _) -> True
+        (VersionCategories _, VersionCategories _) -> True
+        (VersionModules _, VersionModules _) -> True
+        _ -> False
+
+instance EqInfo ModuleInformation where
+    sameInfo x y = case (x, y) of
+        (ModuleName _, ModuleName _) -> True
+        (ModuleDocumentation _, ModuleDocumentation _) -> True
+        (ModuleSourceCode _, ModuleSourceCode _) -> True
+        (ModuleUnsafe _, ModuleUnsafe _) -> True
+        (ModuleExports _, ModuleExports _) -> True
+        (ModuleTypeclasses _, ModuleTypeclasses _) -> True
+        (ModuleTypes _, ModuleTypes _) -> True
+        (ModuleOperations _, ModuleOperations _) -> True
+        _ -> False
+
+-- OUTPUT TYPE
+
+data Output
+    = OutputText String
+    | OutputError String
+
 -- INPUT TYPES
 
 data CurryPackage = CurryPackage Package

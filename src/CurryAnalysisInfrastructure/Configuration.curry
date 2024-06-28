@@ -1,14 +1,17 @@
 module CurryAnalysisInfrastructure.Configuration where
 
+import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Extractor
 import CurryAnalysisInfrastructure.Generator
+
+type Configuration a b = [(String, (Extractor b, Generator a b))]
 
 -- PACKAGE
 
 packageFields :: [String]
 packageFields = map fst packageConfiguration
 
-packageConfiguration :: [(String, (PackageExtractor, PackageGenerator))]
+packageConfiguration :: Configuration CurryPackage PackageInformation
 packageConfiguration =
     [ ("Package", (extractPackageName, generatePackageName))
     , ("Versions", (extractPackageVersions, generatePackageVersions))
@@ -19,7 +22,7 @@ packageConfiguration =
 versionFields :: [String]
 versionFields = map fst versionConfiguration
 
-versionConfiguration :: [(String, (VersionExtractor, VersionGenerator))]
+versionConfiguration :: Configuration CurryVersion VersionInformation
 versionConfiguration =
     [ ("Version", (extractVersionVersion, generateVersionVersion))
     , ("Documentation", (extractVersionDocumentation, generateVersionDocumentation))
@@ -32,7 +35,7 @@ versionConfiguration =
 moduleFields :: [String]
 moduleFields = map fst moduleConfiguration
 
-moduleConfiguration :: [(String, (ModuleExtractor, ModuleGenerator))]
+moduleConfiguration :: Configuration CurryModule ModuleInformation
 moduleConfiguration =
     [ ("Module", (extractModuleName, generateModuleName))
     , ("Documentation", (extractModuleDocumentation, generateModuleDocumentation))

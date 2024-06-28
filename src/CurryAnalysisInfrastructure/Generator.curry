@@ -36,9 +36,11 @@ checkoutIfMissing pkg vsn = do
                     print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
                     return Nothing
 
+type Generator a b = a -> IO (Maybe b)
+
 -- PACKAGE
 
-type PackageGenerator = CurryPackage -> IO (Maybe PackageInformation)
+type PackageGenerator = Generator CurryPackage PackageInformation
 
 generatePackageName :: PackageGenerator
 generatePackageName (CurryPackage pkg) = return $ Just $ PackageName pkg
@@ -53,7 +55,7 @@ generatePackageVersions (CurryPackage pkg) = do
 
 -- VERSION
 
-type VersionGenerator = CurryVersion -> IO (Maybe VersionInformation)
+type VersionGenerator = Generator CurryVersion VersionInformation
 
 generateVersionVersion :: VersionGenerator
 generateVersionVersion (CurryVersion _ vsn) = return $ Just $ VersionVersion vsn
@@ -81,7 +83,7 @@ generateVersionModules (CurryVersion pkg vsn) = do
 
 -- MODULE
 
-type ModuleGenerator = CurryModule -> IO (Maybe ModuleInformation)
+type ModuleGenerator = Generator CurryModule ModuleInformation
 
 generateModuleName :: ModuleGenerator
 generateModuleName (CurryModule _ _ m) = return $ Just $ ModuleName m

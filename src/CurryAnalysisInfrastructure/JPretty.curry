@@ -3,6 +3,7 @@ module CurryAnalysisInfrastructure.JPretty where
 import CurryAnalysisInfrastructure.Types
 
 import JSON.Data
+import JSON.Pretty (ppJSON)
 import Text.Pretty
 
 --- This function takes a list of fields and generates a json object with the given fields.
@@ -12,6 +13,10 @@ json infos = JObject (map jpretty infos)
 --- This function generates only the json value for a field, excluding the field name.
 jsonValue :: JPretty a => a -> JValue
 jsonValue = snd . jpretty
+
+jsonOutput :: JPretty a => a -> (String, String)
+jsonOutput x =
+    let (f, v) = jpretty x in (f, ppJSON v)
 
 class JPretty a where
     jpretty :: a -> (String, JValue)

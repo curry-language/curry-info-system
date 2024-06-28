@@ -4,9 +4,11 @@ import CurryAnalysisInfrastructure.Types
 
 import Data.Maybe (listToMaybe)
 
+type Extractor a = [a] -> Maybe a
+
 -- PACKAGE
 
-type PackageExtractor = [PackageInformation] -> Maybe PackageInformation
+type PackageExtractor = Extractor PackageInformation
 
 extractPackageName :: PackageExtractor
 extractPackageName infos = listToMaybe $ filter isPackageName infos
@@ -16,7 +18,7 @@ extractPackageVersions infos = listToMaybe $ filter isPackageVersions infos
 
 -- VERSION
 
-type VersionExtractor = [VersionInformation] -> Maybe VersionInformation
+type VersionExtractor = Extractor VersionInformation
 
 extractVersionVersion :: VersionExtractor
 extractVersionVersion infos = listToMaybe $ filter isVersionVersion infos
@@ -32,7 +34,7 @@ extractVersionModules infos = listToMaybe $ filter isVersionModules infos
 
 -- MODULE
 
-type ModuleExtractor = [ModuleInformation] -> Maybe ModuleInformation
+type ModuleExtractor = Extractor ModuleInformation
 
 extractModuleName :: ModuleExtractor
 extractModuleName infos = listToMaybe $ filter isModuleName infos
