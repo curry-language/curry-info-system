@@ -14,6 +14,15 @@ import System.CurryPath (curryModulesInDirectory)
 
 import Data.List (isPrefixOf, intersect)
 
+cmdNotFound :: Int
+cmdNotFound = 127
+
+cmdNotExecutable :: Int
+cmdNotExecutable = 126
+
+cmdSuccess :: Int
+cmdSuccess = 0
+
 -- This action creates a checkout for the given version of the given package.
 checkoutIfMissing :: Package -> Version -> IO (Maybe String)
 checkoutIfMissing pkg vsn = do
@@ -25,17 +34,26 @@ checkoutIfMissing pkg vsn = do
             --"cypm checkout -o DIR PACKAGE VERSION"
             let cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
             print cmd
-            evalCmd cmd [] ""
-            --evalCmd "cypm checkout -o" [path, pkg, vsn] ""
-
-            -- wait for cmd to finish -> HOW?
-
-            b2 <- doesDirectoryExist path
-            case b2 of
-                True -> return $ Just path
-                False -> do
+            (exitCode, _, _) <- evalCmd cmd [] ""
+            case exitCode of
+                cmdNotFound -> do
+                    print "Command 'cypm' was not found"
+                    return Nothing
+                cmdNotExecutable -> do
+                    print "Command 'cypm' is not executable"
+                    return Nothing
+                cmdSuccess -> do
+                    b2 <- doesDirectoryExist path
+                    case b2 of
+                        True -> return $ Just path
+                        False -> do
+                            print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
+                            return Nothing
+                _ -> do
                     print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
                     return Nothing
+
+            --evalCmd "cypm checkout -o" [path, pkg, vsn] ""      
 
 type Generator a b = a -> IO (Maybe b)
 
