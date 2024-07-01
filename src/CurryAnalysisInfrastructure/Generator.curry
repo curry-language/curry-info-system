@@ -32,17 +32,15 @@ checkoutIfMissing pkg vsn = do
         True -> return $ Just path
         False -> do
             --"cypm checkout -o DIR PACKAGE VERSION"
-            let cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
-            print cmd
-            (exitCode, _, _) <- evalCmd cmd [] ""
+            (exitCode, _, _) <- evalCmd "cypm" ["checkout", "-o", path, pkg, vsn] ""
             case exitCode of
-                cmdNotFound -> do
+                127 -> do
                     print "Command 'cypm' was not found"
                     return Nothing
-                cmdNotExecutable -> do
+                126 -> do
                     print "Command 'cypm' is not executable"
                     return Nothing
-                cmdSuccess -> do
+                0 -> do
                     b2 <- doesDirectoryExist path
                     case b2 of
                         True -> return $ Just path
@@ -51,9 +49,7 @@ checkoutIfMissing pkg vsn = do
                             return Nothing
                 _ -> do
                     print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
-                    return Nothing
-
-            --evalCmd "cypm checkout -o" [path, pkg, vsn] ""      
+                    return Nothing  
 
 type Generator a b = a -> IO (Maybe b)
 

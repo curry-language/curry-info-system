@@ -32,6 +32,7 @@ instance JPretty VersionInformation where
     jpretty (VersionModules mods) = ("Modules", JArray (map JString mods))
 
 instance JPretty ModuleInformation where
+    jpretty (ModuleName m) = ("Module", JString m)
     jpretty (ModuleDocumentation d) = ("Documentation", JString $ pPrint d)
     jpretty (ModuleSourceCode d) = ("SourceCode", JString $ pPrint d)
     jpretty (ModuleUnsafe b) = ("Unsafe", if b then JTrue else JFalse)
