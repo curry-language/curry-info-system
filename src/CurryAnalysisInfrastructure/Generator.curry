@@ -26,12 +26,14 @@ cmdSuccess = 0
 -- This action creates a checkout for the given version of the given package.
 checkoutIfMissing :: Package -> Version -> IO (Maybe String)
 checkoutIfMissing pkg vsn = do
+    initializeCheckouts
     path <- getCheckoutPath pkg vsn
     b1 <- doesDirectoryExist path
     case b1 of
         True -> return $ Just path
         False -> do
             --"cypm checkout -o DIR PACKAGE VERSION"
+            let cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
             (exitCode, _, _) <- evalCmd "cypm" ["checkout", "-o", path, pkg, vsn] ""
             case exitCode of
                 127 -> do

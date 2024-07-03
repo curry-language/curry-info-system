@@ -23,9 +23,9 @@ initialize x = do
         -- Do nothing
         True -> return ()
 
-class Path a where
-    getDirectoryPath :: a -> IO String
-    getJSONPath :: a -> IO String
+class Path x where
+    getDirectoryPath :: x -> IO String
+    getJSONPath :: x -> IO String
 
 instance Path CurryPackage where
     getDirectoryPath (CurryPackage pkg) = do
@@ -81,11 +81,6 @@ instance Path CurryOperation where
         path <- getDirectoryPath x
         return (path ++ op ++ ".json")    
 
--- This functions generates the directory name for a given package and version. It is used for
--- checkout.
-toCheckout :: Package -> Version -> String
-toCheckout pkg vsn = pkg ++ "-" ++ vsn
-
 -- This function converts a module string to a filesystem path by replacing every '.' with '/'.
 moduleToPath :: Module -> String
 moduleToPath = map (\c -> if c == '.' then '/' else c)
@@ -107,6 +102,11 @@ root = do
     home <- getHomeDirectory
     return (home ++ "/tmp" ++ "/.curryanalysis/")
 
+-- This functions generates the directory name for a given package and version. It is used for
+-- checkout.
+toCheckout :: Package -> Version -> String
+toCheckout pkg vsn = pkg ++ "-" ++ vsn
+
 -- This actions returns the path to the directory used for checkouts.
 checkouts :: IO String
 checkouts = do
@@ -119,3 +119,8 @@ getCheckoutPath :: Package -> Version -> IO String
 getCheckoutPath pkg vsn = do
     path <- checkouts
     return (path ++ toCheckout pkg vsn)
+
+initializeCheckouts :: IO ()
+initializeCheckouts = do
+    path <- checkouts
+    createDirectoryIfMissing True path
