@@ -8,6 +8,7 @@ import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Reader (Reader, readInformation)
 import CurryAnalysisInfrastructure.Writer (Writer, writeInformation)
 import CurryAnalysisInfrastructure.ErrorMessage (ErrorMessage, errorMessage)
+import CurryAnalysisInfrastructure.Options
 
 import JSON.Parser (parseJSON)
 import JSON.Pretty (ppJSON)
@@ -16,15 +17,19 @@ import Data.Maybe (catMaybes)
 import Data.List (nubBy)
 
 -- This action extracts or generates the requested information for the given object.
-getInfos :: [String] -> [String] -> IO Output
-getInfos location requests = case location of
-        [pkg] -> getInfos'   packageConfiguration  (CurryPackage pkg) requests
-        [pkg, "versions", vsn] -> getInfos'   versionConfiguration  (CurryVersion pkg vsn) requests
-        [pkg, "versions", vsn, "modules", m] -> getInfos'   moduleConfiguration  (CurryModule pkg vsn m) requests
+getInfos :: Options -> [String] -> [String] -> IO Output
+getInfos opts location requests = case location of
+        [pkg]                                                   -> getInfos' opts packageConfiguration  (CurryPackage pkg) requests
+        [pkg, "versions", vsn]                                  -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn) requests
+        [pkg, "versions", vsn, "modules", m]                    -> getInfos' opts moduleConfiguration  (CurryModule pkg vsn m) requests
+        [pkg, "versions", vsn, "modules", m, "types", t]        -> return $ OutputError "getInfos for types not yet implemented!"
+        [pkg, "versions", vsn, "modules", m, "typeclasses", c]  -> return $ OutputError "getInfos for types not yet implemented!"
+        [pkg, "versions", vsn, "modules", m, "operations", op]  -> return $ OutputError "getInfos for types not yet implemented!"
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
-        getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Configuration a b -> a -> [String] -> IO Output
-        getInfos' conf input requests' = do
+        getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
+        getInfos' opts conf input requests' = do
+            let verb = optVerb opts
             initialize input
             result <- readInformation input
             case result of
@@ -34,24 +39,12 @@ getInfos location requests = case location of
                     let newInformation = catMaybes results <+> infos
                     writeInformation input newInformation
                     return $ generateOutput requests' results
-        {-
-        getInfos' :: (Path a, JParser b, JPretty b) => Reader a b -> ErrorMessage a -> Configuration a b -> Writer a b -> a -> [String] -> IO Output
-        getInfos' reader errorMessage conf writer input requests = do
-            result <- reader input
-            case result of
-                Nothing -> return $ OutputError $ errorMessage input
-                Just infos -> do
-                    results <- mapM (extractOrGenerate conf input infos) requests
-                    let newInformation = mixInformation infos (catMaybes results)
-                    writer input newInformation
-                    return $ generateOutput requests results
-        -}
 
 -- This action extracts or generates the requested information for the input, depending on whether the information
 -- already exists or not.
 extractOrGenerate :: Configuration a b -> a -> [b] -> String -> IO (Maybe b)
 extractOrGenerate conf input infos request = case lookup request conf of
-    Nothing -> return Nothing
+    Nothing                     -> return Nothing
     Just (extractor, generator) -> maybe (generator input) (return . Just) (extractor infos)
 
 -- This function generates an output for the fields and respective results of extracting or generating.

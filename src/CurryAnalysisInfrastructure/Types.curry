@@ -36,6 +36,7 @@ instance EqInfo ModuleInformation where
 data Output
     = OutputText String
     | OutputError String
+    deriving Show
 
 -- INPUT TYPES
 
