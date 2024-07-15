@@ -3,6 +3,7 @@ module CurryAnalysisInfrastructure.Generator where
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import CurryAnalysisInfrastructure.JParser (getString, lookupField)
+import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 
 import Text.Pretty (text)
 import JSON.Data
@@ -13,45 +14,6 @@ import System.Directory (doesDirectoryExist, doesFileExist)
 import System.CurryPath (curryModulesInDirectory)
 
 import Data.List (isPrefixOf, intersect)
-
-cmdNotFound :: Int
-cmdNotFound = 127
-
-cmdNotExecutable :: Int
-cmdNotExecutable = 126
-
-cmdSuccess :: Int
-cmdSuccess = 0
-
--- This action creates a checkout for the given version of the given package.
-checkoutIfMissing :: Package -> Version -> IO (Maybe String)
-checkoutIfMissing pkg vsn = do
-    initializeCheckouts
-    path <- getCheckoutPath pkg vsn
-    b1 <- doesDirectoryExist path
-    case b1 of
-        True -> return $ Just path
-        False -> do
-            --"cypm checkout -o DIR PACKAGE VERSION"
-            let cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
-            (exitCode, _, _) <- evalCmd "cypm" ["checkout", "-o", path, pkg, vsn] ""
-            case exitCode of
-                127 -> do
-                    print "Command 'cypm' was not found"
-                    return Nothing
-                126 -> do
-                    print "Command 'cypm' is not executable"
-                    return Nothing
-                0 -> do
-                    b2 <- doesDirectoryExist path
-                    case b2 of
-                        True -> return $ Just path
-                        False -> do
-                            print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
-                            return Nothing
-                _ -> do
-                    print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
-                    return Nothing  
 
 type Generator a b = a -> IO (Maybe b)
 

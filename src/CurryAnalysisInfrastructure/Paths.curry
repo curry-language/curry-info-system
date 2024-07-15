@@ -101,26 +101,3 @@ root :: IO String
 root = do
     home <- getHomeDirectory
     return (home ++ "/tmp" ++ "/.curryanalysis/")
-
--- This functions generates the directory name for a given package and version. It is used for
--- checkout.
-toCheckout :: Package -> Version -> String
-toCheckout pkg vsn = pkg ++ "-" ++ vsn
-
--- This actions returns the path to the directory used for checkouts.
-checkouts :: IO String
-checkouts = do
-    path <- root
-    return (path ++ "checkouts/")
-
--- This action returns the path to the directory, in which the checkout of the given version
--- of the given package is stored or will be stored.
-getCheckoutPath :: Package -> Version -> IO String
-getCheckoutPath pkg vsn = do
-    path <- checkouts
-    return (path ++ toCheckout pkg vsn)
-
-initializeCheckouts :: IO ()
-initializeCheckouts = do
-    path <- checkouts
-    createDirectoryIfMissing True path

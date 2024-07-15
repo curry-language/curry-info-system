@@ -1,59 +1,58 @@
 module CurryAnalysisInfrastructure.Interface where
 
-import CurryAnalysisInfrastructure.JParser (JParser)
-import CurryAnalysisInfrastructure.JPretty (JPretty, jsonOutput)
-import CurryAnalysisInfrastructure.Configuration
-import CurryAnalysisInfrastructure.Paths (Path, initialize)
+import CurryAnalysisInfrastructure.Paths (moduleToPath)
+import CurryAnalysisInfrastructure.Checkout (getCheckoutPath, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Reader (Reader, readInformation)
-import CurryAnalysisInfrastructure.Writer (Writer, writeInformation)
-import CurryAnalysisInfrastructure.ErrorMessage (ErrorMessage, errorMessage)
-import CurryAnalysisInfrastructure.Options
 
-import JSON.Parser (parseJSON)
-import JSON.Pretty (ppJSON)
+import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
+import System.IOExts (evalCmd)
+import System.FrontendExec (FrontendTarget (..), callFrontend)
 
-import Data.Maybe (catMaybes)
-import Data.List (nubBy)
+import CurryInterface.Types
+import CurryInterface.Files (readCurryInterfaceFile)
 
--- This action extracts or generates the requested information for the given object.
-getInfos :: Options -> [String] -> [String] -> IO Output
-getInfos opts location requests = case location of
-        [pkg]                                                   -> getInfos' opts packageConfiguration  (CurryPackage pkg) requests
-        [pkg, "versions", vsn]                                  -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn) requests
-        [pkg, "versions", vsn, "modules", m]                    -> getInfos' opts moduleConfiguration  (CurryModule pkg vsn m) requests
-        [pkg, "versions", vsn, "modules", m, "types", t]        -> return $ OutputError "getInfos for types not yet implemented!"
-        [pkg, "versions", vsn, "modules", m, "typeclasses", c]  -> return $ OutputError "getInfos for types not yet implemented!"
-        [pkg, "versions", vsn, "modules", m, "operations", op]  -> return $ OutputError "getInfos for types not yet implemented!"
-        _ -> return $ OutputError $ show location ++ " does not match any pattern"
+icurryPath :: Package -> Version -> Module -> IO (String, String)
+icurryPath pkg vsn m = do
+    print "checkoutIfMissing"
+    checkoutIfMissing pkg vsn
+    print "checkoutPath"
+    dir <- getCheckoutPath pkg vsn
+    let pakcs = "pakcs-3.7.0"
+    return (dir, dir ++ "/src/.curry/" ++ pakcs ++ "/" ++ moduleToPath m ++ ".icurry")
+
+readInterface :: Package -> Version -> Module -> IO Interface
+readInterface pkg vsn m = do
+    print "current"
+    current <- getCurrentDirectory
+    print "icurrypath"
+    (srcdir, path) <- icurryPath pkg vsn m
+    print "file exists?"
+    b <- doesFileExist path
+    case b of
+        True -> do
+            print "yes"
+            readCurryInterfaceFile path
+            --content <- readFile path
+            --return (Just content)
+        False -> do
+            print "no"
+            setCurrentDirectory srcdir
+            print "update"
+            let updateCmd = "cypm update"
+            evalCmd "cypm" ["update"] "" >>= output updateCmd
+            print "install"
+            let installCmd = "cypm install"
+            evalCmd "cypm" ["install"] "" >>= output installCmd
+            print "curry"
+            let curryCmd = "curry :l " ++ m
+            evalCmd "curry" [":l", m] (":q\n") >>= output curryCmd
+            setCurrentDirectory current
+            print "done"
+            readCurryInterfaceFile path
+            --readCurryInterface m
     where
-        getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
-        getInfos' opts conf input requests' = do
-            let verb = optVerb opts
-            initialize input
-            result <- readInformation input
-            case result of
-                Nothing -> return $ OutputError $ errorMessage input
-                Just infos -> do
-                    results <- mapM (extractOrGenerate conf input infos) requests'
-                    let newInformation = catMaybes results <+> infos
-                    writeInformation input newInformation
-                    return $ generateOutput requests' results
-
--- This action extracts or generates the requested information for the input, depending on whether the information
--- already exists or not.
-extractOrGenerate :: Configuration a b -> a -> [b] -> String -> IO (Maybe b)
-extractOrGenerate conf input infos request = case lookup request conf of
-    Nothing                     -> return Nothing
-    Just (extractor, generator) -> maybe (generator input) (return . Just) (extractor infos)
-
--- This function generates an output for the fields and respective results of extracting or generating.
-generateOutput :: JPretty a => [String] -> [Maybe a] -> Output
-generateOutput fields results =
-    let outputs = zipWith (\f r -> maybe (f, "failed") jsonOutput r) fields results
-    in OutputText $ unlines $ map (\(f, m) -> f ++ ": " ++ m) outputs
-
--- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
--- to get an updated list.
-(<+>) :: EqInfo a => [a] -> [a] -> [a]
-info1 <+> info2 = nubBy sameInfo (info1 ++ info2)
+    output :: String -> (Int, String, String) -> IO ()
+    output cmd (exitCode, out, err) = do
+        putStrLn $ "Exitcode for '" ++ cmd ++ "': " ++ show exitCode
+        putStrLn $ "Output for '" ++ cmd ++ "': " ++ show out
+        putStrLn $ "Error for '" ++ cmd ++ "': " ++ show err
