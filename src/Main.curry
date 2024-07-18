@@ -15,20 +15,23 @@ import CurryAnalysisInfrastructure.Options
 import JSON.Parser (parseJSON)
 import JSON.Pretty (ppJSON)
 
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isJust)
 import Data.List (nubBy)
 
 import System.Environment (getArgs)
+import System.Process (exitWith)
+
+import Control.Monad (unless)
 
 -- This action extracts or generates the requested information for the given object.
-getInfos :: Options -> [String] -> [String] -> IO Output
+getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts location requests = case location of
-        [pkg]                                                   -> getInfos' opts packageConfiguration  (CurryPackage pkg) requests
-        [pkg, "versions", vsn]                                  -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn) requests
-        [pkg, "versions", vsn, "modules", m]                    -> getInfos' opts moduleConfiguration  (CurryModule pkg vsn m) requests
-        [pkg, "versions", vsn, "modules", m, "types", t]        -> return $ OutputError "getInfos for types not yet implemented!"
-        [pkg, "versions", vsn, "modules", m, "typeclasses", c]  -> return $ OutputError "getInfos for types not yet implemented!"
-        [pkg, "versions", vsn, "modules", m, "operations", op]  -> return $ OutputError "getInfos for types not yet implemented!"
+        [("packages", pkg)]                                                         -> getInfos' opts packageConfiguration  (CurryPackage pkg) requests
+        [("packages", pkg), ("versions", vsn)]                                      -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> getInfos' opts moduleConfiguration  (CurryModule pkg vsn m) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> return $ OutputError "getInfos for types not yet implemented!"
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> return $ OutputError "getInfos for types not yet implemented!"
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", op)]  -> return $ OutputError "getInfos for types not yet implemented!"
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
         getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
@@ -49,7 +52,9 @@ getInfos opts location requests = case location of
 extractOrGenerate :: Configuration a b -> a -> [b] -> String -> IO (Maybe b)
 extractOrGenerate conf input infos request = case lookup request conf of
     Nothing                     -> return Nothing
-    Just (extractor, generator) -> maybe (generator input) (return . Just) (extractor infos)
+    Just (extractor, generator) -> case optForce opts of
+            True -> maybe (generator input) (return . Just) (extractor infos)
+            False -> extractor infos
 
 -- This function generates an output for the fields and respective results of extracting or generating.
 generateOutput :: JPretty a => [String] -> [Maybe a] -> Output
@@ -64,16 +69,22 @@ info1 <+> info2 = nubBy sameInfo (info1 ++ info2)
 
 main :: IO ()
 main = do
-    args <- getArgs
-    (opts, args2) <- processOptions "" args
+        args <- getArgs
+        (opts, args2) <- processOptions "" args
 
-    let pkg = maybe [] (\x -> [x])                  (optPackage opts)
-    let vsn = maybe [] (\x -> ["versions", x])      (optVersion opts)
-    let m   = maybe [] (\x -> ["modules", x])       (optModule opts)
-    let t   = maybe [] (\x -> ["types", x])         (optType opts)
-    let c   = maybe [] (\x -> ["typeclasses", x])   (optTypeclass opts)
-    let op  = maybe [] (\x -> ["operations", x])    (optOperation opts)
-    let obj = pkg ++ vsn ++ m ++ t ++ c ++ op
+        let pkg = extractOpt "packages"     (optPackage opts)
+        unless (isJust pkg) (putStrLn "Package name is required" >> exitWith 1)
 
-    res <- getInfos opts obj args2
-    print res
+        let vsn = extractOpt "versions"     (optVersion opts)
+        let m   = extractOpt "modules"      (optModule opts)
+        let t   = extractOpt "types"        (optType opts)
+        let c   = extractOpt "typeclasses"  (optTypeclass opts)
+        let op  = extractOpt "operations"   (optOperation opts)
+
+        let obj = catMaybes [pkg, vsn, m, t, c, op]
+
+        res <- getInfos opts obj args2
+        print res
+    where
+        extractOpt :: String -> Maybe String -> Maybe (String, String)
+        extractOpt tag = fmap (\x -> (tag, x))
