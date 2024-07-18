@@ -2,6 +2,8 @@ module CurryAnalysisInfrastructure.Checkout where
 
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths (root)
+import CurryAnalysisInfrastructure.Commands (runCmd, cmdCheckout)
+import CurryAnalysisInfrastructure.Options
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
@@ -41,16 +43,19 @@ cmdSuccess :: Int
 cmdSuccess = 0
 
 -- This action creates a checkout for the given version of the given package.
-checkoutIfMissing :: Package -> Version -> IO (Maybe String)
-checkoutIfMissing pkg vsn = do
+checkoutIfMissing :: Options -> Package -> Version -> IO (Maybe String)
+checkoutIfMissing opts pkg vsn = do
+    print "Computing path for checkout"
     path <- getCheckoutPath pkg vsn
+    print $ "Path for checkout: " ++ path
     b1 <- doesDirectoryExist path
     case b1 of
-        True -> return $ Just path
+        True -> do
+            print "Checkout unnecessary"
+            return $ Just path
         False -> do
-            --"cypm checkout -o DIR PACKAGE VERSION"
-            let cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
-            (exitCode, _, _) <- evalCmd "cypm" ["checkout", "-o", path, pkg, vsn] ""
+            print "Checkout necessary"
+            (exitCode, output, err) <- runCmd opts $ cmdCheckout path pkg vsn
             case exitCode of
                 127 -> do
                     print "Command 'cypm' was not found"
@@ -59,12 +64,8 @@ checkoutIfMissing pkg vsn = do
                     print "Command 'cypm' is not executable"
                     return Nothing
                 0 -> do
-                    b2 <- doesDirectoryExist path
-                    case b2 of
-                        True -> return $ Just path
-                        False -> do
-                            print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
-                            return Nothing
+                    print "Checkout successfull"
+                    return $ Just path
                 _ -> do
                     print $ "Checkout for " ++ toCheckout pkg vsn ++ " failed"
                     return Nothing  
