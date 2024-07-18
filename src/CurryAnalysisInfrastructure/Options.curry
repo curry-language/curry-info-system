@@ -10,6 +10,7 @@ import Control.Monad (when, unless)
 data Options = Options
     { optVerb :: Int
     , optHelp :: Bool
+    , optForce :: Bool
     , optPackage :: Maybe String
     , optVersion :: Maybe String
     , optModule :: Maybe String
@@ -21,7 +22,7 @@ data Options = Options
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False Nothing Nothing Nothing Nothing Nothing Nothing
+    Options 1 False False Nothing Nothing Nothing Nothing Nothing Nothing
 
 processOptions :: String -> [String] -> IO (Options, [String])
 processOptions banner argv = do
@@ -45,23 +46,26 @@ options =
     , Option "v" ["verbosity"]
              (OptArg (maybe (checkVerb 2) (safeReadNat checkVerb)) "<n>")
              "verbosity level: NOT YET DEFINED"
+    , Option "f" ["force"]
+             (NoArg (\opts -> opts { optForce = True }))
+             "force generation of missing requested information"
     , Option "p" ["package"]
-             (OptArg (\args opts -> opts { optPackage = args }) "<pkg>")
+             (ReqArg (\args opts -> opts { optPackage = Just args }) "<pkg>")
              "requested package"
     , Option "x" ["version"]
-             (OptArg (\args opts -> opts { optVersion = args }) "<vsn>")
+             (ReqArg (\args opts -> opts { optVersion = Just args }) "<vsn>")
              "requested version"
     , Option "m" ["module"]
-             (OptArg (\args opts -> opts { optModule = args }) "<mod>")
+             (ReqArg (\args opts -> opts { optModule = Just args }) "<mod>")
              "requested module"
     , Option "t" ["type"]
-             (OptArg (\args opts -> opts { optType = args }) "<mod>")
+             (ReqArg (\args opts -> opts { optType = Just args }) "<mod>")
              "requested type"
     , Option "c" ["typeclass"]
-             (OptArg (\args opts -> opts { optTypeclass = args }) "<mod>")
+             (ReqArg (\args opts -> opts { optTypeclass = Just args }) "<mod>")
              "requested typeclass"
     , Option "o" ["operation"]
-             (OptArg (\args opts -> opts { optOperation = args }) "<mod>")
+             (ReqArg (\args opts -> opts { optOperation = Just args }) "<mod>")
              "requested operation"
     ]
     where
