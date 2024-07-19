@@ -24,7 +24,7 @@ instance EqInfo ModuleInformation where
         (ModuleName _, ModuleName _) -> True
         (ModuleDocumentation _, ModuleDocumentation _) -> True
         (ModuleSourceCode _, ModuleSourceCode _) -> True
-        (ModuleUnsafe _, ModuleUnsafe _) -> True
+        (ModuleSafe _, ModuleSafe _) -> True
         (ModuleExports _, ModuleExports _) -> True
         (ModuleTypeclasses _, ModuleTypeclasses _) -> True
         (ModuleTypes _, ModuleTypes _) -> True
@@ -98,7 +98,7 @@ data ModuleInformation
     = ModuleName String
     | ModuleDocumentation Doc
     | ModuleSourceCode Doc
-    | ModuleUnsafe Bool
+    | ModuleSafe Bool
     | ModuleExports [Export]
     | ModuleTypeclasses [Typeclass]
     | ModuleTypes [Type]
@@ -119,9 +119,9 @@ isModuleSourceCode x = case x of
     ModuleSourceCode _ -> True 
     _ -> False
 
-isModuleUnsafe :: ModuleInformation -> Bool
-isModuleUnsafe x = case x of
-    ModuleUnsafe _ -> True 
+isModuleSafe :: ModuleInformation -> Bool
+isModuleSafe x = case x of
+    ModuleSafe _ -> True 
     _ -> False
 
 isModuleExports :: ModuleInformation -> Bool

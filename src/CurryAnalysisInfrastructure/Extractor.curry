@@ -45,8 +45,8 @@ extractModuleDocumentation infos = listToMaybe $ filter isModuleDocumentation in
 extractModuleSourceCode :: ModuleExtractor
 extractModuleSourceCode infos = listToMaybe $ filter isModuleSourceCode infos
 
-extractModuleUnsafe :: ModuleExtractor
-extractModuleUnsafe infos = listToMaybe $ filter isModuleUnsafe infos
+extractModuleSafe :: ModuleExtractor
+extractModuleSafe infos = listToMaybe $ filter isModuleSafe infos
 
 extractModuleExports :: ModuleExtractor
 extractModuleExports infos = listToMaybe $ filter isModuleExports infos

@@ -13,6 +13,8 @@ import System.FrontendExec (FrontendTarget (..), callFrontend)
 import CurryInterface.Types
 import CurryInterface.Files (readCurryInterfaceFile)
 
+import Data.List (find)
+
 icurryPath :: Package -> Version -> Module -> IO String
 icurryPath pkg vsn m = do
     path <- getCheckoutPath pkg vsn
@@ -38,3 +40,29 @@ readInterface opts pkg vsn m = do
             runCmd opts (cmdCurryLoad path m)
             print "Read .icurry"
             readCurryInterfaceFile icurry
+
+isOperation :: IDecl -> Bool
+isOperation decl = case decl of
+    IFunctionDecl _ _ _ _ -> True
+    _ -> False
+
+getOperations :: Interface -> [IDecl]
+getOperations (Interface _ _ decls) = filter isOperation decls
+
+getOperationName :: IDecl -> Maybe String
+getOperationName decl = case decl of
+    IFunctionDecl name _ _ _ -> Just $ idName $ qidIdent name
+    _ -> Nothing
+
+getOperationArity :: IDecl -> Maybe Int
+getOperationArity decl = case decl of
+    IFunctionDecl _ _ arity _ -> Just arity
+    _ -> Nothing
+
+findOperation :: [IDecl] -> Operation -> Maybe IDecl
+findOperation decls op = find (checker op) decls
+    where
+    checker :: Operation -> IDecl -> Bool
+    checker o decl = case decl of
+        IFunctionDecl name _ _ _ -> o == idName (qidIdent name)
+        _ -> False

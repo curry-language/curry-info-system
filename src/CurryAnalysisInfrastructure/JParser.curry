@@ -43,7 +43,7 @@ instance JParser ModuleInformation where
         "Module" -> ModuleName <$> getString fieldvalue
         "Documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
         "SourceCode" -> (ModuleSourceCode . text) <$> getString fieldvalue
-        "Unsafe" -> ModuleUnsafe <$> getBool fieldvalue
+        "Safe" -> ModuleSafe <$> getBool fieldvalue
         "Exports" -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
         "Typeclasses" -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
         "Types" -> ModuleTypes <$> (join $ mapM getString <$> getArray fieldvalue)

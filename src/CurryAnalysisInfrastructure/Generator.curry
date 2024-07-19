@@ -4,6 +4,9 @@ import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import CurryAnalysisInfrastructure.JParser (getString, lookupField)
 import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
+import CurryAnalysisInfrastructure.Interface (readInterface, getOperations, getOperationName)
+import CurryAnalysisInfrastructure.Options
+import CurryAnalysisInfrastructure.Analysis (analyseSafeModule)
 
 import Text.Pretty (text)
 import JSON.Data
@@ -14,18 +17,19 @@ import System.Directory (doesDirectoryExist, doesFileExist)
 import System.CurryPath (curryModulesInDirectory)
 
 import Data.List (isPrefixOf, intersect)
+import Data.Maybe (catMaybes)
 
-type Generator a b = a -> IO (Maybe b)
+type Generator a b = Options -> a -> IO (Maybe b)
 
 -- PACKAGE
 
 type PackageGenerator = Generator CurryPackage PackageInformation
 
 generatePackageName :: PackageGenerator
-generatePackageName (CurryPackage pkg) = return $ Just $ PackageName pkg
+generatePackageName opts (CurryPackage pkg) = return $ Just $ PackageName pkg
 
 generatePackageVersions :: PackageGenerator
-generatePackageVersions (CurryPackage pkg) = do
+generatePackageVersions opts (CurryPackage pkg) = do
     -- Get information from index
     i <- index
     let packageDir = i ++ pkg ++ "/"
@@ -37,25 +41,25 @@ generatePackageVersions (CurryPackage pkg) = do
 type VersionGenerator = Generator CurryVersion VersionInformation
 
 generateVersionVersion :: VersionGenerator
-generateVersionVersion (CurryVersion _ vsn) = return $ Just $ VersionVersion vsn
+generateVersionVersion opts (CurryVersion _ vsn) = return $ Just $ VersionVersion vsn
 
 generateVersionDocumentation :: VersionGenerator
-generateVersionDocumentation (CurryVersion pkg vsn) = do
-    t <- readPackageREADME pkg vsn
+generateVersionDocumentation opts (CurryVersion pkg vsn) = do
+    t <- readPackageREADME opts pkg vsn
     let doc = text t 
     return $ Just $ VersionDocumentation doc
 
 generateVersionCategories :: VersionGenerator
-generateVersionCategories (CurryVersion pkg vsn) = do
-    packageJSON <- readPackageJSON pkg vsn
+generateVersionCategories opts (CurryVersion pkg vsn) = do
+    packageJSON <- readPackageJSON opts pkg vsn
     let cats = maybe [] id (parseJSON packageJSON >>= getCategories)
     return $ Just $ VersionCategories cats
 
 generateVersionModules :: VersionGenerator
-generateVersionModules (CurryVersion pkg vsn) = do
-    allMods <- readPackageModules pkg vsn
+generateVersionModules opts (CurryVersion pkg vsn) = do
+    allMods <- readPackageModules opts pkg vsn
 
-    packageJSON <- readPackageJSON pkg vsn
+    packageJSON <- readPackageJSON opts pkg vsn
     let exportedMods = maybe allMods id (parseJSON packageJSON >>= getExportedModules)
 
     return $ Just $ VersionModules (intersect allMods exportedMods)
@@ -65,21 +69,33 @@ generateVersionModules (CurryVersion pkg vsn) = do
 type ModuleGenerator = Generator CurryModule ModuleInformation
 
 generateModuleName :: ModuleGenerator
-generateModuleName (CurryModule _ _ m) = return $ Just $ ModuleName m
+generateModuleName opts (CurryModule _ _ m) = return $ Just $ ModuleName m
 
 generateModuleDocumentation :: ModuleGenerator
-generateModuleDocumentation (CurryModule pkg vsn m) = do
-    srcContent <- readModuleSourceFile pkg vsn m
+generateModuleDocumentation opts (CurryModule pkg vsn m) = do
+    srcContent <- readModuleSourceFile opts pkg vsn m
     return $ Just $ (ModuleDocumentation . text) $ unlines $ takeWhile ("--" `isPrefixOf`) (lines srcContent)
 
 
 generateModuleSourceCode :: ModuleGenerator
-generateModuleSourceCode (CurryModule pkg vsn m) = do
-    srcContent <- readModuleSourceFile pkg vsn m
+generateModuleSourceCode opts (CurryModule pkg vsn m) = do
+    srcContent <- readModuleSourceFile opts pkg vsn m
     return $ Just $ (ModuleSourceCode . text) srcContent
 
-generateModuleUnsafe :: ModuleGenerator
-generateModuleUnsafe = failed
+generateModuleSafe :: ModuleGenerator
+generateModuleSafe opts (CurryModule pkg vsn m) = do
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            mresult <- analyseSafeModule opts path m
+            case mresult of
+                Just result -> return $ Just $ ModuleSafe result
+                Nothing -> do
+                    print "generateModuleSafe: analysis failed"
+                    return Nothing
+        Nothing -> do
+            print "generateModuleSafe: checkout failed"
+            return Nothing
 
 generateModuleExports :: ModuleGenerator
 generateModuleExports = failed
@@ -91,7 +107,9 @@ generateModuleTypes :: ModuleGenerator
 generateModuleTypes = failed
 
 generateModuleOperations :: ModuleGenerator
-generateModuleOperations = failed
+generateModuleOperations opts (CurryModule pkg vsn m) = do
+    interface <- readInterface defaultOptions pkg vsn m
+    return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations interface
 
 -- HELPER
 
@@ -113,18 +131,18 @@ getExportedModules jvalue = case jvalue of
             _ -> Nothing
     _ -> Nothing
 
-readPackageModules :: Package -> Version -> IO [Module]
-readPackageModules pkg vsn = do
-    result <- checkoutIfMissing pkg vsn
+readPackageModules :: Options -> Package -> Version -> IO [Module]
+readPackageModules opts pkg vsn = do
+    result <- checkoutIfMissing opts pkg vsn
     case result of
         Nothing -> return []
         Just dir -> do
             let src = dir ++ "/src"
             curryModulesInDirectory src
 
-readPackageJSON :: Package -> Version -> IO String
-readPackageJSON pkg vsn = do
-    result <- checkoutIfMissing pkg vsn
+readPackageJSON :: Options -> Package -> Version -> IO String
+readPackageJSON opts pkg vsn = do
+    result <- checkoutIfMissing opts pkg vsn
     case result of
         Nothing -> return "{}"
         Just dir -> do
@@ -134,9 +152,9 @@ readPackageJSON pkg vsn = do
                 False -> return "{}"
                 True -> readFile packageJSON
 
-readPackageREADME :: Package -> Version -> IO String
-readPackageREADME pkg vsn = do
-    result <- checkoutIfMissing pkg vsn
+readPackageREADME :: Options -> Package -> Version -> IO String
+readPackageREADME opts pkg vsn = do
+    result <- checkoutIfMissing opts pkg vsn
     case result of
         Nothing -> return ""
         Just dir -> do
@@ -146,9 +164,9 @@ readPackageREADME pkg vsn = do
                 False -> return ""
                 True -> readFile readme
 
-readModuleSourceFile :: Package -> Version -> Module -> IO String
-readModuleSourceFile pkg vsn m = do
-    result <- checkoutIfMissing pkg vsn
+readModuleSourceFile :: Options -> Package -> Version -> Module -> IO String
+readModuleSourceFile opts pkg vsn m = do
+    result <- checkoutIfMissing opts pkg vsn
     case result of
         Nothing -> return ""
         Just dir -> do
