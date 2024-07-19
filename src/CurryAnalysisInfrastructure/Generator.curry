@@ -4,7 +4,12 @@ import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import CurryAnalysisInfrastructure.JParser (getString, lookupField)
 import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
-import CurryAnalysisInfrastructure.Interface (readInterface, getOperations, getOperationName, getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName)
+import CurryAnalysisInfrastructure.Interface 
+    ( readInterface
+    , getOperations, getOperationName
+    , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName
+    , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
+    )
 import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Analysis (analyseSafeModule)
 
@@ -101,20 +106,40 @@ generateModuleExports :: ModuleGenerator
 generateModuleExports = failed
 
 generateModuleTypeclasses :: ModuleGenerator
-generateModuleTypeclasses = failed
+generateModuleTypeclasses opts (CurryModule pkg vsn m) = do
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            print "generateModuleTypeclasses: readInterface failed"
+            return Nothing
+        Just interface -> do
+            let allClasses = catMaybes $ map getClassName $ getAllClasses interface
+            let hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses interface
+            let exportedClasses = allClasses \\ hiddenClasses
+            return $ Just $ ModuleTypeclasses exportedClasses
 
 generateModuleTypes :: ModuleGenerator
 generateModuleTypes opts (CurryModule pkg vsn m) = do
-    interface <- readInterface opts pkg vsn m
-    let allTypes = catMaybes $ map getTypeName $ getAllTypes interface
-    let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes interface
-    let exportedTypes = allTypes \\ hiddenTypes
-    return $ Just $ ModuleTypes exportedTypes
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            print "generateModuleTypes: readInterface failed"
+            return Nothing
+        Just interface -> do
+            let allTypes = catMaybes $ map getTypeName $ getAllTypes interface
+            let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes interface
+            let exportedTypes = allTypes \\ hiddenTypes
+            return $ Just $ ModuleTypes exportedTypes
 
 generateModuleOperations :: ModuleGenerator
 generateModuleOperations opts (CurryModule pkg vsn m) = do
-    interface <- readInterface opts pkg vsn m
-    return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations interface
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            print "generateModuleOperations: readInterface failed"
+            return Nothing
+        Just interface -> do
+            return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations interface
 
 -- HELPER
 
