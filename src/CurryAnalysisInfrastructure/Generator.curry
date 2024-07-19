@@ -4,7 +4,7 @@ import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
 import CurryAnalysisInfrastructure.JParser (getString, lookupField)
 import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
-import CurryAnalysisInfrastructure.Interface (readInterface, getOperations, getOperationName)
+import CurryAnalysisInfrastructure.Interface (readInterface, getOperations, getOperationName, getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName)
 import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Analysis (analyseSafeModule)
 
@@ -16,7 +16,7 @@ import System.IOExts (evalCmd)
 import System.Directory (doesDirectoryExist, doesFileExist)
 import System.CurryPath (curryModulesInDirectory)
 
-import Data.List (isPrefixOf, intersect)
+import Data.List (isPrefixOf, intersect, (\\))
 import Data.Maybe (catMaybes)
 
 type Generator a b = Options -> a -> IO (Maybe b)
@@ -104,11 +104,16 @@ generateModuleTypeclasses :: ModuleGenerator
 generateModuleTypeclasses = failed
 
 generateModuleTypes :: ModuleGenerator
-generateModuleTypes = failed
+generateModuleTypes opts (CurryModule pkg vsn m) = do
+    interface <- readInterface opts pkg vsn m
+    let allTypes = catMaybes $ map getTypeName $ getAllTypes interface
+    let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes interface
+    let exportedTypes = allTypes \\ hiddenTypes
+    return $ Just $ ModuleTypes exportedTypes
 
 generateModuleOperations :: ModuleGenerator
 generateModuleOperations opts (CurryModule pkg vsn m) = do
-    interface <- readInterface defaultOptions pkg vsn m
+    interface <- readInterface opts pkg vsn m
     return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations interface
 
 -- HELPER

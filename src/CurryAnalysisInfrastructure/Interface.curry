@@ -66,3 +66,33 @@ findOperation decls op = find (checker op) decls
     checker o decl = case decl of
         IFunctionDecl name _ _ _ -> o == idName (qidIdent name)
         _ -> False
+
+getAllTypes :: Interface -> [IDecl]
+getAllTypes (Interface _ _ decls) = filter isType decls
+
+isType :: IDecl -> Bool
+isType decl = case decl of
+    IDataDecl _ _ _ _ _ -> True
+    INewtypeDecl _ _ _ _ _ -> True
+    ITypeDecl _ _ _ _ -> True
+    _ -> False
+
+getTypeName :: IDecl -> Maybe String
+getTypeName decl = case decl of
+    IDataDecl name _ _ _ _ -> Just $ idName $ qidIdent name
+    INewtypeDecl name _ _ _ _ -> Just $ idName $ qidIdent name
+    ITypeDecl name _ _ _ -> Just $ idName $ qidIdent name
+    _ -> Nothing
+
+getHiddenTypes :: Interface -> [IDecl]
+getHiddenTypes (Interface _ _ decls) = filter isHiddenType decls
+
+getHiddenTypeName :: IDecl -> Maybe String
+getHiddenTypeName decl = case decl of
+    HidingDataDecl name _ _ -> Just $ idName $ qidIdent name
+    _ -> Nothing
+
+isHiddenType :: IDecl -> Bool
+isHiddenType decl = case decl of
+    HidingDataDecl _ _ _ -> True
+    _ -> False
