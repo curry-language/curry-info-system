@@ -42,19 +42,19 @@ getInfos opts location requests = case location of
             case result of
                 Nothing -> return $ OutputError $ errorMessage input
                 Just infos -> do
-                    results <- mapM (extractOrGenerate conf input infos) requests'
+                    results <- mapM (extractOrGenerate opts conf input infos) requests'
                     let newInformation = catMaybes results <+> infos
                     writeInformation input newInformation
                     return $ generateOutput requests' results
 
 -- This action extracts or generates the requested information for the input, depending on whether the information
 -- already exists or not.
-extractOrGenerate :: Configuration a b -> a -> [b] -> String -> IO (Maybe b)
-extractOrGenerate conf input infos request = case lookup request conf of
+extractOrGenerate :: Options -> Configuration a b -> a -> [b] -> String -> IO (Maybe b)
+extractOrGenerate opts conf input infos request = case lookup request conf of
     Nothing                     -> return Nothing
     Just (extractor, generator) -> case optForce opts of
-            True -> maybe (generator input) (return . Just) (extractor infos)
-            False -> extractor infos
+            True -> maybe (generator opts input) (return . Just) (extractor infos)
+            False -> return $ extractor infos
 
 -- This function generates an output for the fields and respective results of extracting or generating.
 generateOutput :: JPretty a => [String] -> [Maybe a] -> Output

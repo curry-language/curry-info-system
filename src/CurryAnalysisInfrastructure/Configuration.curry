@@ -40,7 +40,7 @@ moduleConfiguration =
     [ ("Module", (extractModuleName, generateModuleName))
     , ("Documentation", (extractModuleDocumentation, generateModuleDocumentation))
     , ("SourceCode", (extractModuleSourceCode, generateModuleSourceCode))
-    , ("Unsafe", (extractModuleSafe, generateModuleSafe))
+    , ("Safe", (extractModuleSafe, generateModuleSafe))
     , ("Exports", (extractModuleExports, generateModuleExports))
     , ("Typeclasses", (extractModuleTypeclasses, generateModuleTypeclasses))
     , ("Types", (extractModuleTypes, generateModuleTypes))
