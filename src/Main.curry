@@ -21,7 +21,7 @@ import Data.List (nubBy)
 import System.Environment (getArgs)
 import System.Process (exitWith)
 
-import Control.Monad (unless)
+import Control.Monad (unless, when)
 
 -- This action extracts or generates the requested information for the given object.
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
@@ -36,25 +36,43 @@ getInfos opts location requests = case location of
     where
         getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
         getInfos' opts conf input requests' = do
-            let verb = optVerb opts
+            when (fullVerbosity opts) (putStrLn "Initializing Input...")
             initialize input
+            when (fullVerbosity opts) (putStrLn "Reading current information...")
             result <- readInformation input
             case result of
-                Nothing -> return $ OutputError $ errorMessage input
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn "Reading information failed.")
+                    return $ OutputError $ errorMessage input
                 Just infos -> do
+                    when (fullVerbosity opts) (putStrLn "Reading information succeeded.")
+                    when (fullVerbosity opts) (putStrLn "Extracting/Generating requested information...")
                     results <- mapM (extractOrGenerate opts conf input infos) requests'
+
                     let newInformation = catMaybes results <+> infos
+                    when (fullVerbosity opts) (putStrLn "Overwriting with updated information")
                     writeInformation input newInformation
+                    when (fullVerbosity opts) (putStrLn "Creating Output...")
                     return $ generateOutput requests' results
 
 -- This action extracts or generates the requested information for the input, depending on whether the information
 -- already exists or not.
 extractOrGenerate :: Options -> Configuration a b -> a -> [b] -> String -> IO (Maybe b)
-extractOrGenerate opts conf input infos request = case lookup request conf of
-    Nothing                     -> return Nothing
-    Just (extractor, generator) -> case optForce opts of
-            True -> maybe (generator opts input) (return . Just) (extractor infos)
-            False -> return $ extractor infos
+extractOrGenerate opts conf input infos request = do
+    when (fullVerbosity opts) (putStrLn $ "Looking up extractor and generator for request '" ++ request ++ "'...")
+    case lookup request conf of
+        Nothing                     -> do
+            when (fullVerbosity opts) (putStrLn $ "Entry '" ++ request ++ "' not found in configuration.")
+            return Nothing
+        Just (extractor, generator) -> do
+            when (fullVerbosity opts) (putStrLn $ "Extractor and Generator for request '" ++ request ++ "' found. Looking at force option...")
+            case optForce opts of
+                True -> do
+                    when (fullVerbosity opts) (putStrLn $ "Force options is True. Extracting/Generating information for request '" ++ request ++ "'...")
+                    maybe (generator opts input) (return . Just) (extractor infos)
+                False -> do
+                    when (fullVerbosity opts) (putStrLn $ "Force option is False. Only Extracting information for request '" ++ request ++ "'...")
+                    return $ extractor infos
 
 -- This function generates an output for the fields and respective results of extracting or generating.
 generateOutput :: JPretty a => [String] -> [Maybe a] -> Output

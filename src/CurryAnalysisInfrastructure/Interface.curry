@@ -15,47 +15,41 @@ import CurryInterface.Files (readCurryInterfaceFile)
 
 import Data.List (find)
 
-icurryPath :: Options -> Package -> Version -> Module -> IO (Maybe String)
-icurryPath opts pkg vsn m = do
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            let pakcs = "pakcs-3.7.1"
-            return $ Just (path ++ "/src/.curry/" ++ pakcs ++ "/" ++ moduleToPath m ++ ".icurry")
-        Nothing -> do
-            print "icurryPath: checkout failed"
-            return Nothing
+import Control.Monad (when)
+
+icurryPath :: Package -> Version -> Module -> IO String
+icurryPath pkg vsn m = do
+    path <- getCheckoutPath pkg vsn
+    let pakcs = "pakcs-3.7.1"
+    return (path ++ "/src/.curry/" ++ pakcs ++ "/" ++ moduleToPath m ++ ".icurry")
 
 readInterface :: Options -> Package -> Version -> Module -> IO (Maybe Interface)
 readInterface opts pkg vsn m = do
+    when (fullVerbosity opts) (putStrLn $ "Checkout for package " ++ pkg ++ " with version " ++ vsn ++ " if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn
     case mpath of
         Just path -> do
-            print $ "Path for checkout: " ++ path
-            micurry <- icurryPath opts pkg vsn m
-            case micurry of
-                Nothing -> do
-                    print "readInterface: icurryPath failed"
-                    return Nothing
-                Just icurry -> do
-                    print $ "Path for .icurry: " ++ icurry
-                    b <- doesFileExist icurry
-                    case b of
-                        True -> do
-                            print "File exists"
-                            print "Read .icurry"
-                            result <- readCurryInterfaceFile icurry
-                            return $ Just result
-                        False -> do
-                            print "File does not exist"
-                            print "Generating file"
-                            runCmd opts (cmdCYPMInstall path)
-                            runCmd opts (cmdCurryLoad path m)
-                            print "Read .icurry"
-                            result <- readCurryInterfaceFile icurry
-                            return $ Just result
+            when (fullVerbosity opts) (putStrLn $ "Computing path to icurry file...")
+            icurry <- icurryPath pkg vsn m
+            when (fullVerbosity opts) (putStrLn $ "Path to icurry file: " ++ icurry)
+            when (fullVerbosity opts) (putStrLn $ "Checking whether icurry file exists...")
+            b <- doesFileExist icurry
+            case b of
+                True -> do
+                    when (fullVerbosity opts) (putStrLn $ "icurry file exists.")
+                    when (fullVerbosity opts) (putStrLn $ "Reading interface...")
+                    result <- readCurryInterfaceFile icurry
+                    return $ Just result
+                False -> do
+                    when (fullVerbosity opts) (putStrLn $ "icurry file does not exist.")
+                    when (fullVerbosity opts) (putStrLn $ "Generating icurry file...")
+                    runCmd opts (cmdCYPMInstall path)
+                    runCmd opts (cmdCurryLoad path m)
+                    when (fullVerbosity opts) (putStrLn $ "Reading interface...")
+                    result <- readCurryInterfaceFile icurry
+                    return $ Just result
         Nothing -> do
-            print "readInterface: checkout failed"
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
             return Nothing
 
 isOperation :: IDecl -> Bool

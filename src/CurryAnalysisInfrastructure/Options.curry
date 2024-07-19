@@ -76,3 +76,6 @@ options =
         checkVerb n opts = if n >= 0 && n <= 4
                                 then opts { optVerb = n }
                                 else error "Illegal verbosity level (try '-h' for help)"
+
+fullVerbosity :: Options -> Bool
+fullVerbosity opts = optVerb opts >= 4
