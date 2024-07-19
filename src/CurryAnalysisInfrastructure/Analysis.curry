@@ -9,7 +9,7 @@ import JSON.Parser (parseJSON)
 
 import Data.List (init, find)
 
-import System.IO.Unsafe (trace)
+import Control.Monad (when)
 
 data Determinism
     = Det
@@ -28,57 +28,45 @@ findField js field = do
             JObject [_, ("name", JString f2), _] -> f1 == f2
             _ -> False
 
+analyse :: Options -> String -> String -> Module -> String -> [(String, a)] -> IO (Maybe a)
+analyse opts path analysis m field x = do
+    when (fullVerbosity opts) (putStrLn $ "Starting analysis " ++ analysis ++ "...")
+    (exitCode, output, err) <- runCmd opts (cmdCASS path analysis m)
+    when (fullVerbosity opts) (putStrLn $ "Analysis finished.")
+    when (fullVerbosity opts) (putStrLn $ "Parsing result...")
+    case parseJSON (init output) of 
+        Just (JArray js) -> do
+            case findField js field of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis succeeded.")
+                    return $ lookup result x
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Could not find entry with name '" ++ field ++ "'.")
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    return Nothing
+        _ -> do
+            when (fullVerbosity opts) (putStrLn $ "Output did not match expected format. Expected array.")
+            when (fullVerbosity opts) (putStrLn $ "Output:")
+            when (fullVerbosity opts) (putStrLn $ output)
+            when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+            return Nothing
+
 analyseSafeModule :: Options -> String -> Module -> IO (Maybe Bool)
 analyseSafeModule opts path m = do
-    (exitCode, output, err) <- runCmd opts (cmdCASS path "UnsafeModule" m)
-
-    case parseJSON (init output) of
-        Just (JArray js) -> do
-            case findField js m of
-                Just result -> case result of
-                    "safe" -> return $ Just True
-                    "unsafe" -> return $ Just False
-                    _ -> do
-                        print "JValue does not match expected form"
-                        return Nothing
-                Nothing -> do
-                    print "JValue does not match expected form"
-                    return Nothing
-        Just _ -> do
-            print "JValue does not match expected form"
-            return Nothing
-        Nothing -> do
-            print "Parsing of JValue failed"
-            return Nothing
+    analyse opts path "UnsafeModule" m m [("safe", True), ("unsafe", False)]
 
 analyseDeterministic :: Options -> String -> Module -> Operation -> IO (Maybe Determinism)
 analyseDeterministic opts path m op = do
-    (exitCode, output, err) <- runCmd opts (cmdCASS path "Deterministic" m)
-
-    case parseJSON (init output) of
-        Just (JArray js) -> do
-            case findField js op of
-                Just result -> case result of
-                    "deterministic" -> return $ Just Det
-                    "non-deterministic" -> return $ Just NDet
-                    _ -> do
-                        print "JValue does not match expected form"
-                        return Nothing
-                Nothing -> do
-                    print "JValue does not match expected form"
-                    return Nothing
-        Just _ -> do
-            print "JValue does not match expected form"
-            return Nothing
-        Nothing -> do
-            print "Parsing of JValue failed"
-            return Nothing
+    analyse opts path "Deterministic" m op [("deterministic", Det), ("non-deterministic", NDet)]
 
 testPath :: String
 testPath = "/home/dennis/tmp/.curryanalysis/checkouts/json-3.0.0"
 
 testModule :: Module
-testModule = "JSON.Data"
+testModule = "JSON.Parser"
+
+testOp :: Operation
+testOp = "parseJSON"
 
 testOptions :: Options
 testOptions = defaultOptions
