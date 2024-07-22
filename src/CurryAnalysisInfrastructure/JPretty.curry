@@ -35,7 +35,7 @@ instance JPretty ModuleInformation where
     jpretty (ModuleName m) = ("Module", JString m)
     jpretty (ModuleDocumentation d) = ("Documentation", JString $ pPrint d)
     jpretty (ModuleSourceCode d) = ("SourceCode", JString $ pPrint d)
-    jpretty (ModuleSafe b) = ("Safe", if b then JTrue else JFalse)
+    jpretty (ModuleSafe s) = ("Safe", JString $ show s)
     jpretty (ModuleExports es) = ("Exports", JArray (map JString es))
     jpretty (ModuleTypeclasses tcs) = ("Typeclasses", JArray (map JString tcs))
     jpretty (ModuleTypes ts) = ("Types", JArray (map JString ts))

@@ -67,11 +67,14 @@ extractOrGenerate opts conf input infos request = do
         Just (extractor, generator) -> do
             when (fullVerbosity opts) (putStrLn $ "Extractor and Generator for request '" ++ request ++ "' found. Looking at force option...")
             case optForce opts of
-                True -> do
-                    when (fullVerbosity opts) (putStrLn $ "Force options is True. Extracting/Generating information for request '" ++ request ++ "'...")
+                2 -> do
+                    when (fullVerbosity opts) (putStrLn $ "Force option is 2. Generating information for request '" ++ request ++ "'...")
+                    return $ generator opts input
+                1 -> do
+                    when (fullVerbosity opts) (putStrLn $ "Force option is 1. Extracting/Generating information for request '" ++ request ++ "'...")
                     maybe (generator opts input) (return . Just) (extractor infos)
-                False -> do
-                    when (fullVerbosity opts) (putStrLn $ "Force option is False. Only Extracting information for request '" ++ request ++ "'...")
+                0 -> do
+                    when (fullVerbosity opts) (putStrLn $ "Force option is 0. Only Extracting information for request '" ++ request ++ "'...")
                     return $ extractor infos
 
 -- This function generates an output for the fields and respective results of extracting or generating.

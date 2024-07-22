@@ -98,7 +98,7 @@ data ModuleInformation
     = ModuleName String
     | ModuleDocumentation Doc
     | ModuleSourceCode Doc
-    | ModuleSafe Bool
+    | ModuleSafe Safe
     | ModuleExports [Export]
     | ModuleTypeclasses [Typeclass]
     | ModuleTypes [Type]
@@ -160,20 +160,17 @@ data OperationInformation
     | OperationSignature Signature
     | OperationInfix Infix
     | OperationPrecedence Precedence
-    | OperationDeterminism Determinism
-    | OperationDemandness [Int]
-    | OperationIndeterminism Bool
-    | OperationSolutionCompleteness Bool
-    | OperationTermination Bool
-    | OperationTotallyDefined Bool
+    | OperationDeterminism Deterministic
+    | OperationDemandness Demandness
+    | OperationIndeterminism Indeterministic
+    | OperationSolutionCompleteness SolutionCompleteness
+    | OperationTermination Termination
+    | OperationTotallyDefined TotallyDefined
 
 data Infix = Infix | InfixL | InfixR
     deriving (Read, Show)
 
 type Precedence = Int
-
-data Determinism = Det | NDet
-    deriving (Read, Show)
 
 type External = ()
 
@@ -196,3 +193,26 @@ type Module = String
 type Category = String
 
 type Package = String
+
+-- Result Types
+
+data Safe
+    = Safe
+    | Unsafe
+    | UnsafeDue [Module]
+    deriving (Show, Read)
+
+data Deterministic
+    = Det
+    | NDet
+    deriving (Show, Read)
+
+type Demandness = [Int]
+
+type Indeterministic = Bool
+
+type SolutionCompleteness = Bool
+
+type Termination = Bool
+
+type TotallyDefined = Bool

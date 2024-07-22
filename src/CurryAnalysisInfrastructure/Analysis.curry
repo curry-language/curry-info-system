@@ -14,21 +14,6 @@ import Control.Monad (when)
 import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar, char, check, (<$>), (<*>), many, (<*))
 import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
 
--- Result Types
-
-data Safe
-    = Safe
-    | Unsafe
-    | UnsafeDue [Module]
-    deriving (Show, Read)
-
-data Deterministic
-    = Det
-    | NDet
-    deriving (Show, Read)
-
-type Demandness = [Int]
-
 -- Analysis
 
 findField :: [JValue] -> String -> Maybe String
@@ -68,16 +53,48 @@ analyse opts path analysis m field parser = do
 
 analyseSafeModule :: Options -> String -> Module -> IO (Maybe Safe)
 analyseSafeModule opts path m = do
-        analyse opts path "UnsafeModule" m m parseSafe
+    analyse opts path "UnsafeModule" m m parseSafe
 
 analyseDeterministic :: Options -> String -> Module -> Operation -> IO (Maybe Deterministic)
 analyseDeterministic opts path m op = do
-        analyse opts path "Deterministic" m op parseDeterministic
+    analyse opts path "Deterministic" m op parseDeterministic
 
-analyseDemandness :: Options -> String -> Module -> Operation -> IO (Maybe [Int])
+analyseDemandness :: Options -> String -> Module -> Operation -> IO (Maybe Demandness)
 analyseDemandness opts path m op = do
-        analyse opts path "Demand" m op parseDemandness
+    analyse opts path "Demand" m op parseDemandness
 
+analyseIndeterministic :: Options -> String -> Module -> Operation -> IO (Maybe Indeterministic)
+analyseIndeterministic opts path m op = do
+    analyse opts path "Indeterministic" m op parseIndeterministic
+
+analyseSolutionCompleteness :: Options -> String -> Module -> Operation -> IO (Maybe SolutionCompleteness)
+analyseSolutionCompleteness opts path m op = do
+    analyse opts path "SolComplete" m op parseSolutionCompleteness
+
+analyseTermination :: Options -> String -> Module -> Operation -> IO (Maybe Termination)
+analyseTermination opts path m op = do
+    analyse opts path "Terminating" m op parseTermination
+
+analyseTotallyDefined :: Options -> String -> Module -> Operation -> IO (Maybe TotallyDefined)
+analyseTotallyDefined opts path m op = do
+    analyse opts path "Total" m op parseTotallyDefined
+{-
+operationConfiguration :: Configuration CurryOperation OperationInformation
+operationConfiguration =
+    [ ("Operation", (extractOperationOperation, generateOperationOperation))
+    , ("Documentation", (extractOperationDocumentation, generateOperationDocumentation))
+    , ("SourceCode", (extractOperationSourceCode, generateOperationSourceCode))
+    , ("Signature", (extractOperationSignature, generateOperationSignature))
+    , ("Infix", (extractOperationInfix, generateOperationInfix))
+    , ("Precedence", (extractOperationPrecedence, generateOperationPrecedence))
+    , ("Determinism", (extractOperationDeterminism, generateOperationDeterminism))
+    , ("Demandness", (extractOperationDemandness, generateOperationDemandness))
+    , ("Indeterminism", (extractOperationIndeterminism, generateOperationIndeterminism))
+    , ("SolutionCompleteness", (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
+    , ("Termination", (extractOperationTermination, generateOperationTermination))
+    , ("TotallyDefined", (extractOperationTotallyDefined, generateOperationTotallyDefined))
+    ]
+-}
 -- PARSER
 
 parseSafe :: String -> Maybe Safe
@@ -102,6 +119,30 @@ parseDemandness :: String -> Maybe Demandness
 parseDemandness = parse (
         (word "no demanded arguments" *> yield []) <|>
         (word "demanded arguments: " *> parseList comma parseNumber)
+    )
+
+parseIndeterministic :: String -> Maybe Indeterministic
+parseIndeterministic = parse (
+        (word "impure (indeterminstic) operation" *> yield True) <|>
+        (word "referentially transparent operation" *> yield False)
+    )
+
+parseSolutionCompleteness :: String -> Maybe SolutionCompleteness
+parseSolutionCompleteness = parse (
+        (word "solution complete" *> yield True) <|>
+        (word "maybe suspend" *> yield False)
+    )
+
+parseTermination :: String -> Maybe Termination
+parseTermination = parse (
+        (word "terminating" *> yield True) <|>
+        (word "possibly non-terminating" *> yield False)
+    )
+
+parseTotallyDefined :: String -> Maybe TotallyDefined
+parseTotallyDefined = parse (
+        (word "totally defined" *> yield True) <|>
+        (word "partially defined" *> yield False)
     )
 
 parseList :: Parser a -> Parser b -> Parser [b]

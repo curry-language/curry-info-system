@@ -10,7 +10,8 @@ import Control.Monad (when, unless)
 data Options = Options
     { optVerb :: Int
     , optHelp :: Bool
-    , optForce :: Bool
+    --, optForce :: Bool
+    , optForce :: Int
     , optPackage :: Maybe String
     , optVersion :: Maybe String
     , optModule :: Maybe String
@@ -22,7 +23,7 @@ data Options = Options
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False False Nothing Nothing Nothing Nothing Nothing Nothing
+    Options 1 False 0 Nothing Nothing Nothing Nothing Nothing Nothing
 
 processOptions :: String -> [String] -> IO (Options, [String])
 processOptions banner argv = do
@@ -47,7 +48,8 @@ options =
              (OptArg (maybe (checkVerb 2) (safeReadNat checkVerb)) "<n>")
              "verbosity level: NOT YET DEFINED"
     , Option "f" ["force"]
-             (NoArg (\opts -> opts { optForce = True }))
+             --(NoArg (\opts -> opts { optForce = True }))
+             (OptArg (maybe (checkForce 0) (safeReadNat checkForce)) "<n>")
              "force generation of missing requested information"
     , Option "p" ["package"]
              (ReqArg (\args opts -> opts { optPackage = Just args }) "<pkg>")
@@ -76,6 +78,9 @@ options =
         checkVerb n opts = if n >= 0 && n <= 4
                                 then opts { optVerb = n }
                                 else error "Illegal verbosity level (try '-h' for help)"
+        checkForce n opts = if n >= 0 && n <= 1
+                                then opts { optForce = n }
+                                else error "Illegal force level (try '-h' for help)"
 
 fullVerbosity :: Options -> Bool
 fullVerbosity opts = optVerb opts >= 4

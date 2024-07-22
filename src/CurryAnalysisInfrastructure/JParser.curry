@@ -43,7 +43,7 @@ instance JParser ModuleInformation where
         "Module" -> ModuleName <$> getString fieldvalue
         "Documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
         "SourceCode" -> (ModuleSourceCode . text) <$> getString fieldvalue
-        "Safe" -> ModuleSafe <$> getBool fieldvalue
+        "Safe" -> ModuleSafe <$> getSafe fieldvalue
         "Exports" -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
         "Typeclasses" -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
         "Types" -> ModuleTypes <$> (join $ mapM getString <$> getArray fieldvalue)
@@ -82,6 +82,11 @@ getArray jv = case jv of
 getFields :: JValue -> Maybe [Field]
 getFields jv = case jv of
     JObject x -> Just x
+    _ -> Nothing
+
+getSafe :: JValue -> Maybe Safe
+getSafe jv = case jv of
+    JString s -> return $ read s
     _ -> Nothing
 
 lookupField :: Eq a => a -> [(a, b)] -> Maybe b
