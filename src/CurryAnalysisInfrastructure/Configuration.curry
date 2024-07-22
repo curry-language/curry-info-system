@@ -46,3 +46,24 @@ moduleConfiguration =
     , ("Types", (extractModuleTypes, generateModuleTypes))
     , ("Operations", (extractModuleOperations, generateModuleOperations))
     ]
+
+-- OPERATION
+
+operationFields :: [String]
+operationFields = map fst operationConfiguration
+
+operationConfiguration :: Configuration CurryOperation OperationInformation
+operationConfiguration =
+    [ ("Operation", (extractOperationOperation, generateOperationOperation))
+    , ("Documentation", (extractOperationDocumentation, generateOperationDocumentation))
+    , ("SourceCode", (extractOperationSourceCode, generateOperationSourceCode))
+    , ("Signature", (extractOperationSignature, generateOperationSignature))
+    , ("Infix", (extractOperationInfix, generateOperationInfix))
+    , ("Precedence", (extractOperationPrecedence, generateOperationPrecedence))
+    , ("Determinism", (extractOperationDeterminism, generateOperationDeterminism))
+    , ("Demandness", (extractOperationDemandness, generateOperationDemandness))
+    , ("Indeterminism", (extractOperationIndeterminism, generateOperationIndeterminism))
+    , ("SolutionCompleteness", (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
+    , ("Termination", (extractOperationTermination, generateOperationTermination))
+    , ("TotallyDefined", (extractOperationTotallyDefined, generateOperationTotallyDefined))
+    ]
