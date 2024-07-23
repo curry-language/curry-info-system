@@ -150,11 +150,51 @@ data TypeInformation
     | TypeConstructors (Either External [Constructor])
     | TypeDefinition Doc
 
+isTypeName :: TypeInformation -> Bool
+isTypeName x = case x of
+    TypeName _ -> True
+    _ -> False
+
+isTypeDocumentation :: TypeInformation -> Bool
+isTypeDocumentation x = case x of
+    TypeDocumentation _ -> True
+    _ -> False
+
+isTypeConstructors :: TypeInformation -> Bool
+isTypeConstructors x = case x of
+    TypeConstructors _ -> True
+    _ -> False
+
+isTypeDefinition :: TypeInformation -> Bool
+isTypeDefinition x = case x of
+    TypeDefinition _ -> True
+    _ -> False
+
 data TypeclassInformation
     = TypeclassName String
     | TypeclassDocumentation Doc
     | TypeclassMethods [Signature]
     | TypeclassDefinition Doc
+
+isTypeclassName :: TypeclassInformation -> Bool
+isTypeclassName x = case x of
+    TypeclassName _ -> True
+    _ -> False
+
+isTypeclassDocumentation :: TypeclassInformation -> Bool
+isTypeclassDocumentation x = case x of
+    TypeclassDocumentation _ -> True
+    _ -> False
+
+isTypeclassMethods :: TypeclassInformation -> Bool
+isTypeclassMethods x = case x of
+    TypeclassMethods _ -> True
+    _ -> False
+
+isTypeclassDefinition :: TypeclassInformation -> Bool
+isTypeclassDefinition x = case x of
+    TypeclassDefinition _ -> True
+    _ -> False
 
 data OperationInformation
     = OperationName String
@@ -163,12 +203,72 @@ data OperationInformation
     | OperationSignature Signature
     | OperationInfix Infix
     | OperationPrecedence Precedence
-    | OperationDeterminism Deterministic
+    | OperationDeterministic Deterministic
     | OperationDemandness Demandness
-    | OperationIndeterminism Indeterministic
+    | OperationIndeterministic Indeterministic
     | OperationSolutionCompleteness SolutionCompleteness
     | OperationTermination Termination
     | OperationTotallyDefined TotallyDefined
+
+isOperationName :: OperationInformation -> Bool
+isOperationName x = case x of
+    OperationName _ -> True
+    _ -> False
+
+isOperationDocumentation :: OperationInformation -> Bool
+isOperationDocumentation x = case x of
+    OperationDocumentation _ -> True
+    _ -> False
+
+isOperationSourceCode :: OperationInformation -> Bool
+isOperationSourceCode x = case x of
+    OperationSourceCode _ -> True
+    _ -> False
+
+isOperationSignature :: OperationInformation -> Bool
+isOperationSignature x = case x of
+    OperationSignature _ -> True
+    _ -> False
+
+isOperationInfix :: OperationInformation -> Bool
+isOperationInfix x = case x of
+    OperationInfix _ -> True
+    _ -> False
+
+isOperationPrecedence :: OperationInformation -> Bool
+isOperationPrecedence x = case x of
+    OperationPrecedence _ -> True
+    _ -> False
+
+isOperationDeterministic :: OperationInformation -> Bool
+isOperationDeterministic x = case x of
+    OperationDeterministic _ -> True
+    _ -> False
+
+isOperationDemandness :: OperationInformation -> Bool
+isOperationDemandness x = case x of
+    OperationDemandness _ -> True
+    _ -> False
+
+isOperationIndeterministic :: OperationInformation -> Bool
+isOperationIndeterministic x = case x of
+    OperationIndeterministic _ -> True
+    _ -> False
+
+isOperationSolutionCompleteness :: OperationInformation -> Bool
+isOperationSolutionCompleteness x = case x of
+    OperationSolutionCompleteness _ -> True
+    _ -> False
+
+isOperationTermination :: OperationInformation -> Bool
+isOperationTermination x = case x of
+    OperationTermination _ -> True
+    _ -> False
+
+isOperationTotallyDefined :: OperationInformation -> Bool
+isOperationTotallyDefined x = case x of
+    OperationTotallyDefined _ -> True
+    _ -> False
 
 data Infix = Infix | InfixL | InfixR
     deriving (Read, Show)
