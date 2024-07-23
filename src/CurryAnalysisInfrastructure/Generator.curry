@@ -11,7 +11,15 @@ import CurryAnalysisInfrastructure.Interface
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
     )
 import CurryAnalysisInfrastructure.Options
-import CurryAnalysisInfrastructure.Analysis (analyseSafeModule)
+import CurryAnalysisInfrastructure.Analysis
+    ( analyseSafeModule
+    , analyseDemandness
+    , analyseDeterministic
+    , analyseIndeterministic
+    , analyseSolutionCompleteness
+    , analyseTermination
+    , analyseTotallyDefined
+    )
 
 import Text.Pretty (text)
 import JSON.Data
@@ -262,23 +270,142 @@ operationPrecedence :: OperationGenerator
 operationPrecedence opts (CurryOperation pkg vsn m o) = failed
 
 operationDeterministic :: OperationGenerator
-operationDeterministic opts (CurryOperation pkg vsn m o) = failed
+operationDeterministic opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            when (fullVerbosity opts) (putStrLn $ "Starting analysis...")
+            mresult <- analyseDeterministic opts path m o
+            case mresult of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis finished successfully.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return $ Just $ OperationDeterministic result
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return Nothing
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
 
 operationDemandness :: OperationGenerator
-operationDemandness opts (CurryOperation pkg vsn m o) = failed
+operationDemandness opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            when (fullVerbosity opts) (putStrLn $ "Starting analysis...")
+            mresult <- analyseDemandness opts path m o
+            case mresult of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis finished successfully.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return $ Just $ OperationDemandness result
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return Nothing
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
 
 operationIndeterministic :: OperationGenerator
-operationIndeterministic opts (CurryOperation pkg vsn m o) = failed
+operationIndeterministic opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            when (fullVerbosity opts) (putStrLn $ "Starting analysis...")
+            mresult <- analyseIndeterministic opts path m o
+            case mresult of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis finished successfully.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return $ Just $ OperationIndeterministic result
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return Nothing
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
 
 operationSolutionCompleteness :: OperationGenerator
-operationSolutionCompleteness opts (CurryOperation pkg vsn m o) = failed
+operationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            when (fullVerbosity opts) (putStrLn $ "Starting analysis...")
+            mresult <- analyseSolutionCompleteness opts path m o
+            case mresult of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis finished successfully.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return $ Just $ OperationSolutionCompleteness result
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return Nothing
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
 
 operationTermination :: OperationGenerator
-operationTermination opts (CurryOperation pkg vsn m o) = failed
+operationTermination opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            when (fullVerbosity opts) (putStrLn $ "Starting analysis...")
+            mresult <- analyseTermination opts path m o
+            case mresult of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis finished successfully.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return $ Just $ OperationTermination result
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return Nothing
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
 
 operationTotallyDefined :: OperationGenerator
-operationTotallyDefined opts (CurryOperation pkg vsn m o) = failed
-
+operationTotallyDefined opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
+    mpath <- checkoutIfMissing opts pkg vsn
+    case mpath of
+        Just path -> do
+            when (fullVerbosity opts) (putStrLn $ "Starting analysis...")
+            mresult <- analyseTotallyDefined opts path m o
+            case mresult of
+                Just result -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis finished successfully.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return $ Just $ OperationTotallyDefined result
+                Nothing -> do
+                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    when (fullVerbosity opts) (putStrLn $ "Done.")
+                    return Nothing
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
 
 -- HELPER
 
