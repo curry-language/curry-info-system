@@ -145,17 +145,20 @@ isModuleOperations x = case x of
     _ -> False
 
 data TypeInformation
-    = TypeDocumentation Doc
+    = TypeName String
+    | TypeDocumentation Doc
     | TypeConstructors (Either External [Constructor])
     | TypeDefinition Doc
 
 data TypeclassInformation
-    = TypeclassDocumentation Doc
+    = TypeclassName String
+    | TypeclassDocumentation Doc
     | TypeclassMethods [Signature]
     | TypeclassDefinition Doc
 
 data OperationInformation
-    = OperationDocumentation Doc
+    = OperationName String
+    | OperationDocumentation Doc
     | OperationSourceCode Doc
     | OperationSignature Signature
     | OperationInfix Infix
