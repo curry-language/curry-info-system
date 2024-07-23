@@ -13,8 +13,8 @@ packageFields = map fst packageConfiguration
 
 packageConfiguration :: Configuration CurryPackage PackageInformation
 packageConfiguration =
-    [ ("Package", (extractPackageName, generatePackageName))
-    , ("Versions", (extractPackageVersions, generatePackageVersions))
+    [ ("package",   (extractPackageName, generatePackageName))
+    , ("versions",  (extractPackageVersions, generatePackageVersions))
     ]
 
 -- VERSION
@@ -24,10 +24,10 @@ versionFields = map fst versionConfiguration
 
 versionConfiguration :: Configuration CurryVersion VersionInformation
 versionConfiguration =
-    [ ("Version", (extractVersionVersion, generateVersionVersion))
-    , ("Documentation", (extractVersionDocumentation, generateVersionDocumentation))
-    , ("Categories", (extractVersionCategories, generateVersionCategories))
-    , ("Modules", (extractVersionModules, generateVersionModules))
+    [ ("version",       (extractVersionVersion, generateVersionVersion))
+    , ("documentation", (extractVersionDocumentation, generateVersionDocumentation))
+    , ("categories",    (extractVersionCategories, generateVersionCategories))
+    , ("modules",       (extractVersionModules, generateVersionModules))
     ]
 
 -- MODULE
@@ -37,14 +37,14 @@ moduleFields = map fst moduleConfiguration
 
 moduleConfiguration :: Configuration CurryModule ModuleInformation
 moduleConfiguration =
-    [ ("Module", (extractModuleName, generateModuleName))
-    , ("Documentation", (extractModuleDocumentation, generateModuleDocumentation))
-    , ("SourceCode", (extractModuleSourceCode, generateModuleSourceCode))
-    , ("Safe", (extractModuleSafe, generateModuleSafe))
-    , ("Exports", (extractModuleExports, generateModuleExports))
-    , ("Typeclasses", (extractModuleTypeclasses, generateModuleTypeclasses))
-    , ("Types", (extractModuleTypes, generateModuleTypes))
-    , ("Operations", (extractModuleOperations, generateModuleOperations))
+    [ ("module",        (extractModuleName, generateModuleName))
+    , ("documentation", (extractModuleDocumentation, generateModuleDocumentation))
+    , ("sourceCode",    (extractModuleSourceCode, generateModuleSourceCode))
+    , ("safe",          (extractModuleSafe, generateModuleSafe))
+    , ("exports",       (extractModuleExports, generateModuleExports))
+    , ("typeclasses",   (extractModuleTypeclasses, generateModuleTypeclasses))
+    , ("types",         (extractModuleTypes, generateModuleTypes))
+    , ("operations",    (extractModuleOperations, generateModuleOperations))
     ]
 
 -- OPERATION
@@ -54,16 +54,16 @@ operationFields = map fst operationConfiguration
 
 operationConfiguration :: Configuration CurryOperation OperationInformation
 operationConfiguration =
-    [ ("Operation", (extractOperationOperation, generateOperationOperation))
-    , ("Documentation", (extractOperationDocumentation, generateOperationDocumentation))
-    , ("SourceCode", (extractOperationSourceCode, generateOperationSourceCode))
-    , ("Signature", (extractOperationSignature, generateOperationSignature))
-    , ("Infix", (extractOperationInfix, generateOperationInfix))
-    , ("Precedence", (extractOperationPrecedence, generateOperationPrecedence))
-    , ("Determinism", (extractOperationDeterminism, generateOperationDeterminism))
-    , ("Demandness", (extractOperationDemandness, generateOperationDemandness))
-    , ("Indeterminism", (extractOperationIndeterminism, generateOperationIndeterminism))
-    , ("SolutionCompleteness", (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
-    , ("Termination", (extractOperationTermination, generateOperationTermination))
-    , ("TotallyDefined", (extractOperationTotallyDefined, generateOperationTotallyDefined))
+    [ ("operation",             (extractOperationOperation, generateOperationOperation))
+    , ("documentation",         (extractOperationDocumentation, generateOperationDocumentation))
+    , ("sourceCode",            (extractOperationSourceCode, generateOperationSourceCode))
+    , ("signature",             (extractOperationSignature, generateOperationSignature))
+    , ("infix",                 (extractOperationInfix, generateOperationInfix))
+    , ("precedence",            (extractOperationPrecedence, generateOperationPrecedence))
+    , ("deterministic",         (extractOperationDeterminism, generateOperationDeterminism))
+    , ("demandness",            (extractOperationDemandness, generateOperationDemandness))
+    , ("indeterministic",       (extractOperationIndeterminism, generateOperationIndeterminism))
+    , ("solutionCompleteness", (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
+    , ("termination",           (extractOperationTermination, generateOperationTermination))
+    , ("totallyDefined",        (extractOperationTotallyDefined, generateOperationTotallyDefined))
     ]

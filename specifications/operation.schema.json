@@ -32,7 +32,7 @@
             "minimum": 0,
             "maximum": 9
         },
-        "determinism": {
+        "deterministic": {
             "description": "Whether the operation is deterministic or non-deterministic.",
             "type": "string",
             "pattern": "(Det|NDet)"
@@ -45,7 +45,7 @@
                 "minimum": 1
             }
         },
-        "indeterminism": {
+        "indeterministic": {
             "description": "Whether the operation is indeterministic.",
             "type": "boolean"
         },

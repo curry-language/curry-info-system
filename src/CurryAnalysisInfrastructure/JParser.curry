@@ -22,32 +22,32 @@ class JParser a where
 
 instance JParser PackageInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Package" -> PackageName <$> getString fieldvalue
-        "Versions" -> PackageVersions <$> (join $ mapM getString <$> getArray fieldvalue)
+        "package" -> PackageName <$> getString fieldvalue
+        "versions" -> PackageVersions <$> (join $ mapM getString <$> getArray fieldvalue)
         _ -> Nothing
 
 -- VERSION
 
 instance JParser VersionInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Version" -> VersionVersion <$> getString fieldvalue
-        "Documentation" -> (VersionDocumentation . text) <$> getString fieldvalue
-        "Categories" -> VersionCategories <$> (join $ mapM getString <$> getArray fieldvalue)
-        "Modules" -> VersionModules <$> (join $ mapM getString <$> getArray fieldvalue)
+        "version" -> VersionVersion <$> getString fieldvalue
+        "documentation" -> (VersionDocumentation . text) <$> getString fieldvalue
+        "categories" -> VersionCategories <$> (join $ mapM getString <$> getArray fieldvalue)
+        "modules" -> VersionModules <$> (join $ mapM getString <$> getArray fieldvalue)
         _ -> Nothing 
 
 -- MODULE
 
 instance JParser ModuleInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
-        "Module" -> ModuleName <$> getString fieldvalue
-        "Documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
-        "SourceCode" -> (ModuleSourceCode . text) <$> getString fieldvalue
-        "Safe" -> ModuleSafe <$> getSafe fieldvalue
-        "Exports" -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
-        "Typeclasses" -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
-        "Types" -> ModuleTypes <$> (join $ mapM getString <$> getArray fieldvalue)
-        "Operations" -> ModuleOperations <$> (join $ mapM getString <$> getArray fieldvalue)
+        "module" -> ModuleName <$> getString fieldvalue
+        "documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
+        "sourceCode" -> (ModuleSourceCode . text) <$> getString fieldvalue
+        "safe" -> ModuleSafe <$> getSafe fieldvalue
+        "exports" -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
+        "typeclasses" -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
+        "types" -> ModuleTypes <$> (join $ mapM getString <$> getArray fieldvalue)
+        "operations" -> ModuleOperations <$> (join $ mapM getString <$> getArray fieldvalue)
         _ -> Nothing
 
 ------------------------------------------------------------------------

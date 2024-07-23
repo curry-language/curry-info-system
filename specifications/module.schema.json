@@ -17,9 +17,9 @@
             "description": "The source code of the module.",
             "type": "string"
         },
-        "unsafe": {
-            "description": "True if module is unsafe, False if module is safe.",
-            "type": "boolean"
+        "safe": {
+            "description": "Whether the module is safe or unsafe, possibly with a list of modules which results in it being unsafe.",
+            "type": "string"
         },
         "exports": {
             "description": "Types, Typeclasses and Operations the module exports.",
