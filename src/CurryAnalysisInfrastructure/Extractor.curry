@@ -59,3 +59,75 @@ extractModuleTypes infos = listToMaybe $ filter isModuleTypes infos
 
 extractModuleOperations :: ModuleExtractor
 extractModuleOperations infos = listToMaybe $ filter isModuleOperations infos
+
+-- TYPE
+
+type TypeExtractor = Extractor TypeInformation
+
+extractTypeName :: TypeExtractor
+extractTypeName = listToMaybe . (filter isTypeName)
+
+extractTypeDocumentation :: TypeExtractor
+extractTypeDocumentation = listToMaybe . (filter isTypeDocumentation)
+
+extractTypeConstructors :: TypeExtractor
+extractTypeConstructors = listToMaybe . (filter isTypeConstructors)
+
+extractTypeDefinition :: TypeExtractor
+extractTypeDefinition = listToMaybe . (filter isTypeDefinition)
+
+-- TYPECLASS
+
+type TypeclassExtractor = Extractor TypeclassInformation
+
+extractTypeclassName :: TypeclassExtractor
+extractTypeclassName = listToMaybe . (filter isTypeclassName)
+
+extractTypeclassDocumentation :: TypeclassExtractor
+extractTypeclassDocumentation = listToMaybe . (filter isTypeclassDocumentation)
+
+extractTypeclassMethods :: TypeclassExtractor
+extractTypeclassMethods = listToMaybe . (filter isTypeclassMethods)
+
+extractTypeclassDefinition :: TypeclassExtractor
+extractTypeclassDefinition = listToMaybe . (filter isTypeclassDefinition)
+
+-- OPERATION
+
+type OperationExtractor = Extractor OperationInformation
+
+extractOperationName :: OperationExtractor
+extractOperationName = listToMaybe . (filter isOperationName)
+
+extractOperationDocumentation :: OperationExtractor
+extractOperationDocumentation = listToMaybe . (filter isOperationDocumentation)
+
+extractOperationSourceCode :: OperationExtractor
+extractOperationSourceCode = listToMaybe . (filter isOperationSourceCode)
+
+extractOperationSignature :: OperationExtractor
+extractOperationSignature = listToMaybe . (filter isOperationSignature)
+
+extractOperationInfix :: OperationExtractor
+extractOperationInfix = listToMaybe . (filter isOperationInfix)
+
+extractOperationPrecedence :: OperationExtractor
+extractOperationPrecedence = listToMaybe . (filter isOperationPrecedence)
+
+extractOperationDeterministic :: OperationExtractor
+extractOperationDeterministic = listToMaybe . (filter isOperationDeterministic)
+
+extractOperationDemandness :: OperationExtractor
+extractOperationDemandness = listToMaybe . (filter isOperationDemandness)
+
+extractOperationIndeterministic :: OperationExtractor
+extractOperationIndeterministic = listToMaybe . (filter isOperationIndeterministic)
+
+extractOperationSolutionCompleteness :: OperationExtractor
+extractOperationSolutionCompleteness = listToMaybe . (filter isOperationSolutionCompleteness)
+
+extractOperationTermination :: OperationExtractor
+extractOperationTermination = listToMaybe . (filter isOperationTermination)
+
+extractOperationTotallyDefined :: OperationExtractor
+extractOperationTotallyDefined = listToMaybe . (filter isOperationTotallyDefined)

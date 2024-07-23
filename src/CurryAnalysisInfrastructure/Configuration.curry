@@ -60,10 +60,10 @@ operationConfiguration =
     , ("signature",             (extractOperationSignature, generateOperationSignature))
     , ("infix",                 (extractOperationInfix, generateOperationInfix))
     , ("precedence",            (extractOperationPrecedence, generateOperationPrecedence))
-    , ("deterministic",         (extractOperationDeterminism, generateOperationDeterminism))
+    , ("deterministic",         (extractOperationDeterministic, generateOperationDeterministic))
     , ("demandness",            (extractOperationDemandness, generateOperationDemandness))
-    , ("indeterministic",       (extractOperationIndeterminism, generateOperationIndeterminism))
-    , ("solutionCompleteness", (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
+    , ("indeterministic",       (extractOperationIndeterministic, generateOperationIndeterministic))
+    , ("solutionCompleteness",  (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
     , ("termination",           (extractOperationTermination, generateOperationTermination))
     , ("totallyDefined",        (extractOperationTotallyDefined, generateOperationTotallyDefined))
     ]
