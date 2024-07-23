@@ -198,6 +198,88 @@ generateModuleOperations opts (CurryModule pkg vsn m) = do
             when (fullVerbosity opts) (putStrLn $ "Reading operations from interface...")
             return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations interface
 
+-- TYPE
+
+type TypeGenerator = Generator CurryType TypeInformation
+
+generateTypeName :: TypeGenerator
+generateTypeName opts (CurryType pkg vsn m t) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating name of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Done.")
+    return $ Just $ TypeName t
+
+generateTypeDocumentation :: TypeGenerator
+generateTypeDocumentation opts (CurryType pkg vsn m t) = failed
+
+generateTypeConstructors :: TypeGenerator
+generateTypeConstructors opts (CurryType pkg vsn m t) = failed
+
+generateTypeDefinition :: TypeGenerator
+generateTypeDefinition opts (CurryType pkg vsn m t) = failed
+
+-- TYPECLASS
+
+type TypeclassGenerator = Generator CurryTypeclass TypeclassInformation
+
+generateTypeclassName :: TypeclassGenerator
+generateTypeclassName opts (CurryTypeclass pkg vsn m c) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating name of typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Done.")
+    return $ Just $ TypeclassName c
+
+generateTypeclassDocumentation :: TypeclassGenerator
+generateTypeclassDocumentation opts (CurryTypeclass pkg vsn m c) = failed
+
+generateTypeclassMethods :: TypeclassGenerator
+generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = failed
+
+generateTypeclassDefinition :: TypeclassGenerator
+generateTypeclassDefinition opts (CurryTypeclass pkg vsn m c) = failed
+
+-- OPERATION
+
+type OperationGenerator = Generator CurryOperation OperationInformation
+
+operationName :: OperationGenerator
+operationName opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating name of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Done.")
+    return $ Just $ OperationName o
+
+operationDocumentation :: OperationGenerator
+operationDocumentation opts (CurryOperation pkg vsn m o) = failed
+
+operationSourceCode :: OperationGenerator
+operationSourceCode opts (CurryOperation pkg vsn m o) = failed
+
+operationSignature :: OperationGenerator
+operationSignature opts (CurryOperation pkg vsn m o) = failed
+
+operationInfix :: OperationGenerator
+operationInfix opts (CurryOperation pkg vsn m o) = failed
+
+operationPrecedence :: OperationGenerator
+operationPrecedence opts (CurryOperation pkg vsn m o) = failed
+
+operationDeterministic :: OperationGenerator
+operationDeterministic opts (CurryOperation pkg vsn m o) = failed
+
+operationDemandness :: OperationGenerator
+operationDemandness opts (CurryOperation pkg vsn m o) = failed
+
+operationIndeterministic :: OperationGenerator
+operationIndeterministic opts (CurryOperation pkg vsn m o) = failed
+
+operationSolutionCompleteness :: OperationGenerator
+operationSolutionCompleteness opts (CurryOperation pkg vsn m o) = failed
+
+operationTermination :: OperationGenerator
+operationTermination opts (CurryOperation pkg vsn m o) = failed
+
+operationTotallyDefined :: OperationGenerator
+operationTotallyDefined opts (CurryOperation pkg vsn m o) = failed
+
+
 -- HELPER
 
 getCategories :: JValue -> Maybe [String]
