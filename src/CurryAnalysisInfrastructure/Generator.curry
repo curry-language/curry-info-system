@@ -8,7 +8,7 @@ import CurryAnalysisInfrastructure.Interface
     ( readInterface
     , getOperations, getOperationName
     , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
-    , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
+    , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
 import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Analysis
@@ -223,7 +223,7 @@ generateTypeDocumentation opts (CurryType pkg vsn m t) = failed
 
 generateTypeConstructors :: TypeGenerator
 generateTypeConstructors opts (CurryType pkg vsn m t) = do
-    when (fullVerbosity opts) (putStrLn $ "Generating name of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Generating constructors of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     -- CHECK THAT TYPE IS EXPORTED
     -- ???
     minterface <- readInterface opts pkg vsn m
@@ -235,7 +235,6 @@ generateTypeConstructors opts (CurryType pkg vsn m t) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading constructors from interface...")
-            --return $ TypeConstructors <$> (getTypeConstructors <*> (getTypeDecl t (getAllTypes interface)))
             return $ TypeConstructors <$> (getTypeDecl t (getAllTypes interface) >>= getTypeConstructors)
 
 generateTypeDefinition :: TypeGenerator
@@ -255,7 +254,20 @@ generateTypeclassDocumentation :: TypeclassGenerator
 generateTypeclassDocumentation opts (CurryTypeclass pkg vsn m c) = failed
 
 generateTypeclassMethods :: TypeclassGenerator
-generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = failed
+generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating methods of typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    -- CHECK THAT TYPE IS EXPORTED
+    -- ???
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just interface -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
+            when (fullVerbosity opts) (putStrLn $ "Reading constructors from interface...")
+            return $ TypeclassMethods <$> (getClassDecl c (getAllClasses interface) >>= getClassMethods)
 
 generateTypeclassDefinition :: TypeclassGenerator
 generateTypeclassDefinition opts (CurryTypeclass pkg vsn m c) = failed

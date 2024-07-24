@@ -329,6 +329,8 @@ type Category = String
 
 type Package = String
 
+type Method = String
+
 -- Result Types
 
 data Safe

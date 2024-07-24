@@ -1,7 +1,5 @@
 module Main where
 
-import CurryAnalysisInfrastructure.Options (Options (..), processOptions)
-
 import CurryAnalysisInfrastructure.JParser (JParser)
 import CurryAnalysisInfrastructure.JPretty (JPretty, jsonOutput)
 import CurryAnalysisInfrastructure.Configuration

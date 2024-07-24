@@ -78,23 +78,7 @@ analyseTermination opts path m op = do
 analyseTotallyDefined :: Options -> String -> Module -> Operation -> IO (Maybe TotallyDefined)
 analyseTotallyDefined opts path m op = do
     analyse opts path "Total" m op parseTotallyDefined
-{-
-operationConfiguration :: Configuration CurryOperation OperationInformation
-operationConfiguration =
-    [ ("Operation", (extractOperationOperation, generateOperationOperation))
-    , ("Documentation", (extractOperationDocumentation, generateOperationDocumentation))
-    , ("SourceCode", (extractOperationSourceCode, generateOperationSourceCode))
-    , ("Signature", (extractOperationSignature, generateOperationSignature))
-    , ("Infix", (extractOperationInfix, generateOperationInfix))
-    , ("Precedence", (extractOperationPrecedence, generateOperationPrecedence))
-    , ("Determinism", (extractOperationDeterminism, generateOperationDeterminism))
-    , ("Demandness", (extractOperationDemandness, generateOperationDemandness))
-    , ("Indeterminism", (extractOperationIndeterminism, generateOperationIndeterminism))
-    , ("SolutionCompleteness", (extractOperationSolutionCompleteness, generateOperationSolutionCompleteness))
-    , ("Termination", (extractOperationTermination, generateOperationTermination))
-    , ("TotallyDefined", (extractOperationTotallyDefined, generateOperationTotallyDefined))
-    ]
--}
+
 -- PARSER
 
 parseSafe :: String -> Maybe Safe

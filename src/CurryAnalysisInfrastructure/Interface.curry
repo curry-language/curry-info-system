@@ -12,7 +12,7 @@ import System.FrontendExec (FrontendTarget (..), callFrontend)
 
 import CurryInterface.Types
 import CurryInterface.Files (readCurryInterfaceFile)
-import CurryInterface.Pretty (defaultOptions, ppConstructor, ppNewConstructor, ppType)
+import CurryInterface.Pretty (defaultOptions, ppConstructor, ppNewConstructor, ppType, ppMethodDecl)
 
 import Data.List (find)
 
@@ -112,6 +112,9 @@ getClassName decl = case decl of
     IClassDecl _ name _ _ _ _ -> Just $ idName $ qidIdent name
     _ -> Nothing
 
+getClassDecl :: String -> [IDecl] -> Maybe IDecl
+getClassDecl c = find (\decl -> Just c == getClassName decl)
+
 getHiddenClasses :: Interface -> [IDecl]
 getHiddenClasses (Interface _ _ decls) = filter isHiddenClass decls
 
@@ -123,6 +126,11 @@ isHiddenClass decl = case decl of
 getHiddenClassName :: IDecl -> Maybe String
 getHiddenClassName decl = case decl of
     HidingClassDecl _ name _ _ -> Just $ idName $ qidIdent name
+    _ -> Nothing
+
+getClassMethods :: IDecl -> Maybe [Method]
+getClassMethods decl = case decl of
+    IClassDecl _ _ _ _ methods _ -> Just $ map (pPrint . ppMethodDecl defaultOptions) methods
     _ -> Nothing
 
 -- OPERATION
