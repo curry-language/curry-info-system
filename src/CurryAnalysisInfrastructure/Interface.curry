@@ -55,10 +55,13 @@ readInterface opts pkg vsn m = do
             when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
             return Nothing
 
+getDeclarations :: Interface -> [IDecl]
+getDeclarations (Interface _ _ decls) = decls
+
 -- TYPE
 
-getAllTypes :: Interface -> [IDecl]
-getAllTypes (Interface _ _ decls) = filter isType decls
+getAllTypes :: [IDecl] -> [IDecl]
+getAllTypes = filter isType
 
 isType :: IDecl -> Bool
 isType decl = case decl of
@@ -77,8 +80,8 @@ getTypeName decl = case decl of
 getTypeDecl :: String -> [IDecl] -> Maybe IDecl
 getTypeDecl t = find (\decl -> Just t == getTypeName decl)
 
-getHiddenTypes :: Interface -> [IDecl]
-getHiddenTypes (Interface _ _ decls) = filter isHiddenType decls
+getHiddenTypes :: [IDecl] -> [IDecl]
+getHiddenTypes = filter isHiddenType
 
 getHiddenTypeName :: IDecl -> Maybe String
 getHiddenTypeName decl = case decl of
@@ -99,8 +102,8 @@ getTypeConstructors decl = case decl of
 
 -- TYPECLASS
 
-getAllClasses :: Interface -> [IDecl]
-getAllClasses (Interface _ _ decls) = filter isClass decls
+getAllClasses :: [IDecl] -> [IDecl]
+getAllClasses = filter isClass
 
 isClass :: IDecl -> Bool
 isClass decl = case decl of
@@ -115,8 +118,8 @@ getClassName decl = case decl of
 getClassDecl :: String -> [IDecl] -> Maybe IDecl
 getClassDecl c = find (\decl -> Just c == getClassName decl)
 
-getHiddenClasses :: Interface -> [IDecl]
-getHiddenClasses (Interface _ _ decls) = filter isHiddenClass decls
+getHiddenClasses :: [IDecl] -> [IDecl]
+getHiddenClasses = filter isHiddenClass
 
 isHiddenClass :: IDecl -> Bool
 isHiddenClass decl = case decl of
@@ -140,8 +143,8 @@ isOperation decl = case decl of
     IFunctionDecl _ _ _ _ -> True
     _ -> False
 
-getOperations :: Interface -> [IDecl]
-getOperations (Interface _ _ decls) = filter isOperation decls
+getOperations :: [IDecl] -> [IDecl]
+getOperations = filter isOperation
 
 getOperationName :: IDecl -> Maybe String
 getOperationName decl = case decl of
@@ -167,4 +170,20 @@ findOperation decls op = find (checker op) decls
 getOperationSignature :: IDecl -> Maybe Signature
 getOperationSignature decl = case decl of
     IFunctionDecl _ _ _ t -> Just $ (pPrint . ppQualType defaultOptions) t
+    _ -> Nothing
+
+getInfixName :: IDecl -> Maybe String
+getInfixName decl = case decl of
+    IInfixDecl _ _ name -> Just $ idName $ qidIdent name
+    _ -> Nothing
+
+getInfixDecl :: Operation -> [IDecl] -> Maybe IDecl
+getInfixDecl o = find (\decl -> Just o == getInfixName decl)
+
+getOperationInfix :: IDecl -> Maybe CurryAnalysisInfrastructure.Types.Infix
+getOperationInfix decl = case decl of
+    IInfixDecl i _ _ -> case i of
+        CurryInterface.Types.Infix -> Just CurryAnalysisInfrastructure.Types.Infix
+        CurryInterface.Types.InfixL -> Just CurryAnalysisInfrastructure.Types.InfixL
+        CurryInterface.Types.InfixR -> Just CurryAnalysisInfrastructure.Types.InfixR
     _ -> Nothing

@@ -6,7 +6,9 @@ import CurryAnalysisInfrastructure.JParser (getString, lookupField)
 import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Interface 
     ( readInterface
+    , getDeclarations
     , getOperations, getOperationName, getOperationDecl, getOperationSignature
+    , getInfixDecl, getOperationInfix
     , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
@@ -166,8 +168,8 @@ generateModuleTypeclasses opts (CurryModule pkg vsn m) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading typeclasses from interface...")
-            let allClasses = catMaybes $ map getClassName $ getAllClasses interface
-            let hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses interface
+            let allClasses = catMaybes $ map getClassName $ getAllClasses $ getDeclarations interface
+            let hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
             let exportedClasses = allClasses \\ hiddenClasses
             when (fullVerbosity opts) (putStrLn $ "Done.")
             return $ Just $ ModuleTypeclasses exportedClasses
@@ -185,8 +187,8 @@ generateModuleTypes opts (CurryModule pkg vsn m) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading types from interface...")
-            let allTypes = catMaybes $ map getTypeName $ getAllTypes interface
-            let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes interface
+            let allTypes = catMaybes $ map getTypeName $ getAllTypes $ getDeclarations interface
+            let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes $ getDeclarations interface
             let exportedTypes = allTypes \\ hiddenTypes
             when (fullVerbosity opts) (putStrLn $ "Done.")
             return $ Just $ ModuleTypes exportedTypes
@@ -204,7 +206,7 @@ generateModuleOperations opts (CurryModule pkg vsn m) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading operations from interface...")
-            return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations interface
+            return $ Just $ ModuleOperations $ catMaybes $ map getOperationName $ getOperations $ getDeclarations interface
 
 -- TYPE
 
@@ -235,7 +237,7 @@ generateTypeConstructors opts (CurryType pkg vsn m t) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading constructors from interface...")
-            return $ TypeConstructors <$> (getTypeDecl t (getAllTypes interface) >>= getTypeConstructors)
+            return $ TypeConstructors <$> (getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors)
 
 generateTypeDefinition :: TypeGenerator
 generateTypeDefinition opts (CurryType pkg vsn m t) = failed
@@ -267,7 +269,7 @@ generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading methods from interface...")
-            return $ TypeclassMethods <$> (getClassDecl c (getAllClasses interface) >>= getClassMethods)
+            return $ TypeclassMethods <$> (getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods)
 
 generateTypeclassDefinition :: TypeclassGenerator
 generateTypeclassDefinition opts (CurryTypeclass pkg vsn m c) = failed
@@ -302,10 +304,23 @@ generateOperationSignature opts (CurryOperation pkg vsn m o) = do
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
             when (fullVerbosity opts) (putStrLn $ "Reading signature from interface...")
-            return $ OperationSignature <$> (getOperationDecl o (getOperations interface) >>= getOperationSignature)
+            return $ OperationSignature <$> (getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature)
 
 generateOperationInfix :: OperationGenerator
-generateOperationInfix opts (CurryOperation pkg vsn m o) = failed
+generateOperationInfix opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating signature of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    -- CHECK THAT OPERATION IS EXPORTED
+    -- ???
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just interface -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
+            when (fullVerbosity opts) (putStrLn $ "Reading signature from interface...")
+            return $ OperationInfix <$> (getInfixDecl o (getDeclarations interface) >>= getOperationInfix)
 
 generateOperationPrecedence :: OperationGenerator
 generateOperationPrecedence opts (CurryOperation pkg vsn m o) = failed
