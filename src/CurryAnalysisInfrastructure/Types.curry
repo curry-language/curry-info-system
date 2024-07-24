@@ -39,6 +39,30 @@ instance EqInfo TypeInformation where
         (TypeDefinition _   , TypeDefinition _)     -> True
         _                                           -> False
 
+instance EqInfo TypeclassInformation where
+    sameInfo x y = case (x, y) of
+        (TypeclassName _            , TypeclassName _)          -> True
+        (TypeclassDocumentation _   , TypeclassDocumentation _) -> True
+        (TypeclassMethods _         , TypeclassMethods _)       -> True
+        (TypeclassDefinition _      , TypeclassDefinition _)    -> True
+        _                                                       -> False
+
+instance EqInfo OperationInformation where
+    sameInfo x y = case (x, y) of
+        (OperationName _                , OperationName _)                  -> True
+        (OperationDocumentation _       , OperationDocumentation _)         -> True
+        (OperationSourceCode _          , OperationSourceCode _)            -> True
+        (OperationSignature _           , OperationSignature _)             -> True
+        (OperationInfix _               , OperationInfix _)                 -> True
+        (OperationPrecedence _          , OperationPrecedence _)            -> True
+        (OperationDeterministic _       , OperationDeterministic _)         -> True
+        (OperationDemandness _          , OperationDemandness _)            -> True
+        (OperationIndeterministic _     , OperationIndeterministic _)       -> True
+        (OperationSolutionCompleteness _, OperationSolutionCompleteness _)  -> True
+        (OperationTermination _         , OperationTermination _)           -> True
+        (OperationTotallyDefined _      , OperationTotallyDefined _)        -> True
+        _                                                                   -> False
+
 -- OUTPUT TYPE
 
 data Output

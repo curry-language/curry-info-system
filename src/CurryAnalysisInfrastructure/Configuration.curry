@@ -62,6 +62,17 @@ typeConfiguration =
 
 -- TYPECLASS
 
+typeclassFields :: [String]
+typeclassFields = map fst typeclassConfiguration
+
+typeclassConfiguration :: Configuration CurryTypeclass TypeclassInformation
+typeclassConfiguration =
+    [ ("typeclass", (extractTypeclassName, generateTypeclassName))
+    , ("documentation", (extractTypeclassDocumentation, generateTypeclassDocumentation))
+    , ("methods", (extractTypeclassMethods, generateTypeclassMethods))
+    , ("definition", (extractTypeclassDefinition, generateTypeclassDefinition))
+    ]
+    
 -- OPERATION
 
 operationFields :: [String]

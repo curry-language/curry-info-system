@@ -44,7 +44,7 @@ instance JPretty ModuleInformation where
 instance JPretty TypeInformation where
     jpretty (TypeName n)            = ("typeName", JString n)
     jpretty (TypeDocumentation d)   = ("documentation", JString $ pPrint d)
-    jpretty (TypeConstructors cs)   = ("constructors", JString $ show cs)
+    jpretty (TypeConstructors cs)   = ("constructors", JArray (map JString cs))
     jpretty (TypeDefinition d)      = ("definition", JString $ pPrint d)
 
 instance JPretty TypeclassInformation where

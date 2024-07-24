@@ -26,12 +26,12 @@ import Control.Monad (unless, when)
 -- This action extracts or generates the requested information for the given object.
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts location requests = case location of
-        [("packages", pkg)]                                                         -> getInfos' opts packageConfiguration  (CurryPackage pkg)      requests
-        [("packages", pkg), ("versions", vsn)]                                      -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn)  requests
-        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> getInfos' opts moduleConfiguration   (CurryModule pkg vsn m) requests
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> getInfos' opts typeConfiguration     (CurryType pkg vsn m t) requests
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> return $ OutputError "getInfos for typeclasses not yet implemented!"
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", op)]  -> return $ OutputError "getInfos for operations not yet implemented!"
+        [("packages", pkg)]                                                         -> getInfos' opts packageConfiguration      (CurryPackage pkg)              requests
+        [("packages", pkg), ("versions", vsn)]                                      -> getInfos' opts versionConfiguration      (CurryVersion pkg vsn)          requests
+        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> getInfos' opts moduleConfiguration       (CurryModule pkg vsn m)         requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> getInfos' opts typeConfiguration         (CurryType pkg vsn m t)         requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> getInfos' opts typeclassConfiguration    (CurryTypeclass pkg vsn m c)    requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)]   -> getInfos' opts operationConfiguration    (CurryOperation pkg vsn m o)    requests
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
         getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
