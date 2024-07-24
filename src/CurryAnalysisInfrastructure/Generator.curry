@@ -7,7 +7,7 @@ import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initia
 import CurryAnalysisInfrastructure.Interface 
     ( readInterface
     , getOperations, getOperationName
-    , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName
+    , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
     )
 import CurryAnalysisInfrastructure.Options
@@ -213,6 +213,8 @@ type TypeGenerator = Generator CurryType TypeInformation
 generateTypeName :: TypeGenerator
 generateTypeName opts (CurryType pkg vsn m t) = do
     when (fullVerbosity opts) (putStrLn $ "Generating name of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    -- CHECK THAT TYPE IS EXPORTED
+    -- ???
     when (fullVerbosity opts) (putStrLn $ "Done.")
     return $ Just $ TypeName t
 
@@ -220,7 +222,21 @@ generateTypeDocumentation :: TypeGenerator
 generateTypeDocumentation opts (CurryType pkg vsn m t) = failed
 
 generateTypeConstructors :: TypeGenerator
-generateTypeConstructors opts (CurryType pkg vsn m t) = failed
+generateTypeConstructors opts (CurryType pkg vsn m t) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating name of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    -- CHECK THAT TYPE IS EXPORTED
+    -- ???
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just interface -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
+            when (fullVerbosity opts) (putStrLn $ "Reading constructors from interface...")
+            --return $ TypeConstructors <$> (getTypeConstructors <*> (getTypeDecl t (getAllTypes interface)))
+            return $ TypeConstructors <$> (getTypeDecl t (getAllTypes interface) >>= getTypeConstructors)
 
 generateTypeDefinition :: TypeGenerator
 generateTypeDefinition opts (CurryType pkg vsn m t) = failed
@@ -248,29 +264,29 @@ generateTypeclassDefinition opts (CurryTypeclass pkg vsn m c) = failed
 
 type OperationGenerator = Generator CurryOperation OperationInformation
 
-operationName :: OperationGenerator
-operationName opts (CurryOperation pkg vsn m o) = do
+generateOperationName :: OperationGenerator
+generateOperationName opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating name of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Done.")
     return $ Just $ OperationName o
 
-operationDocumentation :: OperationGenerator
-operationDocumentation opts (CurryOperation pkg vsn m o) = failed
+generateOperationDocumentation :: OperationGenerator
+generateOperationDocumentation opts (CurryOperation pkg vsn m o) = failed
 
-operationSourceCode :: OperationGenerator
-operationSourceCode opts (CurryOperation pkg vsn m o) = failed
+generateOperationSourceCode :: OperationGenerator
+generateOperationSourceCode opts (CurryOperation pkg vsn m o) = failed
 
-operationSignature :: OperationGenerator
-operationSignature opts (CurryOperation pkg vsn m o) = failed
+generateOperationSignature :: OperationGenerator
+generateOperationSignature opts (CurryOperation pkg vsn m o) = failed
 
-operationInfix :: OperationGenerator
-operationInfix opts (CurryOperation pkg vsn m o) = failed
+generateOperationInfix :: OperationGenerator
+generateOperationInfix opts (CurryOperation pkg vsn m o) = failed
 
-operationPrecedence :: OperationGenerator
-operationPrecedence opts (CurryOperation pkg vsn m o) = failed
+generateOperationPrecedence :: OperationGenerator
+generateOperationPrecedence opts (CurryOperation pkg vsn m o) = failed
 
-operationDeterministic :: OperationGenerator
-operationDeterministic opts (CurryOperation pkg vsn m o) = do
+generateOperationDeterministic :: OperationGenerator
+generateOperationDeterministic opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn
@@ -292,8 +308,8 @@ operationDeterministic opts (CurryOperation pkg vsn m o) = do
             when (fullVerbosity opts) (putStrLn $ "Generating failed.")
             return Nothing
 
-operationDemandness :: OperationGenerator
-operationDemandness opts (CurryOperation pkg vsn m o) = do
+generateOperationDemandness :: OperationGenerator
+generateOperationDemandness opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn
@@ -315,8 +331,8 @@ operationDemandness opts (CurryOperation pkg vsn m o) = do
             when (fullVerbosity opts) (putStrLn $ "Generating failed.")
             return Nothing
 
-operationIndeterministic :: OperationGenerator
-operationIndeterministic opts (CurryOperation pkg vsn m o) = do
+generateOperationIndeterministic :: OperationGenerator
+generateOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn
@@ -338,8 +354,8 @@ operationIndeterministic opts (CurryOperation pkg vsn m o) = do
             when (fullVerbosity opts) (putStrLn $ "Generating failed.")
             return Nothing
 
-operationSolutionCompleteness :: OperationGenerator
-operationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
+generateOperationSolutionCompleteness :: OperationGenerator
+generateOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn
@@ -361,8 +377,8 @@ operationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
             when (fullVerbosity opts) (putStrLn $ "Generating failed.")
             return Nothing
 
-operationTermination :: OperationGenerator
-operationTermination opts (CurryOperation pkg vsn m o) = do
+generateOperationTermination :: OperationGenerator
+generateOperationTermination opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn
@@ -384,8 +400,8 @@ operationTermination opts (CurryOperation pkg vsn m o) = do
             when (fullVerbosity opts) (putStrLn $ "Generating failed.")
             return Nothing
 
-operationTotallyDefined :: OperationGenerator
-operationTotallyDefined opts (CurryOperation pkg vsn m o) = do
+generateOperationTotallyDefined :: OperationGenerator
+generateOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating analysis for Determinstic for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     when (fullVerbosity opts) (putStrLn $ "Checkout if necessary...")
     mpath <- checkoutIfMissing opts pkg vsn

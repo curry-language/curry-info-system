@@ -26,33 +26,33 @@ import Control.Monad (unless, when)
 -- This action extracts or generates the requested information for the given object.
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts location requests = case location of
-        [("packages", pkg)]                                                         -> getInfos' opts packageConfiguration  (CurryPackage pkg) requests
-        [("packages", pkg), ("versions", vsn)]                                      -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn) requests
-        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> getInfos' opts moduleConfiguration  (CurryModule pkg vsn m) requests
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> return $ OutputError "getInfos for types not yet implemented!"
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> return $ OutputError "getInfos for types not yet implemented!"
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", op)]  -> return $ OutputError "getInfos for types not yet implemented!"
+        [("packages", pkg)]                                                         -> getInfos' opts packageConfiguration  (CurryPackage pkg)      requests
+        [("packages", pkg), ("versions", vsn)]                                      -> getInfos' opts versionConfiguration  (CurryVersion pkg vsn)  requests
+        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> getInfos' opts moduleConfiguration   (CurryModule pkg vsn m) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> getInfos' opts typeConfiguration     (CurryType pkg vsn m t) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> return $ OutputError "getInfos for typeclasses not yet implemented!"
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", op)]  -> return $ OutputError "getInfos for operations not yet implemented!"
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
         getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
-        getInfos' opts conf input requests' = do
-            when (fullVerbosity opts) (putStrLn "Initializing Input...")
+        getInfos' opts' conf input requests' = do
+            when (fullVerbosity opts') (putStrLn "Initializing Input...")
             initialize input
-            when (fullVerbosity opts) (putStrLn "Reading current information...")
+            when (fullVerbosity opts') (putStrLn "Reading current information...")
             result <- readInformation input
             case result of
                 Nothing -> do
-                    when (fullVerbosity opts) (putStrLn "Reading information failed.")
+                    when (fullVerbosity opts') (putStrLn "Reading information failed.")
                     return $ OutputError $ errorMessage input
                 Just infos -> do
-                    when (fullVerbosity opts) (putStrLn "Reading information succeeded.")
-                    when (fullVerbosity opts) (putStrLn "Extracting/Generating requested information...")
-                    results <- mapM (extractOrGenerate opts conf input infos) requests'
+                    when (fullVerbosity opts') (putStrLn "Reading information succeeded.")
+                    when (fullVerbosity opts') (putStrLn "Extracting/Generating requested information...")
+                    results <- mapM (extractOrGenerate opts' conf input infos) requests'
 
                     let newInformation = catMaybes results <+> infos
-                    when (fullVerbosity opts) (putStrLn "Overwriting with updated information")
+                    when (fullVerbosity opts') (putStrLn "Overwriting with updated information")
                     writeInformation input newInformation
-                    when (fullVerbosity opts) (putStrLn "Creating Output...")
+                    when (fullVerbosity opts') (putStrLn "Creating Output...")
                     return $ generateOutput requests' results
 
 -- This action extracts or generates the requested information for the input, depending on whether the information
@@ -69,7 +69,7 @@ extractOrGenerate opts conf input infos request = do
             case optForce opts of
                 2 -> do
                     when (fullVerbosity opts) (putStrLn $ "Force option is 2. Generating information for request '" ++ request ++ "'...")
-                    return $ generator opts input
+                    generator opts input
                 1 -> do
                     when (fullVerbosity opts) (putStrLn $ "Force option is 1. Extracting/Generating information for request '" ++ request ++ "'...")
                     maybe (generator opts input) (return . Just) (extractor infos)

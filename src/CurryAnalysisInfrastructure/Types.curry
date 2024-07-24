@@ -7,29 +7,37 @@ class EqInfo a where
 
 instance EqInfo PackageInformation where
     sameInfo x y = case (x, y) of
-        (PackageName _, PackageName _) -> True
-        (PackageVersions _, PackageVersions _) -> True
-        _ -> False
+        (PackageName _      , PackageName _)        -> True
+        (PackageVersions _  , PackageVersions _)    -> True
+        _                                           -> False
 
 instance EqInfo VersionInformation where
     sameInfo x y = case (x, y) of
-        (VersionVersion _, VersionVersion _) -> True
-        (VersionDocumentation _, VersionDocumentation _) -> True
-        (VersionCategories _, VersionCategories _) -> True
-        (VersionModules _, VersionModules _) -> True
-        _ -> False
+        (VersionVersion _       , VersionVersion _)         -> True
+        (VersionDocumentation _ , VersionDocumentation _)   -> True
+        (VersionCategories _    , VersionCategories _)      -> True
+        (VersionModules _       , VersionModules _)         -> True
+        _                                                   -> False
 
 instance EqInfo ModuleInformation where
     sameInfo x y = case (x, y) of
-        (ModuleName _, ModuleName _) -> True
-        (ModuleDocumentation _, ModuleDocumentation _) -> True
-        (ModuleSourceCode _, ModuleSourceCode _) -> True
-        (ModuleSafe _, ModuleSafe _) -> True
-        (ModuleExports _, ModuleExports _) -> True
-        (ModuleTypeclasses _, ModuleTypeclasses _) -> True
-        (ModuleTypes _, ModuleTypes _) -> True
-        (ModuleOperations _, ModuleOperations _) -> True
+        (ModuleName _           , ModuleName _)             -> True
+        (ModuleDocumentation _  , ModuleDocumentation _)    -> True
+        (ModuleSourceCode _     , ModuleSourceCode _)       -> True
+        (ModuleSafe _           , ModuleSafe _)             -> True
+        (ModuleExports _        , ModuleExports _)          -> True
+        (ModuleTypeclasses _    , ModuleTypeclasses _)      -> True
+        (ModuleTypes _          , ModuleTypes _)            -> True
+        (ModuleOperations _     , ModuleOperations _)       -> True
         _ -> False
+
+instance EqInfo TypeInformation where
+    sameInfo x y = case (x, y) of
+        (TypeName _         , TypeName _)           -> True
+        (TypeDocumentation _, TypeDocumentation _)  -> True
+        (TypeConstructors _ , TypeConstructors _)   -> True
+        (TypeDefinition _   , TypeDefinition _)     -> True
+        _                                           -> False
 
 -- OUTPUT TYPE
 
@@ -147,7 +155,7 @@ isModuleOperations x = case x of
 data TypeInformation
     = TypeName String
     | TypeDocumentation Doc
-    | TypeConstructors (Either External [Constructor])
+    | TypeConstructors [Constructor]
     | TypeDefinition Doc
 
 isTypeName :: TypeInformation -> Bool

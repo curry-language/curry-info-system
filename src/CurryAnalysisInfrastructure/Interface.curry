@@ -4,7 +4,7 @@ import CurryAnalysisInfrastructure.Paths (moduleToPath)
 import CurryAnalysisInfrastructure.Checkout (getCheckoutPath, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
-import CurryAnalysisInfrastructure.Options
+import CurryAnalysisInfrastructure.Options (Options, fullVerbosity)
 
 import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
 import System.IOExts (evalCmd)
@@ -12,10 +12,13 @@ import System.FrontendExec (FrontendTarget (..), callFrontend)
 
 import CurryInterface.Types
 import CurryInterface.Files (readCurryInterfaceFile)
+import CurryInterface.Pretty (defaultOptions, ppConstructor, ppNewConstructor, ppType)
 
 import Data.List (find)
 
 import Control.Monad (when)
+
+import Text.Pretty (pPrint)
 
 icurryPath :: Package -> Version -> Module -> IO String
 icurryPath pkg vsn m = do
@@ -52,31 +55,7 @@ readInterface opts pkg vsn m = do
             when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
             return Nothing
 
-isOperation :: IDecl -> Bool
-isOperation decl = case decl of
-    IFunctionDecl _ _ _ _ -> True
-    _ -> False
-
-getOperations :: Interface -> [IDecl]
-getOperations (Interface _ _ decls) = filter isOperation decls
-
-getOperationName :: IDecl -> Maybe String
-getOperationName decl = case decl of
-    IFunctionDecl name _ _ _ -> Just $ idName $ qidIdent name
-    _ -> Nothing
-
-getOperationArity :: IDecl -> Maybe Int
-getOperationArity decl = case decl of
-    IFunctionDecl _ _ arity _ -> Just arity
-    _ -> Nothing
-
-findOperation :: [IDecl] -> Operation -> Maybe IDecl
-findOperation decls op = find (checker op) decls
-    where
-    checker :: Operation -> IDecl -> Bool
-    checker o decl = case decl of
-        IFunctionDecl name _ _ _ -> o == idName (qidIdent name)
-        _ -> False
+-- TYPE
 
 getAllTypes :: Interface -> [IDecl]
 getAllTypes (Interface _ _ decls) = filter isType decls
@@ -95,6 +74,9 @@ getTypeName decl = case decl of
     ITypeDecl name _ _ _ -> Just $ idName $ qidIdent name
     _ -> Nothing
 
+getTypeDecl :: String -> [IDecl] -> Maybe IDecl
+getTypeDecl t = find (\decl -> Just t == getTypeName decl)
+
 getHiddenTypes :: Interface -> [IDecl]
 getHiddenTypes (Interface _ _ decls) = filter isHiddenType decls
 
@@ -107,6 +89,15 @@ isHiddenType :: IDecl -> Bool
 isHiddenType decl = case decl of
     HidingDataDecl _ _ _ -> True
     _ -> False
+
+getTypeConstructors :: IDecl -> Maybe [Constructor]
+getTypeConstructors decl = case decl of
+    IDataDecl _ _ _ constructors _ -> Just $ map (pPrint . ppConstructor defaultOptions) constructors
+    INewtypeDecl _ _ _ constructor _ -> Just [(pPrint . ppNewConstructor defaultOptions) constructor]
+    ITypeDecl _ _ _ t -> Just [(pPrint . ppType defaultOptions 0) t]
+    _ -> Nothing
+
+-- TYPECLASS
 
 getAllClasses :: Interface -> [IDecl]
 getAllClasses (Interface _ _ decls) = filter isClass decls
@@ -133,3 +124,31 @@ getHiddenClassName :: IDecl -> Maybe String
 getHiddenClassName decl = case decl of
     HidingClassDecl _ name _ _ -> Just $ idName $ qidIdent name
     _ -> Nothing
+
+-- OPERATION
+
+isOperation :: IDecl -> Bool
+isOperation decl = case decl of
+    IFunctionDecl _ _ _ _ -> True
+    _ -> False
+
+getOperations :: Interface -> [IDecl]
+getOperations (Interface _ _ decls) = filter isOperation decls
+
+getOperationName :: IDecl -> Maybe String
+getOperationName decl = case decl of
+    IFunctionDecl name _ _ _ -> Just $ idName $ qidIdent name
+    _ -> Nothing
+
+getOperationArity :: IDecl -> Maybe Int
+getOperationArity decl = case decl of
+    IFunctionDecl _ _ arity _ -> Just arity
+    _ -> Nothing
+
+findOperation :: [IDecl] -> Operation -> Maybe IDecl
+findOperation decls op = find (checker op) decls
+    where
+    checker :: Operation -> IDecl -> Bool
+    checker o decl = case decl of
+        IFunctionDecl name _ _ _ -> o == idName (qidIdent name)
+        _ -> False

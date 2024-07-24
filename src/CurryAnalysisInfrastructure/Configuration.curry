@@ -47,6 +47,21 @@ moduleConfiguration =
     , ("operations",    (extractModuleOperations, generateModuleOperations))
     ]
 
+-- TYPE
+
+typeFields :: [String]
+typeFields = map fst typeConfiguration
+
+typeConfiguration :: Configuration CurryType TypeInformation
+typeConfiguration =
+    [ ("typeName",      (extractTypeName, generateTypeName))
+    , ("documentation", (extractTypeDocumentation, generateTypeDocumentation))
+    , ("constructors",  (extractTypeConstructors, generateTypeConstructors))
+    , ("definition",    (extractTypeDefinition, generateTypeDefinition))
+    ]
+
+-- TYPECLASS
+
 -- OPERATION
 
 operationFields :: [String]
@@ -54,7 +69,7 @@ operationFields = map fst operationConfiguration
 
 operationConfiguration :: Configuration CurryOperation OperationInformation
 operationConfiguration =
-    [ ("operation",             (extractOperationOperation, generateOperationOperation))
+    [ ("operation",             (extractOperationName, generateOperationName))
     , ("documentation",         (extractOperationDocumentation, generateOperationDocumentation))
     , ("sourceCode",            (extractOperationSourceCode, generateOperationSourceCode))
     , ("signature",             (extractOperationSignature, generateOperationSignature))
