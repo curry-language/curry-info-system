@@ -9,6 +9,7 @@ import CurryAnalysisInfrastructure.Interface
     , getDeclarations
     , getOperations, getOperationName, getOperationDecl, getOperationSignature
     , getInfixDecl, getOperationInfix
+    , getOperationPrecedence
     , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
@@ -308,7 +309,7 @@ generateOperationSignature opts (CurryOperation pkg vsn m o) = do
 
 generateOperationInfix :: OperationGenerator
 generateOperationInfix opts (CurryOperation pkg vsn m o) = do
-    when (fullVerbosity opts) (putStrLn $ "Generating signature of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Generating infix of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
     -- CHECK THAT OPERATION IS EXPORTED
     -- ???
     minterface <- readInterface opts pkg vsn m
@@ -319,11 +320,24 @@ generateOperationInfix opts (CurryOperation pkg vsn m o) = do
             return Nothing
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
-            when (fullVerbosity opts) (putStrLn $ "Reading signature from interface...")
+            when (fullVerbosity opts) (putStrLn $ "Reading infix from interface...")
             return $ OperationInfix <$> (getInfixDecl o (getDeclarations interface) >>= getOperationInfix)
 
 generateOperationPrecedence :: OperationGenerator
-generateOperationPrecedence opts (CurryOperation pkg vsn m o) = failed
+generateOperationPrecedence opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating precedence of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    -- CHECK THAT OPERATION IS EXPORTED
+    -- ???
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just interface -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
+            when (fullVerbosity opts) (putStrLn $ "Reading precedence from interface...")
+            return $ OperationPrecedence <$> (getInfixDecl o (getDeclarations interface) >>= getOperationPrecedence)
 
 generateOperationDeterministic :: OperationGenerator
 generateOperationDeterministic opts (CurryOperation pkg vsn m o) = do

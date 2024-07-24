@@ -187,3 +187,8 @@ getOperationInfix decl = case decl of
         CurryInterface.Types.InfixL -> Just CurryAnalysisInfrastructure.Types.InfixL
         CurryInterface.Types.InfixR -> Just CurryAnalysisInfrastructure.Types.InfixR
     _ -> Nothing
+
+getOperationPrecedence :: IDecl -> Maybe CurryAnalysisInfrastructure.Types.Precedence
+getOperationPrecedence decl = case decl of
+    IInfixDecl _ p _ -> Just p
+    _ -> Nothing
