@@ -6,7 +6,7 @@ import CurryAnalysisInfrastructure.JParser (getString, lookupField)
 import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Interface 
     ( readInterface
-    , getOperations, getOperationName
+    , getOperations, getOperationName, getOperationDecl, getOperationSignature
     , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
@@ -256,7 +256,7 @@ generateTypeclassDocumentation opts (CurryTypeclass pkg vsn m c) = failed
 generateTypeclassMethods :: TypeclassGenerator
 generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
     when (fullVerbosity opts) (putStrLn $ "Generating methods of typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT TYPE IS EXPORTED
+    -- CHECK THAT TYPECLASS IS EXPORTED
     -- ???
     minterface <- readInterface opts pkg vsn m
     case minterface of
@@ -266,7 +266,7 @@ generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
             return Nothing
         Just interface -> do
             when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
-            when (fullVerbosity opts) (putStrLn $ "Reading constructors from interface...")
+            when (fullVerbosity opts) (putStrLn $ "Reading methods from interface...")
             return $ TypeclassMethods <$> (getClassDecl c (getAllClasses interface) >>= getClassMethods)
 
 generateTypeclassDefinition :: TypeclassGenerator
@@ -289,7 +289,20 @@ generateOperationSourceCode :: OperationGenerator
 generateOperationSourceCode opts (CurryOperation pkg vsn m o) = failed
 
 generateOperationSignature :: OperationGenerator
-generateOperationSignature opts (CurryOperation pkg vsn m o) = failed
+generateOperationSignature opts (CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating signature of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    -- CHECK THAT OPERATION IS EXPORTED
+    -- ???
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface failed.")
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just interface -> do
+            when (fullVerbosity opts) (putStrLn $ "Reading interface successful.")
+            when (fullVerbosity opts) (putStrLn $ "Reading signature from interface...")
+            return $ OperationSignature <$> (getOperationDecl o (getOperations interface) >>= getOperationSignature)
 
 generateOperationInfix :: OperationGenerator
 generateOperationInfix opts (CurryOperation pkg vsn m o) = failed

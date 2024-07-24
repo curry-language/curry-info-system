@@ -12,7 +12,7 @@ import System.FrontendExec (FrontendTarget (..), callFrontend)
 
 import CurryInterface.Types
 import CurryInterface.Files (readCurryInterfaceFile)
-import CurryInterface.Pretty (defaultOptions, ppConstructor, ppNewConstructor, ppType, ppMethodDecl)
+import CurryInterface.Pretty (defaultOptions, ppConstructor, ppNewConstructor, ppType, ppMethodDecl, ppQualType)
 
 import Data.List (find)
 
@@ -148,6 +148,9 @@ getOperationName decl = case decl of
     IFunctionDecl name _ _ _ -> Just $ idName $ qidIdent name
     _ -> Nothing
 
+getOperationDecl :: String -> [IDecl] -> Maybe IDecl
+getOperationDecl o = find (\decl -> Just o == getOperationName decl)
+
 getOperationArity :: IDecl -> Maybe Int
 getOperationArity decl = case decl of
     IFunctionDecl _ _ arity _ -> Just arity
@@ -160,3 +163,8 @@ findOperation decls op = find (checker op) decls
     checker o decl = case decl of
         IFunctionDecl name _ _ _ -> o == idName (qidIdent name)
         _ -> False
+
+getOperationSignature :: IDecl -> Maybe Signature
+getOperationSignature decl = case decl of
+    IFunctionDecl _ _ _ t -> Just $ (pPrint . ppQualType defaultOptions) t
+    _ -> Nothing
