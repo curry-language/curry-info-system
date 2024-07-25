@@ -216,8 +216,6 @@ type TypeGenerator = Generator CurryType TypeInformation
 generateTypeName :: TypeGenerator
 generateTypeName opts (CurryType pkg vsn m t) = do
     when (fullVerbosity opts) (putStrLn $ "Generating name of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT TYPE IS EXPORTED
-    -- ???
     when (fullVerbosity opts) (putStrLn $ "Done.")
     return $ Just $ TypeName t
 
@@ -227,8 +225,6 @@ generateTypeDocumentation opts (CurryType pkg vsn m t) = failed
 generateTypeConstructors :: TypeGenerator
 generateTypeConstructors opts (CurryType pkg vsn m t) = do
     when (fullVerbosity opts) (putStrLn $ "Generating constructors of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT TYPE IS EXPORTED
-    -- ???
     minterface <- readInterface opts pkg vsn m
     case minterface of
         Nothing -> do
@@ -259,8 +255,6 @@ generateTypeclassDocumentation opts (CurryTypeclass pkg vsn m c) = failed
 generateTypeclassMethods :: TypeclassGenerator
 generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
     when (fullVerbosity opts) (putStrLn $ "Generating methods of typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT TYPECLASS IS EXPORTED
-    -- ???
     minterface <- readInterface opts pkg vsn m
     case minterface of
         Nothing -> do
@@ -294,8 +288,6 @@ generateOperationSourceCode opts (CurryOperation pkg vsn m o) = failed
 generateOperationSignature :: OperationGenerator
 generateOperationSignature opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating signature of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT OPERATION IS EXPORTED
-    -- ???
     minterface <- readInterface opts pkg vsn m
     case minterface of
         Nothing -> do
@@ -310,8 +302,6 @@ generateOperationSignature opts (CurryOperation pkg vsn m o) = do
 generateOperationInfix :: OperationGenerator
 generateOperationInfix opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating infix of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT OPERATION IS EXPORTED
-    -- ???
     minterface <- readInterface opts pkg vsn m
     case minterface of
         Nothing -> do
@@ -326,8 +316,6 @@ generateOperationInfix opts (CurryOperation pkg vsn m o) = do
 generateOperationPrecedence :: OperationGenerator
 generateOperationPrecedence opts (CurryOperation pkg vsn m o) = do
     when (fullVerbosity opts) (putStrLn $ "Generating precedence of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
-    -- CHECK THAT OPERATION IS EXPORTED
-    -- ???
     minterface <- readInterface opts pkg vsn m
     case minterface of
         Nothing -> do

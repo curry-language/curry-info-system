@@ -26,10 +26,26 @@ getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts location requests = case location of
         [("packages", pkg)]                                                         -> getInfos' opts packageConfiguration      (CurryPackage pkg)              requests
         [("packages", pkg), ("versions", vsn)]                                      -> getInfos' opts versionConfiguration      (CurryVersion pkg vsn)          requests
-        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> getInfos' opts moduleConfiguration       (CurryModule pkg vsn m)         requests
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> getInfos' opts typeConfiguration         (CurryType pkg vsn m t)         requests
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> getInfos' opts typeclassConfiguration    (CurryTypeclass pkg vsn m c)    requests
-        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)]   -> getInfos' opts operationConfiguration    (CurryOperation pkg vsn m o)    requests
+        [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> do
+            result <- checkModuleExists pkg vsn m
+            case result of
+                False -> return $ OutputError $ "Module " ++ m ++ " is not exported in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                True  -> getInfos' opts moduleConfiguration (CurryModule pkg vsn m) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> do
+            result <- checkTypeExists pkg vsn m t
+            case result of
+                False -> return $ OutputError $ "Type " ++ t ++ " is not exported in module " ++ m ++ " in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                True  -> getInfos' opts typeConfiguration (CurryType pkg vsn m t) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> do
+            result <- checkTypeclassExists pkg vsn m c
+            case result of
+                False -> return $ OutputError $ "Typeclass " ++ c ++ " is not exported in module " ++ m ++ " in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                True  -> getInfos' opts typeclassConfiguration (CurryTypeclass pkg vsn m c) requests
+        [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)]   -> do
+            result <- checkOperationExists pkg vsn m o
+            case result of
+                False -> return $ OutputError $ "Operation " ++ o ++ " is not exported in module " ++ m ++ " in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                True  -> getInfos' opts operationConfiguration (CurryOperation pkg vsn m o) requests
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
         getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
@@ -52,6 +68,26 @@ getInfos opts location requests = case location of
                     writeInformation input newInformation
                     when (fullVerbosity opts') (putStrLn "Creating Output...")
                     return $ generateOutput requests' results
+        
+        checkModuleExists :: Package -> Version -> Module -> IO Bool
+        checkModuleExists pkg vsn m = do
+            putStrLn "NOT YET IMPLEMENTED: checkModuleExists"
+            return True
+
+        checkTypeExists :: Package -> Version -> Module -> Type -> IO Bool
+        checkTypeExists pkg vsn m t = do
+            putStrLn "NOT YET IMPLEMENTED: checkTypeExists"
+            return True
+
+        checkTypeclassExists :: Package -> Version -> Module -> Typeclass -> IO Bool
+        checkTypeclassExists pkg vsn m c = do
+            putStrLn "NOT YET IMPLEMENTED: checkTypeclassExists"
+            return True
+
+        checkOperationExists :: Package -> Version -> Module -> Operation -> IO Bool
+        checkOperationExists pkg vsn m o = do
+            putStrLn "NOT YET IMPLEMENTED: checkOperationExists"
+            return True
 
 -- This action extracts or generates the requested information for the input, depending on whether the information
 -- already exists or not.

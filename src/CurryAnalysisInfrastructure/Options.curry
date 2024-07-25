@@ -25,6 +25,9 @@ defaultOptions :: Options
 defaultOptions =
     Options 1 False 0 Nothing Nothing Nothing Nothing Nothing Nothing
 
+silentOptions :: Options
+silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
+
 processOptions :: String -> [String] -> IO (Options, [String])
 processOptions banner argv = do
     let (funopts, args, opterrors) = getOpt Permute options argv
