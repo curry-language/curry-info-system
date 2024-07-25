@@ -35,6 +35,7 @@ initializeCheckouts = do
     path <- checkouts
     createDirectoryIfMissing True path
 
+{-
 cmdNotFound :: Int
 cmdNotFound = 127
 
@@ -43,6 +44,7 @@ cmdNotExecutable = 126
 
 cmdSuccess :: Int
 cmdSuccess = 0
+-}
 
 -- This action creates a checkout for the given version of the given package.
 checkoutIfMissing :: Options -> Package -> Version -> IO (Maybe String)
