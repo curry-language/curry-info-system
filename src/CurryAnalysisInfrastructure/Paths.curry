@@ -81,10 +81,6 @@ instance Path CurryOperation where
         path <- getDirectoryPath x
         return (path ++ op ++ ".json")    
 
--- This function converts a module string to a filesystem path by replacing every '.' with '/'.
-moduleToPath :: Module -> String
-moduleToPath = map (\c -> if c == '.' then '/' else c)
-
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]
 getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path

@@ -30,7 +30,7 @@ import JSON.Parser (parseJSON)
 
 import System.IOExts (evalCmd)
 import System.Directory (doesDirectoryExist, doesFileExist)
-import System.CurryPath (curryModulesInDirectory)
+import System.CurryPath (curryModulesInDirectory, modNameToPath)
 
 import Data.List (isPrefixOf, intersect, (\\))
 import Data.Maybe (catMaybes)
@@ -524,7 +524,7 @@ readModuleSourceFile opts pkg vsn m = do
     case result of
         Nothing -> return ""
         Just dir -> do
-            let src = dir ++ "/src/" ++ moduleToPath m ++ ".curry"
+            let src = dir ++ "/src/" ++ modNameToPath m ++ ".curry"
             b <- doesFileExist src
             case b of 
                 False -> do
