@@ -43,7 +43,7 @@ instance JParser ModuleInformation where
         "module"        -> ModuleName <$> getString fieldvalue
         "documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
         "sourceCode"    -> (ModuleSourceCode . text) <$> getString fieldvalue
-        "safe"          -> ModuleSafe <$> getSafe fieldvalue
+        "safe"          -> (ModuleSafe . read) <$> getString fieldvalue
         "exports"       -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
         "typeclasses"   -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
         "types"         -> ModuleTypes <$> (join $ mapM getString <$> getArray fieldvalue)
@@ -90,14 +90,14 @@ instance JParser OperationInformation where
 
 ------------------------------------------------------------------------
 
---- This function converts a string json value into a regular string.
+--- This operation converts a string json value into a regular string.
 --- If the given value is not a string, Nothing is returned.
 getString :: JValue -> Maybe String
 getString jv = case jv of
     JString s -> Just s
     _ -> Nothing
 
---- This function converts a boolean json value into a regular boolean.
+--- This operation converts a boolean json value into a regular boolean.
 --- If the given value is not a boolean, Nothing is returned.
 getBool :: JValue -> Maybe Bool
 getBool jv = case jv of 
@@ -105,27 +105,23 @@ getBool jv = case jv of
     JFalse -> Just False
     _ -> Nothing
 
---- This function converts a number json value into a regular float.
+--- This operation converts a number json value into a regular float.
 --- If the given value is not a number, Nothing is returned.
 getNumber :: JValue -> Maybe Float
 getNumber jv = case jv of 
     JNumber n -> Just n
     _ -> Nothing
 
+-- This operation returns the list from an array json value.
+-- If the given json value is not an array, Nothing is returned.
 getArray :: JValue -> Maybe [JValue]
 getArray jv = case jv of
     JArray x -> Just x
     _ -> Nothing
 
+-- This operation returns the list of fields from a json object.
+-- If the given json value is not an object, Nothing is returned.
 getFields :: JValue -> Maybe [Field]
 getFields jv = case jv of
     JObject x -> Just x
     _ -> Nothing
-
-getSafe :: JValue -> Maybe Safe
-getSafe jv = case jv of
-    JString s -> return $ read s
-    _ -> Nothing
-
-lookupField :: Eq a => a -> [(a, b)] -> Maybe b
-lookupField fieldname fields = fmap snd $ find (\(name, _) -> name == fieldname) fields

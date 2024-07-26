@@ -2,7 +2,7 @@ module CurryAnalysisInfrastructure.Generator where
 
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths
-import CurryAnalysisInfrastructure.JParser (getString, lookupField)
+import CurryAnalysisInfrastructure.JParser (getString)
 import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Interface 
     ( readInterface
@@ -470,7 +470,7 @@ generateOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
 getCategories :: JValue -> Maybe [String]
 getCategories jvalue = case jvalue of
     JObject fields -> do
-        value <- lookupField "category" fields
+        value <- lookup "category" fields
         case value of
             JArray arr -> sequence $ map getString arr
             _ -> Nothing
@@ -479,7 +479,7 @@ getCategories jvalue = case jvalue of
 getExportedModules :: JValue -> Maybe [String]
 getExportedModules jvalue = case jvalue of
     JObject fields -> do
-        value <- lookupField "exportedModules" fields
+        value <- lookup "exportedModules" fields
         case value of
             JArray arr -> sequence $ map getString arr
             _ -> Nothing
