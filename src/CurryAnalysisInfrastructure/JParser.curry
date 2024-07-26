@@ -7,8 +7,6 @@ import Text.Pretty (text)
 import Data.List (find)
 import Control.Monad (join)
 
-type Field = (String, JValue)
-
 --- This function takes a json value and returns the parsed list of fields, if every field is parsed successfully.
 --- If any field fails to be parsed, Nothing is returned.
 jparse :: JParser a => JValue -> Maybe [a]
@@ -16,7 +14,7 @@ jparse jv = join $ mapM jparseField <$> getFields jv
 
 
 class JParser a where
-    jparseField :: Field -> Maybe a
+    jparseField :: JField -> Maybe a
 
 -- PACKAGE
 
@@ -121,7 +119,7 @@ getArray jv = case jv of
 
 -- This operation returns the list of fields from a json object.
 -- If the given json value is not an object, Nothing is returned.
-getFields :: JValue -> Maybe [Field]
+getFields :: JValue -> Maybe [JField]
 getFields jv = case jv of
     JObject x -> Just x
     _ -> Nothing

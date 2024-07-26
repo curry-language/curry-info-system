@@ -2,6 +2,8 @@ module CurryAnalysisInfrastructure.Types where
 
 import Text.Pretty (Doc)
 
+import JSON.Data (JValue)
+
 class EqInfo a where
     sameInfo :: a -> a -> Bool
 
@@ -353,3 +355,7 @@ type SolutionCompleteness = Bool
 type Termination = Bool
 
 type TotallyDefined = Bool
+
+-- JSON
+
+type JField :: (String, JValue)
