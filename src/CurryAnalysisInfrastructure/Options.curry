@@ -8,16 +8,15 @@ import Numeric (readNat)
 import Control.Monad (when, unless)
 
 data Options = Options
-    { optVerb :: Int
-    , optHelp :: Bool
-    --, optForce :: Bool
-    , optForce :: Int
-    , optPackage :: Maybe String
-    , optVersion :: Maybe String
-    , optModule :: Maybe String
-    , optType :: Maybe String
-    , optTypeclass :: Maybe String
-    , optOperation :: Maybe String
+    { optVerb       :: Int          -- The verbosity
+    , optHelp       :: Bool         -- Usage info
+    , optForce      :: Int          -- Only Extract - Generate if necessary - Generate always
+    , optPackage    :: Maybe String -- The requested package
+    , optVersion    :: Maybe String -- The requested version
+    , optModule     :: Maybe String -- The requested module
+    , optType       :: Maybe String -- The requested type
+    , optTypeclass  :: Maybe String -- The requested type class
+    , optOperation  :: Maybe String -- The requested operation
     }
     deriving Show 
 
@@ -28,6 +27,9 @@ defaultOptions =
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
 
+-- This action takes the agrument given to the program and processes the arguments.
+-- If the help option is True, it prints the usage text and stops.
+-- If some error happens, an error message is printed and the program stops.
 processOptions :: String -> [String] -> IO (Options, [String])
 processOptions banner argv = do
     let (funopts, args, opterrors) = getOpt Permute options argv
@@ -39,9 +41,11 @@ processOptions banner argv = do
     where
         printUsage = putStrLn (banner ++ "\n" ++ usageText)
 
+-- The usage text of the program.
 usageText :: String
 usageText = usageInfo ("Usage: tool [options] <requests>\n") options
 
+-- The options description.
 options :: [OptDescr (Options -> Options)]
 options =
     [ Option "h?" ["help"]
@@ -85,5 +89,7 @@ options =
                                 then opts { optForce = n }
                                 else error "Illegal force level (try '-h' for help)"
 
+-- SUPPOSED TO BE REPLACED
+-- Returns true, if the verbosity option has the highest possible value.
 fullVerbosity :: Options -> Bool
 fullVerbosity opts = optVerb opts >= 4
