@@ -269,7 +269,16 @@ generateTypeclassName opts (CurryTypeclass pkg vsn m c) = do
     return $ Just $ TypeclassName c
 
 generateTypeclassDocumentation :: TypeclassGenerator
-generateTypeclassDocumentation opts (CurryTypeclass pkg vsn m c) = failed
+generateTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating documentation of typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readDocumentation opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ TypeclassDefinition (text source)
 
 generateTypeclassMethods :: TypeclassGenerator
 generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
@@ -286,7 +295,16 @@ generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
             return $ TypeclassMethods <$> (getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods)
 
 generateTypeclassDefinition :: TypeclassGenerator
-generateTypeclassDefinition opts (CurryTypeclass pkg vsn m c) = failed
+generateTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating definition of typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readSourceCode opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ TypeclassDefinition (text source)
 
 -- OPERATION
 
