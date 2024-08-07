@@ -23,6 +23,7 @@ import CurryAnalysisInfrastructure.Analysis
     , analyseTermination
     , analyseTotallyDefined
     )
+import CurryAnalysisInfrastructure.SourceCode (readSourceCode, readDocumentation)
 
 import Text.Pretty (text)
 import JSON.Data
@@ -220,7 +221,16 @@ generateTypeName opts (CurryType pkg vsn m t) = do
     return $ Just $ TypeName t
 
 generateTypeDocumentation :: TypeGenerator
-generateTypeDocumentation opts (CurryType pkg vsn m t) = failed
+generateTypeDocumentation opts x@(CurryType pkg vsn m t) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating documentation of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readDocumentation opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ TypeDocumentation (text source)
 
 generateTypeConstructors :: TypeGenerator
 generateTypeConstructors opts (CurryType pkg vsn m t) = do
@@ -237,7 +247,16 @@ generateTypeConstructors opts (CurryType pkg vsn m t) = do
             return $ TypeConstructors <$> (getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors)
 
 generateTypeDefinition :: TypeGenerator
-generateTypeDefinition opts (CurryType pkg vsn m t) = failed
+generateTypeDefinition opts x@(CurryType pkg vsn m t) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating definition of type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readSourceCode opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ TypeDefinition (text source)
 
 -- TYPECLASS
 
