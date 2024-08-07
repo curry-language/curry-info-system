@@ -114,22 +114,28 @@ generateModuleName opts (CurryModule pkg vsn m) = do
     return $ Just $ ModuleName m
 
 generateModuleDocumentation :: ModuleGenerator
-generateModuleDocumentation opts (CurryModule pkg vsn m) = do
-    when (fullVerbosity opts) (putStrLn $ "Generating documentation for module " ++ m ++ " of package " ++ pkg ++ " with version " ++ vsn ++ "...")
-    when (fullVerbosity opts) (putStrLn $ "Reading source file...")
-    srcContent <- readModuleSourceFile opts pkg vsn m
-    when (fullVerbosity opts) (putStrLn $ "Reading initial comment of source file...")
-    when (fullVerbosity opts) (putStrLn $ "Done.")
-    return $ Just $ (ModuleDocumentation . text) $ unlines $ takeWhile ("--" `isPrefixOf`) (lines srcContent)
-
+generateModuleDocumentation opts x@(CurryModule pkg vsn m) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating source code of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readDocumentation opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ ModuleDocumentation (text source)
 
 generateModuleSourceCode :: ModuleGenerator
-generateModuleSourceCode opts (CurryModule pkg vsn m) = do
-    when (fullVerbosity opts) (putStrLn $ "Generating source code for module " ++ m ++ " of package " ++ pkg ++ " with version " ++ vsn ++ "...")
-    when (fullVerbosity opts) (putStrLn $ "Reading source file...")
-    srcContent <- readModuleSourceFile opts pkg vsn m
-    when (fullVerbosity opts) (putStrLn $ "Done.")
-    return $ Just $ (ModuleSourceCode . text) srcContent
+generateModuleSourceCode opts x@(CurryModule pkg vsn m) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating source code of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readSourceCode opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ ModuleSourceCode (text source)
 
 generateModuleSafe :: ModuleGenerator
 generateModuleSafe opts (CurryModule pkg vsn m) = do
