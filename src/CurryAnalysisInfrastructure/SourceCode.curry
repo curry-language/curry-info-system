@@ -32,6 +32,31 @@ readSourceFile opts pkg vsn m = do
                     content <- readFile path
                     return (Just content)
 
+takeSourceCode :: Options -> (String -> Bool) -> (String -> Bool) -> String -> IO (Maybe String)
+takeSourceCode opts check belong content = do
+    case dropWhile check (lines content) of
+        [] -> do
+            when (fullVerbosity opts) (putStrLn $ "Could not find source code.")
+            return Nothing
+        (x:xs) -> do
+            let source = unlines (x : takeWhile belong xs)
+            return (Just source)    
+
+takeDocumentation :: Options -> (String -> Bool) -> String -> IO (Maybe String)
+takeDocumentation opts check content = do
+    case takeWhile check (lines content) of
+        [] -> do
+            when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
+            return Nothing 
+        xs -> do
+            case groupBy (\l1 l2 -> isPrefixOf "--" l1 && isPrefixOf "--" l2) xs of
+                [] -> do
+                    when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
+                    return Nothing
+                gs -> do
+                    let docs = last gs
+                    return (Just (unlines docs))
+
 class SourceCode a where
     readSourceCode :: Options -> a -> IO (Maybe String)
     readDocumentation :: Options -> a -> IO (Maybe String)
@@ -65,13 +90,7 @@ instance SourceCode CurryType where
             Nothing -> do
                 return Nothing
             Just content -> do
-                case dropWhile (checkType t) (lines content) of
-                    [] -> do
-                        when (fullVerbosity opts) (putStrLn $ "Could not find source code.")
-                        return Nothing
-                    (x:xs) -> do
-                        let source = unlines (x : takeWhile belongs xs)
-                        return (Just source)
+                takeSourceCode opts (checkType t) belongs content
     
     readDocumentation opts (CurryType pkg vsn m t) = do
         mcontent <- readSourceFile opts pkg vsn m
@@ -79,18 +98,7 @@ instance SourceCode CurryType where
             Nothing -> do
                 return Nothing
             Just content -> do
-                case takeWhile (checkType t) (lines content) of
-                    [] -> do
-                        when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
-                        return Nothing
-                    xs -> do
-                        case groupBy (\l1 l2 -> isPrefixOf "--" l1 && isPrefixOf "--" l2) xs of
-                            [] -> do
-                                when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
-                                return Nothing
-                            gs -> do
-                                let docs = last gs
-                                return (Just (unlines docs))
+                takeDocumentation opts (checkType t) content
 
 checkTypeclass :: Typeclass -> String -> Bool
 checkTypeclass c l = not (isPrefixOf ("class " ++ c) l)
@@ -102,13 +110,7 @@ instance SourceCode CurryTypeclass where
             Nothing -> do
                 return Nothing
             Just content -> do
-                case dropWhile (checkTypeclass c) (lines content) of
-                    [] -> do
-                        when (fullVerbosity opts) (putStrLn $ "Could not find source code.")
-                        return Nothing
-                    (x:xs) -> do
-                        let source = unlines (x : takeWhile belongs xs)
-                        return (Just source)
+                takeSourceCode opts (checkTypeclass c) belongs content
     
     readDocumentation opts (CurryTypeclass pkg vsn m c) = do
         mcontent <- readSourceFile opts pkg vsn m
@@ -116,18 +118,7 @@ instance SourceCode CurryTypeclass where
             Nothing -> do
                 return Nothing
             Just content -> do
-                case takeWhile (checkTypeclass c) (lines content) of
-                    [] -> do
-                        when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
-                        return Nothing
-                    xs -> do
-                        case groupBy (\l1 l2 -> isPrefixOf "--" l1 && isPrefixOf "--" l2) xs of
-                            [] -> do
-                                when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
-                                return Nothing
-                            gs -> do
-                                let docs = last gs
-                                return (Just (unlines docs))
+                takeDocumentation opts (checkTypeclass c) content
 
 checkOperation :: Operation -> String -> Bool
 checkOperation o l = let ls = words l in
@@ -140,13 +131,7 @@ instance SourceCode CurryOperation where
             Nothing -> do
                 return Nothing
             Just content -> do
-                case dropWhile (checkOperation o) (lines content) of
-                    [] -> do
-                        when (fullVerbosity opts) (putStrLn $ "Could not find source code.")
-                        return Nothing
-                    (x:xs) -> do
-                        let source = unlines (x : takeWhile (\l -> belongs l || checkOperation o l || isPrefixOf "#" l) xs)
-                        return (Just source)
+                takeSourceCode opts (checkOperation o) (\l -> belongs l || checkOperation o l || isPrefixOf "#" l) content
     
     readDocumentation opts (CurryOperation pkg vsn m o) = do
         mcontent <- readSourceFile opts pkg vsn m
@@ -154,20 +139,9 @@ instance SourceCode CurryOperation where
             Nothing -> do
                 return Nothing
             Just content -> do
-                case takeWhile (checkOperation o) (lines content) of
-                    [] -> do
-                        when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
-                        return Nothing
-                    xs -> do
-                        case groupBy (\l1 l2 -> isPrefixOf "--" l1 && isPrefixOf "--" l2) xs of
-                            [] -> do
-                                when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
-                                return Nothing
-                            gs -> do
-                                let docs = last gs
-                                return (Just (unlines docs))
+                takeDocumentation opts (checkOperation o) content
 
-{-
+
 test :: IO ()
 test = do
     let input = CurryOperation "json" "3.0.0" "JSON.Pretty" "ppJSON"
@@ -187,4 +161,3 @@ test = do
             putStrLn "SOURCE"
             putStrLn source
             putStrLn "-----------------------------------------"
--}
