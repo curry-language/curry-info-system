@@ -278,7 +278,7 @@ generateTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
             return Nothing
         Just source -> do
             when (fullVerbosity opts) (putStrLn $ "SUCCESS")
-            return $ Just $ TypeclassDefinition (text source)
+            return $ Just $ TypeclassDocumentation (text source)
 
 generateTypeclassMethods :: TypeclassGenerator
 generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
@@ -317,10 +317,28 @@ generateOperationName opts (CurryOperation pkg vsn m o) = do
     return $ Just $ OperationName o
 
 generateOperationDocumentation :: OperationGenerator
-generateOperationDocumentation opts (CurryOperation pkg vsn m o) = failed
+generateOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating documentation of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readDocumentation opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ OperationDocumentation (text source)
 
 generateOperationSourceCode :: OperationGenerator
-generateOperationSourceCode opts (CurryOperation pkg vsn m o) = failed
+generateOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating source code of operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    msource <- readSourceCode opts x
+    case msource of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Generating failed.")
+            return Nothing
+        Just source -> do
+            when (fullVerbosity opts) (putStrLn $ "SUCCESS")
+            return $ Just $ OperationSourceCode (text source)
 
 generateOperationSignature :: OperationGenerator
 generateOperationSignature opts (CurryOperation pkg vsn m o) = do
