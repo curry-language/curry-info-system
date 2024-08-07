@@ -358,4 +358,4 @@ type TotallyDefined = Bool
 
 -- JSON
 
-type JField :: (String, JValue)
+type JField = (String, JValue)
