@@ -7,7 +7,8 @@ import CurryAnalysisInfrastructure.Options (Options, fullVerbosity, testOptions)
 import System.CurryPath (modNameToPath)
 import System.Directory (doesFileExist)
 
-import Data.List (isPrefixOf, isInfixOf, groupBy, last)
+import Data.List (isPrefixOf, isInfixOf, groupBy, last, elemIndex)
+import Data.Maybe (fromMaybe)
 
 import Control.Monad (when)
 
@@ -54,8 +55,12 @@ takeDocumentation opts check content = do
                     when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
                     return Nothing
                 gs -> do
-                    let docs = last gs
-                    return (Just (unlines docs))
+                    let docs = unlines (last gs)
+                    if isPrefixOf "--" docs
+                        then return (Just docs)
+                        else do
+                            when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
+                            return Nothing
 
 class SourceCode a where
     readSourceCode :: Options -> a -> IO (Maybe String)
@@ -101,7 +106,18 @@ instance SourceCode CurryType where
                 takeDocumentation opts (checkType t) content
 
 checkTypeclass :: Typeclass -> String -> Bool
-checkTypeclass c l = not (isPrefixOf ("class " ++ c) l)
+checkTypeclass c l = let
+        ls = words l
+        classIndex = elemIndex "class" ls
+        nameIndex = elemIndex c ls
+        arrowIndex = elemIndex "=>" ls
+    in
+        if isPrefixOf "class" l && elem c ls
+            then
+                not $
+                fromMaybe False ((<) <$> classIndex <*> nameIndex) &&
+                fromMaybe True ((<) <$> arrowIndex <*> nameIndex)
+            else True
 
 instance SourceCode CurryTypeclass where
     readSourceCode opts (CurryTypeclass pkg vsn m c) = do
@@ -121,8 +137,21 @@ instance SourceCode CurryTypeclass where
                 takeDocumentation opts (checkTypeclass c) content
 
 checkOperation :: Operation -> String -> Bool
-checkOperation o l = let ls = words l in
-    not (elem o ls && (elem "::" ls || elem "=" ls))
+checkOperation o l = let
+        ls = words l
+        operationIndex = elemIndex o ls
+        paranthesisIndex = elemIndex ("(" ++ o ++ ")") ls
+        typingIndex = elemIndex "::" ls
+        equalIndex = elemIndex "=" ls
+    in
+        if elem o ls && (elem "::" ls || elem "=" ls)
+            then
+                not $
+                fromMaybe False ((<) <$> operationIndex <*> typingIndex) ||
+                fromMaybe False ((<) <$> operationIndex <*> equalIndex) ||
+                fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex) ||
+                fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex)
+            else True
 
 instance SourceCode CurryOperation where
     readSourceCode opts (CurryOperation pkg vsn m o) = do
@@ -131,7 +160,7 @@ instance SourceCode CurryOperation where
             Nothing -> do
                 return Nothing
             Just content -> do
-                takeSourceCode opts (checkOperation o) (\l -> belongs l || checkOperation o l || isPrefixOf "#" l) content
+                takeSourceCode opts (checkOperation o) (\l -> belongs l || not (checkOperation o l) || isPrefixOf "#" l) content
     
     readDocumentation opts (CurryOperation pkg vsn m o) = do
         mcontent <- readSourceFile opts pkg vsn m
@@ -144,7 +173,7 @@ instance SourceCode CurryOperation where
 
 test :: IO ()
 test = do
-    let input = CurryOperation "json" "3.0.0" "JSON.Pretty" "ppJSON"
+    let input = CurryOperation "base" "3.2.0" "Prelude" "liftM2"
     mdoc <- readDocumentation testOptions input
     msource <- readSourceCode testOptions input
     case mdoc of
