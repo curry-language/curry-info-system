@@ -12,7 +12,6 @@ import Control.Monad (join)
 jparse :: JParser a => JValue -> Maybe [a]
 jparse jv = join $ mapM jparseField <$> getFields jv
 
-
 class JParser a where
     jparseField :: JField -> Maybe a
 
@@ -32,7 +31,11 @@ instance JParser VersionInformation where
         "documentation" -> (VersionDocumentation . text) <$> getString fieldvalue
         "categories"    -> VersionCategories <$> (join $ mapM getString <$> getArray fieldvalue)
         "modules"       -> VersionModules <$> (join $ mapM getString <$> getArray fieldvalue)
-        _               -> Nothing 
+        "dependencies"  -> VersionDependencies <$> do
+            arr <- getArray fieldvalue
+            deps <- mapM getDependency arr
+            return deps
+        _               -> Nothing
 
 -- MODULE
 
@@ -122,4 +125,9 @@ getArray jv = case jv of
 getFields :: JValue -> Maybe [JField]
 getFields jv = case jv of
     JObject x -> Just x
+    _ -> Nothing
+
+getDependency :: JValue -> Maybe Dependency
+getDependency jv = case jv of
+    JObject [("package", JString pkg), ("lowerBound", JString lb), ("upperBound", JString ub)] -> Just (pkg, lb, read ub)
     _ -> Nothing

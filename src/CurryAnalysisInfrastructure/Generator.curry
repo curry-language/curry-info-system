@@ -24,6 +24,7 @@ import CurryAnalysisInfrastructure.Analysis
     , analyseTotallyDefined
     )
 import CurryAnalysisInfrastructure.SourceCode (readSourceCode, readDocumentation)
+import CurryAnalysisInfrastructure.Parser (parseBounds)
 
 import Text.Pretty (text)
 import JSON.Data
@@ -37,6 +38,8 @@ import Data.List (isPrefixOf, intersect, (\\))
 import Data.Maybe (catMaybes)
 
 import Control.Monad (when)
+
+import DetParse (parse)
 
 type Generator a b = Options -> a -> IO (Maybe b)
 
@@ -102,6 +105,14 @@ generateVersionModules opts (CurryVersion pkg vsn) = do
 
     when (fullVerbosity opts) (putStrLn $ "Done.")
     return $ Just $ VersionModules (intersect allMods exportedMods)
+
+generateVersionDependencies :: VersionGenerator
+generateVersionDependencies opts (CurryVersion pkg vsn) = do
+    when (fullVerbosity opts) (putStrLn $ "Generating dependencies for version " ++ vsn ++ " of package " ++ pkg ++ "...")
+    when (fullVerbosity opts) (putStrLn $ "Reading 'package.json'")
+    packageJSON <- readPackageJSON opts pkg vsn
+    let deps = maybe [] id (parseJSON packageJSON >>= getDependencies)
+    return $ Just $ VersionDependencies deps
 
 -- MODULE
 
@@ -545,6 +556,27 @@ getExportedModules jvalue = case jvalue of
             JArray arr -> sequence $ map getString arr
             _ -> Nothing
     _ -> Nothing
+
+-- dependencies is not an array but an object
+-- the fieldnames are the packages and the fieldvalues are the bounds
+getDependencies :: JValue -> Maybe [Dependency]
+getDependencies jv = case jv of
+    JObject fields -> do
+        value <- lookup "dependencies" fields
+        case value of
+            JObject fields -> do
+                mapM convertDependency fields
+            --JArray arr -> do
+            --    deps <- mapM getString arr
+            --    mapM (parse parseDependency) deps
+            _ -> Nothing
+    _ -> Nothing
+
+convertDependency :: JField -> Maybe Dependency
+convertDependency (pkg, jv) = do
+    bounds <- getString jv
+    (lb, ub) <- parse parseBounds bounds
+    return (pkg, lb, ub)
 
 readPackageModules :: Options -> Package -> Version -> IO [Module]
 readPackageModules opts pkg vsn = do

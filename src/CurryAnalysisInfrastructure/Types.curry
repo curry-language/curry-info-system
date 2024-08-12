@@ -107,6 +107,7 @@ data VersionInformation
     | VersionDocumentation Doc
     | VersionCategories [Category]
     | VersionModules [Module]
+    | VersionDependencies [Dependency]
 
 isVersionVersion :: VersionInformation -> Bool
 isVersionVersion x = case x of
@@ -126,6 +127,11 @@ isVersionCategories x = case x of
 isVersionModules :: VersionInformation -> Bool
 isVersionModules x = case x of
     VersionModules _ -> True
+    _ -> False
+
+isVersionDependencies :: VersionInformation -> Bool
+isVersionDependencies x = case x of
+    VersionDependencies _ -> True
     _ -> False
 
 data ModuleInformation
@@ -332,6 +338,12 @@ type Category = String
 type Package = String
 
 type Method = String
+
+type LowerBound = Version
+
+type UpperBound = Version
+
+type Dependency = (Package, LowerBound, Maybe UpperBound)
 
 -- Result Types
 

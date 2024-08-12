@@ -27,10 +27,13 @@ instance JPretty PackageInformation where
     jpretty (PackageVersions vsns)  = ("versions", JArray (map JString vsns))
 
 instance JPretty VersionInformation where
-    jpretty (VersionVersion vsn)        = ("version", JString vsn)
-    jpretty (VersionDocumentation d)    = ("documentation", JString $ pPrint d)
-    jpretty (VersionCategories cats)    = ("categories", JArray (map JString cats))
-    jpretty (VersionModules mods)       = ("modules", JArray (map JString mods))
+    jpretty (VersionVersion vsn)            = ("version", JString vsn)
+    jpretty (VersionDocumentation d)        = ("documentation", JString $ pPrint d)
+    jpretty (VersionCategories cats)        = ("categories", JArray (map JString cats))
+    jpretty (VersionModules mods)           = ("modules", JArray (map JString mods))
+    jpretty (VersionDependencies deps)      = ("dependencies", JArray (map f deps))
+        where
+        f (pkg, lb, ub) = JObject [("package", JString pkg), ("lowerBound", JString (show lb)), ("upperBound", JString (show ub))]
 
 instance JPretty ModuleInformation where
     jpretty (ModuleName m)          = ("module", JString m)

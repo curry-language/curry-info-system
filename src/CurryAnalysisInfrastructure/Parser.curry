@@ -1,0 +1,135 @@
+module CurryAnalysisInfrastructure.Parser where
+
+import CurryAnalysisInfrastructure.Types
+
+import Data.List (init, find, intercalate, intersperse)
+
+import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar, char, check, (<$>), (<*>), many, (<*), (<!>))
+import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
+
+parseDependency :: Parser Dependency
+parseDependency =
+    (,,) <$>
+    (doubleQuote *> packageName <* doubleQuote) <*>
+    (ws *> colon *> ws *> doubleQuote *> ge *> ws *> versionNumber) <*>
+    optional (comma *> ws *> lt *> ws *> versionNumber <* doubleQuote)
+
+parseBounds :: Parser (LowerBound, Maybe UpperBound)
+parseBounds =
+    (,) <$>
+    (ge *> ws *> versionNumber) <*>
+    optional (comma *> ws *> lt *> ws *> versionNumber)
+
+
+packageName :: Parser Package
+packageName = many (check isAlpha anyChar)
+
+versionNumber :: Parser String
+versionNumber = concat <$> (intersperse "." <$> (map show <$> parseList dot parseNumber))
+
+ws :: Parser ()
+ws = some (check isSpace anyChar) *> yield ()
+
+-- This operation parses the result of the 'UnsafeModule' analysis of CASS.
+parseSafe :: String -> Maybe Safe
+parseSafe = parse (
+        (word "safe" *> yield Safe) <|>
+        (word "unsafe" *> (
+            (space *> word "(due to module" *> (
+                (space *> (UnsafeDue . return <$> parseModule) <* char ')') <|>
+                (char 's' *> space *> (UnsafeDue <$> parseList space parseModule) <* char ')')
+            )) <|>
+            (yield Unsafe)
+        ))
+    )
+
+-- This operation parses the result of the 'Deterministic' analysis of CASS.
+parseDeterministic :: String -> Maybe Deterministic
+parseDeterministic = parse (
+        (word "deterministic" *> yield Det) <|>
+        (word "non-deterministic" *> yield NDet)
+    )
+
+-- This operation parses the result of the 'Demand' analysis of CASS.
+parseDemandness :: String -> Maybe Demandness
+parseDemandness = parse (
+        (word "no demanded arguments" *> yield []) <|>
+        (word "demanded arguments: " *> parseList comma parseNumber)
+    )
+
+-- This operation parses the result of the 'Indeterministic' analysis of CASS.
+parseIndeterministic :: String -> Maybe Indeterministic
+parseIndeterministic = parse (
+        (word "impure (indeterminstic) operation" *> yield True) <|>
+        (word "referentially transparent operation" *> yield False)
+    )
+
+-- This operation parses the result of the 'SolComplete' analysis of CASS.
+parseSolutionCompleteness :: String -> Maybe SolutionCompleteness
+parseSolutionCompleteness = parse (
+        (word "solution complete" *> yield True) <|>
+        (word "maybe suspend" *> yield False)
+    )
+
+-- This operation parses the result of the 'Terminating' analysis of CASS.
+parseTermination :: String -> Maybe Termination
+parseTermination = parse (
+        (word "terminating" *> yield True) <|>
+        (word "possibly non-terminating" *> yield False)
+    )
+
+-- This operation parses the result of the 'Total' analysis of CASS.
+parseTotallyDefined :: String -> Maybe TotallyDefined
+parseTotallyDefined = parse (
+        (word "totally defined" *> yield True) <|>
+        (word "partially defined" *> yield False)
+    )
+
+-- HELPER
+
+-- This parser parses a list using a parser for the entries and a parser for the seperators.
+parseList :: Parser a -> Parser b -> Parser [b]
+parseList sep entry = ((:) <$> entry <*> many (sep *> entry)) <|> yield []
+
+-- This parser parses an integer number.
+parseNumber :: Parser Int
+parseNumber = read <$> some (check isDigit anyChar)
+
+-- This parser parses a module name.
+parseModule :: Parser Module
+parseModule = intercalate "." <$> parseList dot ident
+
+-- This parser parses a single '.'.
+dot :: Parser ()
+dot = char '.'
+
+-- This parser parses a single ','.
+comma :: Parser ()
+comma = char ','
+
+-- This parser parses a single whitespace.
+space :: Parser ()
+space = char ' '
+
+-- This parser parses an identifier.
+ident :: Parser String
+ident = (:) <$> check isAlpha anyChar <*> many (check condition anyChar)
+    where
+    condition c = isDigit c || isAlpha c || c == '_' || c == '\''
+
+colon :: Parser ()
+colon = char ':'
+
+ge :: Parser ()
+ge = word ">="
+
+lt :: Parser ()
+lt = char '<'
+
+doubleQuote :: Parser ()
+doubleQuote = char '\"'
+
+optional :: Parser a -> Parser (Maybe a)
+optional p = Just <$> p <!> yield Nothing
+
+test = parse parseDependency "\"base\"     : \">= 3.0.0, < 4.0.0\""
