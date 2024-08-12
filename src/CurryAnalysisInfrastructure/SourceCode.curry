@@ -7,10 +7,13 @@ import CurryAnalysisInfrastructure.Options (Options, fullVerbosity, testOptions)
 import System.CurryPath (modNameToPath)
 import System.Directory (doesFileExist)
 
-import Data.List (isPrefixOf, isInfixOf, groupBy, last, elemIndex)
+import Data.List (isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex)
 import Data.Maybe (fromMaybe)
 
 import Control.Monad (when)
+
+findDefinition :: (String -> Bool) -> String -> Maybe Int
+findDefinition check content = findIndex check (lines content)
 
 belongs :: String -> Bool
 belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
@@ -35,15 +38,45 @@ readSourceFile opts pkg vsn m = do
 
 takeSourceCode :: Options -> (String -> Bool) -> (String -> Bool) -> String -> IO (Maybe String)
 takeSourceCode opts check belong content = do
+    case findDefinition check content of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Could not find definition.")
+            return Nothing
+        Just i -> do
+            let ls = lines content
+            let source = unlines (takeWhile belong (drop i ls))
+            return (Just source)
+{-
+takeSourceCode opts check belong content = do
     case dropWhile check (lines content) of
         [] -> do
             when (fullVerbosity opts) (putStrLn $ "Could not find source code.")
             return Nothing
         (x:xs) -> do
             let source = unlines (x : takeWhile belong xs)
-            return (Just source)    
+            return (Just source) 
+-}   
 
 takeDocumentation :: Options -> (String -> Bool) -> String -> IO (Maybe String)
+takeDocumentation opts check content = do
+    case findDefinition check content of
+        Nothing -> do
+            when (fullVerbosity opts) (putStrLn $ "Could not find definition.")
+            return Nothing
+        Just i -> do
+            let ls = lines content
+            case groupBy (\l1 l2 -> isPrefixOf "--" l1 && isPrefixOf "--" l2) (take i ls) of
+                [] -> do
+                    when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
+                    return Nothing
+                gs -> do
+                    let docs = unlines (last gs)
+                    if isPrefixOf "--" docs
+                        then return (Just docs)
+                        else do
+                            when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
+                            return Nothing
+{-
 takeDocumentation opts check content = do
     case takeWhile check (lines content) of
         [] -> do
@@ -61,6 +94,7 @@ takeDocumentation opts check content = do
                         else do
                             when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
                             return Nothing
+-}
 
 class SourceCode a where
     readSourceCode :: Options -> a -> IO (Maybe String)
