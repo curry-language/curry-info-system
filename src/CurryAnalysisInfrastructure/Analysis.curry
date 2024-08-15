@@ -39,17 +39,26 @@ analyse opts path analysis m field parser = do
     (_, output, _) <- runCmd opts (cmdCASS path analysis m)
     when (fullVerbosity opts) (putStrLn $ "Analysis finished.")
     when (fullVerbosity opts) (putStrLn $ "Parsing result...")
-    case parseJSON (init output) of 
+    --case parseJSON (init output) of
+    writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.json" output
+    let tmp = parseJSON (init output)
+    writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.txt" (show tmp)
+    print tmp
+    case tmp of
         Just (JArray js) -> do
+            putStrLn "--parseJSON finished with Just--"
             case findField js field of
                 Just result -> do
+                    putStrLn "--findField finished with Just--"
                     when (fullVerbosity opts) (putStrLn $ "Analysis succeeded.")
                     return $ parser result
                 Nothing -> do
+                    putStrLn "--findField finished with Nothing--"
                     when (fullVerbosity opts) (putStrLn $ "Could not find entry with name '" ++ field ++ "'.")
                     when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
                     return Nothing
         _ -> do
+            putStrLn "--parseJSON finished with Nothing--"
             when (fullVerbosity opts) (putStrLn $ "Output did not match expected format. Expected array.")
             when (fullVerbosity opts) (putStrLn $ "Output:")
             when (fullVerbosity opts) (putStrLn $ output)

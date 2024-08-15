@@ -358,7 +358,7 @@ data Deterministic
     | NDet
     deriving (Show, Read)
 
-type Demandness = [Int]
+type Demandness = [Float]
 
 type Indeterministic = Bool
 

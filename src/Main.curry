@@ -53,7 +53,7 @@ getInfos opts location requests = case location of
             when (fullVerbosity opts') (putStrLn "Initializing Input...")
             initialize input
             when (fullVerbosity opts') (putStrLn "Reading current information...")
-            result <- readInformation input
+            result <- readInformation opts' input
             case result of
                 Nothing -> do
                     when (fullVerbosity opts') (putStrLn "Reading information failed.")

@@ -92,7 +92,7 @@ parseList :: Parser a -> Parser b -> Parser [b]
 parseList sep entry = ((:) <$> entry <*> many (sep *> entry)) <|> yield []
 
 -- This parser parses an integer number.
-parseNumber :: Parser Int
+parseNumber :: (Read a, Num a) => Parser a
 parseNumber = read <$> some (check isDigit anyChar)
 
 -- This parser parses a module name.

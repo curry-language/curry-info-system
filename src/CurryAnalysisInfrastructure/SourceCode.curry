@@ -44,8 +44,13 @@ takeSourceCode opts check belong content = do
             return Nothing
         Just i -> do
             let ls = lines content
-            let source = unlines (takeWhile belong (drop i ls))
-            return (Just source)
+            case drop i ls of
+                [] -> do
+                    when (fullVerbosity opts) (putStrLn $ "Could not find definition.")
+                    return Nothing
+                (x:xs) -> do
+                    let source = unlines (x : takeWhile belong xs)
+                    return (Just source)
 {-
 takeSourceCode opts check belong content = do
     case dropWhile check (lines content) of
@@ -65,6 +70,15 @@ takeDocumentation opts check content = do
             return Nothing
         Just i -> do
             let ls = lines content
+            case reverse (takeWhile (isPrefixOf "--") (reverse (take i ls))) of
+                [] -> do
+                    when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
+                    return Nothing
+                gs -> do
+                    return (Just (unlines gs))
+            
+            {-
+            let ls = lines content
             case groupBy (\l1 l2 -> isPrefixOf "--" l1 && isPrefixOf "--" l2) (take i ls) of
                 [] -> do
                     when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
@@ -76,6 +90,7 @@ takeDocumentation opts check content = do
                         else do
                             when (fullVerbosity opts) (putStrLn $ "Could not find documentation.")
                             return Nothing
+            -}
 {-
 takeDocumentation opts check content = do
     case takeWhile check (lines content) of
@@ -120,7 +135,7 @@ instance SourceCode CurryModule where
                 return (Just doc)
 
 checkType :: Type -> String -> Bool
-checkType t l = not (isPrefixOf ("data " ++ t) l || isPrefixOf ("type " ++ t) l || isPrefixOf ("newtype " ++ t) l)
+checkType t l = (isPrefixOf ("data " ++ t) l || isPrefixOf ("type " ++ t) l || isPrefixOf ("newtype " ++ t) l)
 
 instance SourceCode CurryType where
     readSourceCode opts (CurryType pkg vsn m t) = do
@@ -148,10 +163,9 @@ checkTypeclass c l = let
     in
         if isPrefixOf "class" l && elem c ls
             then
-                not $
                 fromMaybe False ((<) <$> classIndex <*> nameIndex) &&
                 fromMaybe True ((<) <$> arrowIndex <*> nameIndex)
-            else True
+            else False
 
 instance SourceCode CurryTypeclass where
     readSourceCode opts (CurryTypeclass pkg vsn m c) = do
@@ -180,12 +194,11 @@ checkOperation o l = let
     in
         if elem o ls && (elem "::" ls || elem "=" ls)
             then
-                not $
                 fromMaybe False ((<) <$> operationIndex <*> typingIndex) ||
                 fromMaybe False ((<) <$> operationIndex <*> equalIndex) ||
                 fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex) ||
                 fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex)
-            else True
+            else False
 
 instance SourceCode CurryOperation where
     readSourceCode opts (CurryOperation pkg vsn m o) = do
@@ -194,7 +207,7 @@ instance SourceCode CurryOperation where
             Nothing -> do
                 return Nothing
             Just content -> do
-                takeSourceCode opts (checkOperation o) (\l -> belongs l || not (checkOperation o l) || isPrefixOf "#" l) content
+                takeSourceCode opts (checkOperation o) (\l -> belongs l || checkOperation o l || isPrefixOf "#" l) content
     
     readDocumentation opts (CurryOperation pkg vsn m o) = do
         mcontent <- readSourceFile opts pkg vsn m

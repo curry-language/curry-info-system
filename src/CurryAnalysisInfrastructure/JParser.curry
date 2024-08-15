@@ -3,14 +3,23 @@ module CurryAnalysisInfrastructure.JParser where
 import CurryAnalysisInfrastructure.Types
 
 import JSON.Data
+
 import Text.Pretty (text)
+
 import Data.List (find)
+import Data.Maybe (catMaybes)
+
 import Control.Monad (join)
 
 --- This function takes a json value and returns the parsed list of fields, if every field is parsed successfully.
 --- If any field fails to be parsed, Nothing is returned.
 jparse :: JParser a => JValue -> Maybe [a]
-jparse jv = join $ mapM jparseField <$> getFields jv
+--jparse jv = join $ mapM jparseField <$> getFields jv
+jparse jv = do
+    fields <- getFields jv
+    let parsedResults = map jparseField fields
+    let results = catMaybes parsedResults
+    return results
 
 class JParser a where
     jparseField :: JField -> Maybe a
@@ -82,11 +91,14 @@ instance JParser OperationInformation where
         "infix"                 -> OperationInfix <$> (read <$> getString fieldvalue)
         "precedence"            -> OperationPrecedence <$> (read <$> getString fieldvalue)
         "deterministic"         -> OperationDeterministic <$> (read <$> getString fieldvalue)
-        "demandness"            -> OperationDemandness <$> (read <$> getString fieldvalue)
-        "indeterministic"       -> OperationIndeterministic <$> (read <$> getString fieldvalue)
-        "solutionCompletenss"   -> OperationSolutionCompleteness <$> (read <$> getString fieldvalue)
-        "termination"           -> OperationTermination <$> (read <$> getString fieldvalue)
-        "totallyDefined"        -> OperationTotallyDefined <$> (read <$> getString fieldvalue)
+        "demandness"            -> OperationDemandness <$> do
+            arr <- getArray fieldvalue
+            numbers <- mapM getNumber arr
+            return numbers
+        "indeterministic"       -> OperationIndeterministic <$> (getBool fieldvalue)
+        "solutionCompletenss"   -> OperationSolutionCompleteness <$> (getBool fieldvalue)
+        "termination"           -> OperationTermination <$> (getBool fieldvalue)
+        "totallyDefined"        -> OperationTotallyDefined <$> (getBool fieldvalue)
         _                       -> Nothing
 
 ------------------------------------------------------------------------

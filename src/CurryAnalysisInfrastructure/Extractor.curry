@@ -32,6 +32,9 @@ extractVersionCategories infos = listToMaybe $ filter isVersionCategories infos
 extractVersionModules :: VersionExtractor
 extractVersionModules infos = listToMaybe $ filter isVersionModules infos
 
+extractVersionDependencies :: VersionExtractor
+extractVersionDependencies infos = listToMaybe $ filter isVersionDependencies infos
+
 -- MODULE
 
 type ModuleExtractor = Extractor ModuleInformation

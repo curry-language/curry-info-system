@@ -65,7 +65,7 @@ instance JPretty OperationInformation where
     jpretty (OperationInfix i)                  = ("infix", JString $ show i)
     jpretty (OperationPrecedence p)             = ("precedence", JNumber (fromIntegral p))
     jpretty (OperationDeterministic det)        = ("deterministic", JString $ show det)
-    jpretty (OperationDemandness dems)          = ("demandness", JArray (map (JNumber . fromIntegral) dems))
+    jpretty (OperationDemandness dems)          = ("demandness", JArray (map JNumber dems))
     jpretty (OperationIndeterministic b)        = ("indeterministic", if b then JTrue else JFalse)
     jpretty (OperationSolutionCompleteness b)   = ("solutionCompletenss", if b then JTrue else JFalse)
     jpretty (OperationTermination b)            = ("termination", if b then JTrue else JFalse)

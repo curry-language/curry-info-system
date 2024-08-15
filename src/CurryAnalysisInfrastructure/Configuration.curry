@@ -28,6 +28,7 @@ versionConfiguration =
     , ("documentation", (extractVersionDocumentation, generateVersionDocumentation))
     , ("categories",    (extractVersionCategories, generateVersionCategories))
     , ("modules",       (extractVersionModules, generateVersionModules))
+    , ("dependencies",  (extractVersionDependencies, generateVersionDependencies))
     ]
 
 -- MODULE
