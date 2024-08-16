@@ -4,6 +4,7 @@ import CurryAnalysisInfrastructure.Checkout (getCheckoutPath, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
 import CurryAnalysisInfrastructure.Options (Options, fullVerbosity)
+import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
 import System.IOExts (evalCmd)
@@ -15,8 +16,6 @@ import CurryInterface.Files (readCurryInterfaceFile)
 import CurryInterface.Pretty (defaultOptions, ppConstructor, ppNewConstructor, ppType, ppMethodDecl, ppQualType)
 
 import Data.List (find)
-
-import Control.Monad (when)
 
 import Text.Pretty (pPrint)
 
@@ -31,31 +30,32 @@ icurryPath pkg vsn m = do
 -- the .icurry file.
 readInterface :: Options -> Package -> Version -> Module -> IO (Maybe Interface)
 readInterface opts pkg vsn m = do
-    when (fullVerbosity opts) (putStrLn $ "Checkout for package " ++ pkg ++ " with version " ++ vsn ++ " if necessary...")
+    printLine opts
+    printDebugMessage opts $ "Checkout for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     mpath <- checkoutIfMissing opts pkg vsn
     case mpath of
         Just path -> do
-            when (fullVerbosity opts) (putStrLn $ "Computing path to icurry file...")
+            printDebugMessage opts "Computing path to icurry file..."
             icurry <- icurryPath pkg vsn m
-            when (fullVerbosity opts) (putStrLn $ "Path to icurry file: " ++ icurry)
-            when (fullVerbosity opts) (putStrLn $ "Checking whether icurry file exists...")
+            printDebugMessage opts $ "Path to icurry file: " ++ icurry
+            printDebugMessage opts "Checking whether icurry file exists..."
             b <- doesFileExist icurry
             case b of
                 True -> do
-                    when (fullVerbosity opts) (putStrLn $ "icurry file exists.")
-                    when (fullVerbosity opts) (putStrLn $ "Reading interface...")
+                    printDebugMessage opts "icurry file exists."
+                    printDebugMessage opts "Reading interface..."
                     result <- readCurryInterfaceFile icurry
                     return $ Just result
                 False -> do
-                    when (fullVerbosity opts) (putStrLn $ "icurry file does not exist.")
-                    when (fullVerbosity opts) (putStrLn $ "Generating icurry file...")
+                    printDebugMessage opts "icurry file does not exist."
+                    printDebugMessage opts "Generating icurry file..."
                     runCmd opts (cmdCYPMInstall path)
                     runCmd opts (cmdCurryLoad path m)
-                    when (fullVerbosity opts) (putStrLn $ "Reading interface...")
+                    printDebugMessage opts "Reading interface..."
                     result <- readCurryInterfaceFile icurry
                     return $ Just result
         Nothing -> do
-            when (fullVerbosity opts) (putStrLn $ "Checkout failed.")
+            printDebugMessage opts "Checkout failed."
             return Nothing
 
 -- This operation returns the declarations of the given interface.

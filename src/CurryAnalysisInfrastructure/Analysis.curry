@@ -7,13 +7,12 @@ import CurryAnalysisInfrastructure.Parser
     ( parseSafe, parseDeterministic, parseDemandness, parseIndeterministic, parseSolutionCompleteness, parseTermination
     , parseTotallyDefined
     )
+import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import JSON.Data
 import JSON.Parser (parseJSON)
 
 import Data.List (init, find, intercalate)
-
-import Control.Monad (when)
 
 -- Analysis
 
@@ -35,34 +34,32 @@ findField js field = do
 -- The parser argument is for parsing the result of the analysis.
 analyse :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe a)
 analyse opts path analysis m field parser = do
-    when (fullVerbosity opts) (putStrLn $ "Starting analysis " ++ analysis ++ "...")
+    printLine opts
+    printDebugMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
     (_, output, _) <- runCmd opts (cmdCASS path analysis m)
-    when (fullVerbosity opts) (putStrLn $ "Analysis finished.")
-    when (fullVerbosity opts) (putStrLn $ "Parsing result...")
+    printDebugMessage opts "Analysis finished."
+    printDebugMessage opts "Parsing result..."
     --case parseJSON (init output) of
-    writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.json" output
+    --writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.json" output
     let tmp = parseJSON (init output)
-    writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.txt" (show tmp)
-    print tmp
+    --writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.txt" (show tmp)
+    --print tmp
     case tmp of
         Just (JArray js) -> do
-            putStrLn "--parseJSON finished with Just--"
+            printDebugMessage opts "Looking for result field..."
             case findField js field of
                 Just result -> do
-                    putStrLn "--findField finished with Just--"
-                    when (fullVerbosity opts) (putStrLn $ "Analysis succeeded.")
+                    printDebugMessage opts "Analysis succeeded."
                     return $ parser result
                 Nothing -> do
-                    putStrLn "--findField finished with Nothing--"
-                    when (fullVerbosity opts) (putStrLn $ "Could not find entry with name '" ++ field ++ "'.")
-                    when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+                    printDebugMessage opts $ "Could not find entry with name '" ++ field ++ "'."
+                    printDebugMessage opts "Analysis failed."
                     return Nothing
         _ -> do
-            putStrLn "--parseJSON finished with Nothing--"
-            when (fullVerbosity opts) (putStrLn $ "Output did not match expected format. Expected array.")
-            when (fullVerbosity opts) (putStrLn $ "Output:")
-            when (fullVerbosity opts) (putStrLn $ output)
-            when (fullVerbosity opts) (putStrLn $ "Analysis failed.")
+            printDebugMessage opts "Output did not match expected format. Expected array."
+            printDebugMessage opts "Output:"
+            printDebugMessage opts output
+            printDebugMessage opts "Analysis failed."
             return Nothing
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis for the given module in
@@ -106,17 +103,3 @@ analyseTermination opts path m op = do
 analyseTotallyDefined :: Options -> String -> Module -> Operation -> IO (Maybe TotallyDefined)
 analyseTotallyDefined opts path m op = do
     analyse opts path "Total" m op parseTotallyDefined
-
-{-
-testPath :: String
-testPath = "/home/dennis/tmp/.curryanalysis/checkouts/json-3.0.0"
-
-testModule :: Module
-testModule = "JSON.Parser"
-
-testOp :: Operation
-testOp = "parseJSON"
-
-testOptions :: Options
-testOptions = defaultOptions {optVerb = 4}
--}

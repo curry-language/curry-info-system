@@ -4,11 +4,10 @@ import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths (root)
 import CurryAnalysisInfrastructure.Commands (runCmd, cmdCheckout)
 import CurryAnalysisInfrastructure.Options
+import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
-
-import Control.Monad (when)
 
 -- This functions generates the directory name for a given package and version. It is used for
 -- checkout.
@@ -49,17 +48,18 @@ cmdSuccess = 0
 -- This action creates a checkout for the given version of the given package.
 checkoutIfMissing :: Options -> Package -> Version -> IO (Maybe String)
 checkoutIfMissing opts pkg vsn = do
-    when (fullVerbosity opts) (putStrLn $ "Computing checkout path for package " ++ pkg ++ " with version " ++ vsn ++ "...")
+    printLine opts
+    printDebugMessage opts $ "Computing checkout path for package '" ++ pkg ++ "' with version '" ++ vsn ++ "'..."
     path <- getCheckoutPath pkg vsn
-    when (fullVerbosity opts) (putStrLn $ "Checkout path: " ++ path)
-    when (fullVerbosity opts) (putStrLn $ "Checking whether checkout is necessary...")
+    printDebugMessage opts $ "Checkout path: " ++ path
+    printDebugMessage opts "Determining if checkout is necessary..."
     b <- doesDirectoryExist path
     case b of
         True -> do
-            when (fullVerbosity opts) (putStrLn $ "Directory already exists. Checkout unnecessary.")
+            printDebugMessage opts "Directory already exists. Checkout unnecessary."
             return $ Just path
         False -> do
-            when (fullVerbosity opts) (putStrLn $ "Directoy does not exist. Checkout necessary.")
-            when (fullVerbosity opts) (putStrLn $ "Creating checkout for package " ++ pkg ++ " with version " ++ vsn ++ "...")
+            printDebugMessage opts "Directory does not exist. Checkout necessary."
+            printDebugMessage opts $ "Creating checkout..."
             runCmd opts $ cmdCheckout path pkg vsn
             return $ Just path
