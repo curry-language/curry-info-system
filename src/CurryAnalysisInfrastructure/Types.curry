@@ -241,8 +241,8 @@ data OperationInformation
     | OperationDocumentation Doc
     | OperationSourceCode Doc
     | OperationSignature Signature
-    | OperationInfix Infix
-    | OperationPrecedence Precedence
+    | OperationInfix (Maybe Infix)
+    | OperationPrecedence (Maybe Precedence)
     | OperationDeterministic Deterministic
     | OperationDemandness Demandness
     | OperationIndeterministic Indeterministic

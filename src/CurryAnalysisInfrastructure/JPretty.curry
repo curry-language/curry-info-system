@@ -63,7 +63,7 @@ instance JPretty OperationInformation where
     jpretty (OperationSourceCode d)             = ("sourceCode", JString $ pPrint d)
     jpretty (OperationSignature sign)           = ("signature", JString sign)
     jpretty (OperationInfix i)                  = ("infix", JString $ show i)
-    jpretty (OperationPrecedence p)             = ("precedence", JNumber (fromIntegral p))
+    jpretty (OperationPrecedence p)             = ("precedence", JString $ show p)
     jpretty (OperationDeterministic det)        = ("deterministic", JString $ show det)
     jpretty (OperationDemandness dems)          = ("demandness", JArray (map JNumber dems))
     jpretty (OperationIndeterministic b)        = ("indeterministic", if b then JTrue else JFalse)
