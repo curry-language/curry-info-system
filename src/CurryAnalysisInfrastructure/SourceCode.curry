@@ -17,7 +17,7 @@ findDefinition check content = findIndex check (lines content)
 belongs :: String -> Bool
 belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
 
-readSourceFile :: Options -> Package -> Version -> Module -> IO (Maybe String)
+readSourceFile :: Options -> Package -> Version -> Module -> IO (Maybe (String, String))
 readSourceFile opts pkg vsn m = do
     printLine opts
     printDebugMessage opts "Reading source file..."
@@ -37,10 +37,11 @@ readSourceFile opts pkg vsn m = do
                 True -> do
                     printDebugMessage opts "Reading content..."
                     content <- readFile path
-                    return (Just content)
+                    return (Just (path, content))
+                    --return (Just content)
 
-takeSourceCode :: Options -> (String -> Bool) -> (String -> Bool) -> String -> IO (Maybe String)
-takeSourceCode opts check belong content = do
+takeSourceCode :: Options -> (String -> Bool) -> (String -> Bool) -> String -> String -> IO (Maybe Reference)
+takeSourceCode opts check belong path content = do
     printLine opts
     printDebugMessage opts "Taking source code..."
     case findDefinition check content of
@@ -54,11 +55,13 @@ takeSourceCode opts check belong content = do
                     printDebugMessage opts "Could not find definition."
                     return Nothing
                 (x:xs) -> do
-                    let source = unlines (x : takeWhile belong xs)
-                    return (Just source) 
+                    let source = x : takeWhile belong xs
+                    return (Just (path, i, i + length source))
+                    --let source = unlines (x : takeWhile belong xs)
+                    --return (Just source) 
 
-takeDocumentation :: Options -> (String -> Bool) -> String -> IO (Maybe String)
-takeDocumentation opts check content = do
+takeDocumentation :: Options -> (String -> Bool) -> String -> String -> IO (Maybe Reference)
+takeDocumentation opts check path content = do
     printLine opts
     printDebugMessage opts "Taking documentation..."
     case findDefinition check content of
@@ -72,50 +75,57 @@ takeDocumentation opts check content = do
                     printDebugMessage opts "Could not find documentation."
                     return Nothing
                 gs -> do
-                    return (Just (unlines gs))
+                    return (Just (path, i - length gs, i))
+                    --return (Just (unlines gs))
 
 class SourceCode a where
-    readSourceCode :: Options -> a -> IO (Maybe String)
-    readDocumentation :: Options -> a -> IO (Maybe String)
+    readSourceCode :: Options -> a -> IO (Maybe Reference)
+    readDocumentation :: Options -> a -> IO (Maybe Reference)
 
 instance SourceCode CurryModule where
     readSourceCode opts (CurryModule pkg vsn m) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                let source = unlines (dropWhile (isPrefixOf "--") (lines content))
-                return (Just source)
+            Just (path, content) -> do
+                let ls = lines content
+                let (tmp, source) = span (isPrefixOf "--") ls
+                return (Just (path, length tmp, length ls))
+                --let source = unlines (dropWhile (isPrefixOf "--") (lines content))
+                --return (Just source)
     
     readDocumentation opts (CurryModule pkg vsn m) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                let doc = unlines (takeWhile (isPrefixOf "--") (lines content))
-                return (Just doc)
+            Just (path, content) -> do
+                let ls = lines content
+                let (doc, _) = span (isPrefixOf "--") ls
+                return (Just (path, 0, length doc))
+                --let doc = unlines (takeWhile (isPrefixOf "--") (lines content))
+                --return (Just doc)
 
 checkType :: Type -> String -> Bool
 checkType t l = (isPrefixOf ("data " ++ t) l || isPrefixOf ("type " ++ t) l || isPrefixOf ("newtype " ++ t) l)
 
 instance SourceCode CurryType where
     readSourceCode opts (CurryType pkg vsn m t) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                takeSourceCode opts (checkType t) belongs content
+            Just (path, content) -> do
+                takeSourceCode opts (checkType t) belongs path content
     
     readDocumentation opts (CurryType pkg vsn m t) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                takeDocumentation opts (checkType t) content
+            Just (path, content) -> do
+                takeDocumentation opts (checkType t) path content
 
 checkTypeclass :: Typeclass -> String -> Bool
 checkTypeclass c l = let
@@ -132,20 +142,20 @@ checkTypeclass c l = let
 
 instance SourceCode CurryTypeclass where
     readSourceCode opts (CurryTypeclass pkg vsn m c) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                takeSourceCode opts (checkTypeclass c) belongs content
+            Just (path, content) -> do
+                takeSourceCode opts (checkTypeclass c) belongs path content
     
     readDocumentation opts (CurryTypeclass pkg vsn m c) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                takeDocumentation opts (checkTypeclass c) content
+            Just (path, content) -> do
+                takeDocumentation opts (checkTypeclass c) path content
 
 checkOperation :: Operation -> String -> Bool
 checkOperation o l = let
@@ -165,20 +175,20 @@ checkOperation o l = let
 
 instance SourceCode CurryOperation where
     readSourceCode opts (CurryOperation pkg vsn m o) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                takeSourceCode opts (checkOperation o) (\l -> belongs l || checkOperation o l || isPrefixOf "#" l) content
+            Just (path, content) -> do
+                takeSourceCode opts (checkOperation o) (\l -> belongs l || checkOperation o l || isPrefixOf "#" l) path content
     
     readDocumentation opts (CurryOperation pkg vsn m o) = do
-        mcontent <- readSourceFile opts pkg vsn m
-        case mcontent of
+        mresult <- readSourceFile opts pkg vsn m
+        case mresult of
             Nothing -> do
                 return Nothing
-            Just content -> do
-                takeDocumentation opts (checkOperation o) content
+            Just (path, content) -> do
+                takeDocumentation opts (checkOperation o) path content
 
 {-
 test :: IO ()

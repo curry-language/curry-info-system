@@ -146,8 +146,8 @@ generateModuleDocumentation opts x@(CurryModule pkg vsn m) = do
             printDebugMessage opts "Generating failed."
             return Nothing
         Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ docs
-            return $ Just $ ModuleDocumentation (text docs)
+            printDebugMessage opts $ "Documentation is: " ++ show docs
+            return $ Just $ ModuleDocumentation docs
 
 generateModuleSourceCode :: ModuleGenerator
 generateModuleSourceCode opts x@(CurryModule pkg vsn m) = do
@@ -159,8 +159,8 @@ generateModuleSourceCode opts x@(CurryModule pkg vsn m) = do
             printDebugMessage opts "Generating failed."
             return Nothing
         Just source -> do
-            printDebugMessage opts $ "Source code is: " ++ source
-            return $ Just $ ModuleSourceCode (text source)
+            printDebugMessage opts $ "Source code is: " ++ show source
+            return $ Just $ ModuleSourceCode source
 
 generateModuleSafe :: ModuleGenerator
 generateModuleSafe opts (CurryModule pkg vsn m) = do
@@ -260,8 +260,8 @@ generateTypeDocumentation opts x@(CurryType pkg vsn m t) = do
             printDebugMessage opts "Generating failed"
             return Nothing
         Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ docs
-            return $ Just $ TypeDocumentation (text docs)
+            printDebugMessage opts $ "Documentation is: " ++ show docs
+            return $ Just $ TypeDocumentation docs
 
 generateTypeConstructors :: TypeGenerator
 generateTypeConstructors opts (CurryType pkg vsn m t) = do
@@ -289,8 +289,8 @@ generateTypeDefinition opts x@(CurryType pkg vsn m t) = do
             printDebugMessage opts "Generating failed."
             return Nothing
         Just source -> do
-            printDebugMessage opts $ "Definition is: " ++ source
-            return $ Just $ TypeDefinition (text source)
+            printDebugMessage opts $ "Definition is: " ++ show source
+            return $ Just $ TypeDefinition source
 
 -- TYPECLASS
 
@@ -313,8 +313,8 @@ generateTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
             printDebugMessage opts "Generating failed"
             return Nothing
         Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ docs
-            return $ Just $ TypeclassDocumentation (text docs)
+            printDebugMessage opts $ "Documentation is: " ++ show docs
+            return $ Just $ TypeclassDocumentation docs
 
 generateTypeclassMethods :: TypeclassGenerator
 generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
@@ -341,8 +341,8 @@ generateTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
             printDebugMessage opts "Generating failed."
             return Nothing
         Just source -> do
-            printDebugMessage opts $ "Definition is: " ++ source
-            return $ Just $ TypeclassDefinition (text source)
+            printDebugMessage opts $ "Definition is: " ++ show source
+            return $ Just $ TypeclassDefinition source
 
 -- OPERATION
 
@@ -365,8 +365,8 @@ generateOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
         Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ docs
-            return $ Just $ OperationDocumentation (text docs)
+            printDebugMessage opts $ "Documentation is: " ++ show docs
+            return $ Just $ OperationDocumentation docs
 
 generateOperationSourceCode :: OperationGenerator
 generateOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
@@ -378,8 +378,8 @@ generateOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
         Just source -> do
-            printDebugMessage opts $ "Source code is: " ++ source
-            return $ Just $ OperationSourceCode (text source)
+            printDebugMessage opts $ "Source code is: " ++ show source
+            return $ Just $ OperationSourceCode source
 
 generateOperationSignature :: OperationGenerator
 generateOperationSignature opts (CurryOperation pkg vsn m o) = do

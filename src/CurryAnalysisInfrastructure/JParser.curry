@@ -51,8 +51,8 @@ instance JParser VersionInformation where
 instance JParser ModuleInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "module"        -> ModuleName <$> getString fieldvalue
-        "documentation" -> (ModuleDocumentation . text) <$> getString fieldvalue
-        "sourceCode"    -> (ModuleSourceCode . text) <$> getString fieldvalue
+        "documentation" -> (ModuleDocumentation . read) <$> getString fieldvalue
+        "sourceCode"    -> (ModuleSourceCode . read) <$> getString fieldvalue
         "safe"          -> (ModuleSafe . read) <$> getString fieldvalue
         "exports"       -> ModuleExports <$> (join $ mapM getString <$> getArray fieldvalue)
         "typeclasses"   -> ModuleTypeclasses <$> (join $ mapM getString <$> getArray fieldvalue)
@@ -65,9 +65,9 @@ instance JParser ModuleInformation where
 instance JParser TypeInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "typeName"      -> TypeName <$> getString fieldvalue
-        "documentation" -> (TypeDocumentation . text) <$> getString fieldvalue
+        "documentation" -> (TypeDocumentation . read) <$> getString fieldvalue
         "constructors"  -> TypeConstructors <$> (join $ mapM getString <$> getArray fieldvalue)
-        "definition"    -> (TypeDefinition . text) <$> getString fieldvalue
+        "definition"    -> (TypeDefinition . read) <$> getString fieldvalue
         _               -> Nothing
 
 -- TYPECLASS
@@ -75,9 +75,9 @@ instance JParser TypeInformation where
 instance JParser TypeclassInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "typeclass"     -> TypeclassName <$> getString fieldvalue
-        "documentation" -> (TypeclassDocumentation . text) <$> getString fieldvalue
+        "documentation" -> (TypeclassDocumentation . read) <$> getString fieldvalue
         "methods"       -> TypeclassMethods <$> (read <$> getString fieldvalue)
-        "definition"    -> (TypeclassDefinition . text) <$> getString fieldvalue
+        "definition"    -> (TypeclassDefinition . read) <$> getString fieldvalue
         _               -> Nothing
 
 -- OPERATION
@@ -85,8 +85,8 @@ instance JParser TypeclassInformation where
 instance JParser OperationInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "operation"             -> OperationName <$> getString fieldvalue
-        "documentation"         -> (OperationDocumentation . text) <$> getString fieldvalue
-        "sourceCode"            -> (OperationSourceCode . text) <$> getString fieldvalue
+        "documentation"         -> (OperationDocumentation . read) <$> getString fieldvalue
+        "sourceCode"            -> (OperationSourceCode . read) <$> getString fieldvalue
         "signature"             -> OperationSignature <$> getString fieldvalue
         "infix"                 -> OperationInfix <$> (read <$> getString fieldvalue)
         "precedence"            -> OperationPrecedence <$> (read <$> getString fieldvalue)

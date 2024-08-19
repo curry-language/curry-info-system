@@ -37,8 +37,8 @@ instance JPretty VersionInformation where
 
 instance JPretty ModuleInformation where
     jpretty (ModuleName m)          = ("module", JString m)
-    jpretty (ModuleDocumentation d) = ("documentation", JString $ pPrint d)
-    jpretty (ModuleSourceCode d)    = ("sourceCode", JString $ pPrint d)
+    jpretty (ModuleDocumentation d) = ("documentation", JString $ show d)
+    jpretty (ModuleSourceCode d)    = ("sourceCode", JString $ show d)
     jpretty (ModuleSafe s)          = ("safe", JString $ show s)
     jpretty (ModuleExports es)      = ("exports", JArray (map JString es))
     jpretty (ModuleTypeclasses tcs) = ("typeclasses", JArray (map JString tcs))
@@ -47,20 +47,20 @@ instance JPretty ModuleInformation where
 
 instance JPretty TypeInformation where
     jpretty (TypeName n)            = ("typeName", JString n)
-    jpretty (TypeDocumentation d)   = ("documentation", JString $ pPrint d)
+    jpretty (TypeDocumentation d)   = ("documentation", JString $ show d)
     jpretty (TypeConstructors cs)   = ("constructors", JArray (map JString cs))
-    jpretty (TypeDefinition d)      = ("definition", JString $ pPrint d)
+    jpretty (TypeDefinition d)      = ("definition", JString $ show d)
 
 instance JPretty TypeclassInformation where
     jpretty (TypeclassName n)           = ("typeclass", JString n)
-    jpretty (TypeclassDocumentation d)  = ("documentation", JString $ pPrint d)
+    jpretty (TypeclassDocumentation d)  = ("documentation", JString $ show d)
     jpretty (TypeclassMethods signs)    = ("methods", JArray (map JString signs))
-    jpretty (TypeclassDefinition d)     = ("definition", JString $ pPrint d)
+    jpretty (TypeclassDefinition d)     = ("definition", JString $ show d)
 
 instance JPretty OperationInformation where
     jpretty (OperationName n)                   = ("operation", JString n)
-    jpretty (OperationDocumentation d)          = ("documentation", JString $ pPrint d)
-    jpretty (OperationSourceCode d)             = ("sourceCode", JString $ pPrint d)
+    jpretty (OperationDocumentation d)          = ("documentation", JString $ show d)
+    jpretty (OperationSourceCode d)             = ("sourceCode", JString $ show d)
     jpretty (OperationSignature sign)           = ("signature", JString sign)
     jpretty (OperationInfix i)                  = ("infix", JString $ show i)
     jpretty (OperationPrecedence p)             = ("precedence", JString $ show p)

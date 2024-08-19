@@ -137,8 +137,8 @@ isVersionDependencies x = case x of
 
 data ModuleInformation
     = ModuleName String
-    | ModuleDocumentation Doc
-    | ModuleSourceCode Doc
+    | ModuleDocumentation Reference
+    | ModuleSourceCode Reference
     | ModuleSafe Safe
     | ModuleExports [Export]
     | ModuleTypeclasses [Typeclass]
@@ -187,9 +187,9 @@ isModuleOperations x = case x of
 
 data TypeInformation
     = TypeName String
-    | TypeDocumentation Doc
+    | TypeDocumentation Reference
     | TypeConstructors [Constructor]
-    | TypeDefinition Doc
+    | TypeDefinition Reference
 
 isTypeName :: TypeInformation -> Bool
 isTypeName x = case x of
@@ -213,9 +213,9 @@ isTypeDefinition x = case x of
 
 data TypeclassInformation
     = TypeclassName String
-    | TypeclassDocumentation Doc
+    | TypeclassDocumentation Reference
     | TypeclassMethods [Signature]
-    | TypeclassDefinition Doc
+    | TypeclassDefinition Reference
 
 isTypeclassName :: TypeclassInformation -> Bool
 isTypeclassName x = case x of
@@ -239,8 +239,8 @@ isTypeclassDefinition x = case x of
 
 data OperationInformation
     = OperationName String
-    | OperationDocumentation Doc
-    | OperationSourceCode Doc
+    | OperationDocumentation Reference
+    | OperationSourceCode Reference
     | OperationSignature Signature
     | OperationInfix (Maybe Infix)
     | OperationPrecedence (Maybe Precedence)
@@ -345,6 +345,8 @@ type LowerBound = Version
 type UpperBound = Version
 
 type Dependency = (Package, LowerBound, Maybe UpperBound)
+
+type Reference = (String, Int, Int)
 
 -- Result Types
 
