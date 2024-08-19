@@ -152,6 +152,16 @@ generateOutput fields results =
 (<+>) :: EqInfo a => [a] -> [a] -> [a]
 info1 <+> info2 = nubBy sameInfo (info1 ++ info2)
 
+printResult :: Output -> IO ()
+printResult (OutputText txt) = do
+    putStrLn ""
+    putStrLn "Finished with OutputText"
+    putStrLn txt
+printResult (OutputError err) = do
+    putStrLn ""
+    putStrLn "Finished with OutputError"
+    putStrLn err
+
 main :: IO ()
 main = do
         args <- getArgs
@@ -169,7 +179,7 @@ main = do
         let obj = catMaybes [pkg, vsn, m, t, c, op]
 
         res <- getInfos opts obj args2
-        print res
+        printResult res
     where
         extractOpt :: String -> Maybe String -> Maybe (String, String)
         extractOpt tag = fmap (\x -> (tag, x))

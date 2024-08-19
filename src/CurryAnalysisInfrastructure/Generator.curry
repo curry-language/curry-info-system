@@ -275,9 +275,9 @@ generateTypeConstructors opts (CurryType pkg vsn m t) = do
             return Nothing
         Just interface -> do
             printDebugMessage opts "Reading constructors from interface..."
-            constructors <- getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors
+            let constructors = getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors
             printDebugMessage opts $ "Constructors found: " ++ show constructors
-            return $ Just $ TypeConstructors constructors
+            return $ TypeConstructors <$> constructors
 
 generateTypeDefinition :: TypeGenerator
 generateTypeDefinition opts x@(CurryType pkg vsn m t) = do
@@ -328,8 +328,8 @@ generateTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
             return Nothing
         Just interface -> do
             printDebugMessage opts "Reading methods from interface..."
-            methods <- getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods
-            return $ Just $ TypeclassMethods methods
+            let methods = getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods
+            return $ TypeclassMethods <$> methods
 
 generateTypeclassDefinition :: TypeclassGenerator
 generateTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
@@ -393,9 +393,9 @@ generateOperationSignature opts (CurryOperation pkg vsn m o) = do
             return Nothing
         Just interface -> do
             printDebugMessage opts "Reading signature from interface..."
-            signature <- getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
+            let signature = getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
             printDebugMessage opts $ "Signature is: " ++ show signature
-            return $ Just $ OperationSignature signature
+            return $ OperationSignature <$> signature
 
 generateOperationInfix :: OperationGenerator
 generateOperationInfix opts (CurryOperation pkg vsn m o) = do
@@ -409,9 +409,9 @@ generateOperationInfix opts (CurryOperation pkg vsn m o) = do
             return Nothing
         Just interface -> do
             printDebugMessage opts "Reading infix from interface..."
-            let infix = getInfixDecl o (getDeclarations interface) >>= getOperationInfix
-            printDebugMessage opts $ "Infix is: " ++ show infix
-            return $ Just $ OperationInfix infix
+            let inf = getInfixDecl o (getDeclarations interface) >>= getOperationInfix
+            printDebugMessage opts $ "Infix is: " ++ show inf
+            return $ Just $ OperationInfix inf
 
 generateOperationPrecedence :: OperationGenerator
 generateOperationPrecedence opts (CurryOperation pkg vsn m o) = do

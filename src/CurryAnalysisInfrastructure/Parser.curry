@@ -131,5 +131,3 @@ doubleQuote = char '\"'
 
 optional :: Parser a -> Parser (Maybe a)
 optional p = Just <$> p <!> yield Nothing
-
-test = parse parseDependency "\"base\"     : \">= 3.0.0, < 4.0.0\""
