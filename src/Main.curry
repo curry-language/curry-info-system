@@ -30,17 +30,31 @@ getInfos opts location requests = do
     case location of
         [("packages", pkg)]                                                         -> do
             printDebugMessage opts "Structure matches Package."
-            getInfos' opts packageConfiguration (CurryPackage pkg) requests
+            result <- checkPackageExists pkg
+            case result of
+                False -> do
+                    printDebugMessage opts "Package does not exist."
+                    return $ OutputError $ "Package '" ++ pkg ++ "' does not exist."
+                True -> do
+                    printDebugMessage opts "Package exists."
+                    getInfos' opts packageConfiguration (CurryPackage pkg) requests
         [("packages", pkg), ("versions", vsn)]                                      -> do
             printDebugMessage opts "Structure matches Version."
-            getInfos' opts versionConfiguration (CurryVersion pkg vsn) requests
+            result <- checkVersionExists pkg vsn
+            case result of
+                False -> do
+                    printDebugMessage opts "Version does not exist."
+                    return $ OutputError $ "Version '" ++ vsn ++ "' of package '" ++ pkg ++ "' does not exist."
+                True -> do
+                    printDebugMessage opts "Version exists."
+                    getInfos' opts versionConfiguration (CurryVersion pkg vsn) requests
         [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> do
             printDebugMessage opts "Structure matches Module."
             result <- checkModuleExists pkg vsn m
             case result of
                 False -> do
                     printDebugMessage opts "Module does not exist or is not exported."
-                    return $ OutputError $ "Module " ++ m ++ " is not exported in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                    return $ OutputError $ "Module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Module exists."
                     getInfos' opts moduleConfiguration (CurryModule pkg vsn m) requests
@@ -50,7 +64,7 @@ getInfos opts location requests = do
             case result of
                 False -> do
                     printDebugMessage opts "Type does not exist or is not exported."
-                    return $ OutputError $ "Type " ++ t ++ " is not exported in module " ++ m ++ " in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                    return $ OutputError $ "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Type exists."
                     getInfos' opts typeConfiguration (CurryType pkg vsn m t) requests
@@ -60,7 +74,7 @@ getInfos opts location requests = do
             case result of
                 False -> do
                     printDebugMessage opts "Typeclass does not exist or is not exported."
-                    return $ OutputError $ "Typeclass " ++ c ++ " is not exported in module " ++ m ++ " in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                    return $ OutputError $ "Typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Typeclass exists."
                     getInfos' opts typeclassConfiguration (CurryTypeclass pkg vsn m c) requests
@@ -70,7 +84,7 @@ getInfos opts location requests = do
             case result of
                 False -> do
                     printDebugMessage opts "Operation does not exist or is not exported."
-                    return $ OutputError $ "Operation " ++ o ++ " is not exported in module " ++ m ++ " in version " ++ vsn ++ " of package " ++ pkg ++ "."
+                    return $ OutputError $ "Operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Operation exists."
                     getInfos' opts operationConfiguration (CurryOperation pkg vsn m o) requests
@@ -98,6 +112,16 @@ getInfos opts location requests = do
                     printDebugMessage opts "Creating output..."
                     return $ generateOutput requests' results
         
+        checkPackageExists :: Package -> IO Bool
+        checkPackageExists pkg = do
+            putStrLn "NOT YET IMPLEMENTED: checkPackageExists"
+            return True
+
+        checkVersionExists :: Package -> Version -> IO Bool
+        checkVersionExists pkg vsn = do
+            putStrLn "NOT YET IMPLEMENTED: checkVersionExists"
+            return True
+
         checkModuleExists :: Package -> Version -> Module -> IO Bool
         checkModuleExists pkg vsn m = do
             putStrLn "NOT YET IMPLEMENTED: checkModuleExists"
