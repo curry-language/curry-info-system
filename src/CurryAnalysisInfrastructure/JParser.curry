@@ -14,7 +14,6 @@ import Control.Monad (join)
 --- This function takes a json value and returns the parsed list of fields, if every field is parsed successfully.
 --- If any field fails to be parsed, Nothing is returned.
 jparse :: JParser a => JValue -> Maybe [a]
---jparse jv = join $ mapM jparseField <$> getFields jv
 jparse jv = do
     fields <- getFields jv
     let parsedResults = map jparseField fields
@@ -139,6 +138,8 @@ getFields jv = case jv of
     JObject x -> Just x
     _ -> Nothing
 
+-- This operation returns the dependency entry from a json object.
+-- If the given json value is not an object, Nothing is returned.
 getDependency :: JValue -> Maybe Dependency
 getDependency jv = case jv of
     JObject [("package", JString pkg), ("lowerBound", JString lb), ("upperBound", JString ub)] -> Just (pkg, lb, read ub)

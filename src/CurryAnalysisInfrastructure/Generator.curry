@@ -569,8 +569,6 @@ getExportedModules jvalue = case jvalue of
             _ -> Nothing
     _ -> Nothing
 
--- dependencies is not an array but an object
--- the fieldnames are the packages and the fieldvalues are the bounds
 getDependencies :: JValue -> Maybe [Dependency]
 getDependencies jv = case jv of
     JObject fields -> do
@@ -578,16 +576,13 @@ getDependencies jv = case jv of
         case value of
             JObject fields -> do
                 mapM convertDependency fields
-            --JArray arr -> do
-            --    deps <- mapM getString arr
-            --    mapM (parse parseDependency) deps
             _ -> Nothing
     _ -> Nothing
 
 convertDependency :: JField -> Maybe Dependency
 convertDependency (pkg, jv) = do
     bounds <- getString jv
-    (lb, ub) <- parse parseBounds bounds
+    (lb, ub) <- parseBounds bounds
     return (pkg, lb, ub)
 
 readPackageModules :: Options -> Package -> Version -> IO [Module]

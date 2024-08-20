@@ -11,12 +11,18 @@ import System.Directory (doesFileExist)
 import Data.List (isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex)
 import Data.Maybe (fromMaybe)
 
-findDefinition :: (String -> Bool) -> String -> Maybe Int
+type Checker = String -> Bool
+
+-- This operation looks for the line in which the given definition starts.
+findDefinition :: Checker -> String -> Maybe Int
 findDefinition check content = findIndex check (lines content)
 
+-- This operation determines whether a line belongs to a definition.
 belongs :: String -> Bool
 belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
 
+-- This operation reads the source file of the given module and returns the path to the source file
+-- and the read content of that file.
 readSourceFile :: Options -> Package -> Version -> Module -> IO (Maybe (String, String))
 readSourceFile opts pkg vsn m = do
     printLine opts
@@ -40,7 +46,8 @@ readSourceFile opts pkg vsn m = do
                     return (Just (path, content))
                     --return (Just content)
 
-takeSourceCode :: Options -> (String -> Bool) -> (String -> Bool) -> String -> String -> IO (Maybe Reference)
+-- This operation looks for the part of the source code that corresponds to the given checker and returns a reference to that part.
+takeSourceCode :: Options -> Checker -> (String -> Bool) -> String -> String -> IO (Maybe Reference)
 takeSourceCode opts check belong path content = do
     printLine opts
     printDebugMessage opts "Taking source code..."
@@ -57,10 +64,9 @@ takeSourceCode opts check belong path content = do
                 (x:xs) -> do
                     let source = x : takeWhile belong xs
                     return (Just (path, i, i + length source))
-                    --let source = unlines (x : takeWhile belong xs)
-                    --return (Just source) 
 
-takeDocumentation :: Options -> (String -> Bool) -> String -> String -> IO (Maybe Reference)
+-- This operation looks for the documentation that corresponds to the given checker and returns a reference to that part.
+takeDocumentation :: Options -> Checker -> String -> String -> IO (Maybe Reference)
 takeDocumentation opts check path content = do
     printLine opts
     printDebugMessage opts "Taking documentation..."
@@ -76,7 +82,6 @@ takeDocumentation opts check path content = do
                     return Nothing
                 gs -> do
                     return (Just (path, i - length gs, i))
-                    --return (Just (unlines gs))
 
 class SourceCode a where
     readSourceCode :: Options -> a -> IO (Maybe Reference)
@@ -92,8 +97,6 @@ instance SourceCode CurryModule where
                 let ls = lines content
                 let (tmp, source) = span (isPrefixOf "--") ls
                 return (Just (path, length tmp, length ls))
-                --let source = unlines (dropWhile (isPrefixOf "--") (lines content))
-                --return (Just source)
     
     readDocumentation opts (CurryModule pkg vsn m) = do
         mresult <- readSourceFile opts pkg vsn m
@@ -104,10 +107,9 @@ instance SourceCode CurryModule where
                 let ls = lines content
                 let (doc, _) = span (isPrefixOf "--") ls
                 return (Just (path, 0, length doc))
-                --let doc = unlines (takeWhile (isPrefixOf "--") (lines content))
-                --return (Just doc)
 
-checkType :: Type -> String -> Bool
+-- This operation returns a checker that look for the definition of the given type.
+checkType :: Type -> Checker
 checkType t l = (isPrefixOf ("data " ++ t) l || isPrefixOf ("type " ++ t) l || isPrefixOf ("newtype " ++ t) l)
 
 instance SourceCode CurryType where
@@ -127,7 +129,8 @@ instance SourceCode CurryType where
             Just (path, content) -> do
                 takeDocumentation opts (checkType t) path content
 
-checkTypeclass :: Typeclass -> String -> Bool
+-- This operation returns a checker that look for the definition of the given typeclass.
+checkTypeclass :: Typeclass -> Checker
 checkTypeclass c l = let
         ls = words l
         classIndex = elemIndex "class" ls
@@ -157,7 +160,8 @@ instance SourceCode CurryTypeclass where
             Just (path, content) -> do
                 takeDocumentation opts (checkTypeclass c) path content
 
-checkOperation :: Operation -> String -> Bool
+-- This operation returns a checker that look for the definition of the given operation.
+checkOperation :: Operation -> Checker
 checkOperation o l = let
         ls = words l
         operationIndex = elemIndex o ls
@@ -189,25 +193,3 @@ instance SourceCode CurryOperation where
                 return Nothing
             Just (path, content) -> do
                 takeDocumentation opts (checkOperation o) path content
-
-{-
-test :: IO ()
-test = do
-    let input = CurryOperation "base" "3.2.0" "Prelude" "liftM2"
-    mdoc <- readDocumentation testOptions input
-    msource <- readSourceCode testOptions input
-    case mdoc of
-        Nothing -> putStrLn "DOC FAILED"
-        Just doc -> do
-            putStrLn "-----------------------------------------"
-            putStrLn "DOC"
-            putStrLn doc
-            putStrLn "-----------------------------------------"
-    case msource of
-        Nothing -> putStrLn "SOURCE FAILED"
-        Just source -> do
-            putStrLn "-----------------------------------------"
-            putStrLn "SOURCE"
-            putStrLn source
-            putStrLn "-----------------------------------------"
--}
