@@ -88,7 +88,7 @@ options =
         checkVerb n opts = if n >= 0 && n <= 4
                                 then opts { optVerb = n }
                                 else error "Illegal verbosity level (try '-h' for help)"
-        checkForce n opts = if n >= 0 && n <= 1
+        checkForce n opts = if n >= 0 && n <= 2
                                 then opts { optForce = n }
                                 else error "Illegal force level (try '-h' for help)"
 

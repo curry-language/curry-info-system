@@ -19,7 +19,7 @@ instance EqInfo VersionInformation where
         (VersionDocumentation _ , VersionDocumentation _)   -> True
         (VersionCategories _    , VersionCategories _)      -> True
         (VersionModules _       , VersionModules _)         -> True
-        (VersionDependencies _  , VersionDependencies_)     -> True
+        (VersionDependencies _  , VersionDependencies _)     -> True
         _                                                   -> False
 
 instance EqInfo ModuleInformation where
