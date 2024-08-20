@@ -8,7 +8,7 @@ import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar
 import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
 
 -- This operation parses the bounds of a package dependency.
-parseBounds :: Parser (LowerBound, Maybe UpperBound)
+parseBounds :: String -> Maybe (LowerBound, Maybe UpperBound)
 parseBounds = parse (
         (,) <$>
         (ge *> ws *> versionNumber) <*>
