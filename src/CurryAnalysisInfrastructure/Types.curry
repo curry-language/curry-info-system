@@ -4,6 +4,34 @@ import Text.Pretty (Doc)
 
 import JSON.Data (JValue)
 
+-- Extractor Type
+
+type Extractor a = [a] -> Maybe a
+
+-- Generator Type
+
+type Generator a b = Options -> a -> IO (Maybe b)
+
+-- Configuration Type
+
+type Description = String
+type Configuration a b = [(String, (Description, Extractor b, Generator a b))]
+
+-- Options Type
+
+data Options = Options
+    { optVerb       :: Int          -- The verbosity
+    , optHelp       :: Bool         -- Usage info
+    , optForce      :: Int          -- Only Extract - Generate if necessary - Generate always
+    , optPackage    :: Maybe String -- The requested package
+    , optVersion    :: Maybe String -- The requested version
+    , optModule     :: Maybe String -- The requested module
+    , optType       :: Maybe String -- The requested type
+    , optTypeclass  :: Maybe String -- The requested type class
+    , optOperation  :: Maybe String -- The requested operation
+    }
+    deriving Show 
+
 class EqInfo a where
     sameInfo :: a -> a -> Bool
 

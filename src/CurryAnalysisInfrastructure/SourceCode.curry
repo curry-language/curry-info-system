@@ -2,7 +2,6 @@ module CurryAnalysisInfrastructure.SourceCode where
 
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Checkout (checkoutIfMissing)
-import CurryAnalysisInfrastructure.Options (Options, fullVerbosity, testOptions)
 import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import System.CurryPath (modNameToPath)

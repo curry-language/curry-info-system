@@ -1,8 +1,7 @@
 module CurryAnalysisInfrastructure.Analysis where
 
-import CurryAnalysisInfrastructure.Commands
-import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Types
+import CurryAnalysisInfrastructure.Commands
 import CurryAnalysisInfrastructure.Parser
     ( parseSafe, parseDeterministic, parseDemandness, parseIndeterministic, parseSolutionCompleteness, parseTermination
     , parseTotallyDefined

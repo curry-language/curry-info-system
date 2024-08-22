@@ -4,8 +4,6 @@ import CurryAnalysisInfrastructure.Types
 
 import Data.Maybe (listToMaybe)
 
-type Extractor a = [a] -> Maybe a
-
 -- PACKAGE
 
 type PackageExtractor = Extractor PackageInformation

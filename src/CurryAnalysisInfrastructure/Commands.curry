@@ -1,7 +1,6 @@
 module CurryAnalysisInfrastructure.Commands where
 
 import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import System.IOExts (evalCmd)

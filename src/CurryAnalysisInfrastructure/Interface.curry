@@ -3,7 +3,6 @@ module CurryAnalysisInfrastructure.Interface where
 import CurryAnalysisInfrastructure.Checkout (getCheckoutPath, checkoutIfMissing)
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
-import CurryAnalysisInfrastructure.Options (Options, fullVerbosity)
 import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)

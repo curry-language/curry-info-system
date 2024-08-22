@@ -3,7 +3,6 @@ module CurryAnalysisInfrastructure.Checkout where
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.Paths (root)
 import CurryAnalysisInfrastructure.Commands (runCmd, cmdCheckout)
-import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)

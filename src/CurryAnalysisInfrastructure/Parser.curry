@@ -7,6 +7,8 @@ import Data.List (init, find, intercalate, intersperse)
 import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar, char, check, (<$>), (<*>), many, (<*), (<!>))
 import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
 
+-- MORE CASES FOR DEPENDENCIES
+-- EXAMPLE FOR FAILING: package addtypes
 -- This operation parses the bounds of a package dependency.
 parseBounds :: String -> Maybe (LowerBound, Maybe UpperBound)
 parseBounds = parse (

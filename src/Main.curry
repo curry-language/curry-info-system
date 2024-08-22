@@ -151,7 +151,7 @@ extractOrGenerate opts conf input infos request = do
         Nothing                     -> do
             printDebugMessage opts "Entry not found in configuration."
             return Nothing
-        Just (extractor, generator) -> do
+        Just (_, extractor, generator) -> do
             printDebugMessage opts "Extractor and Generator found."
             printDebugMessage opts "Looking at force option..."
             case optForce opts of

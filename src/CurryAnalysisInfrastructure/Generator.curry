@@ -13,7 +13,6 @@ import CurryAnalysisInfrastructure.Interface
     , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
-import CurryAnalysisInfrastructure.Options
 import CurryAnalysisInfrastructure.Analysis
     ( analyseSafeModule
     , analyseDemandness
@@ -41,8 +40,6 @@ import Data.Maybe (catMaybes)
 import Control.Monad (when)
 
 import DetParse (parse)
-
-type Generator a b = Options -> a -> IO (Maybe b)
 
 -- PACKAGE
 
@@ -201,7 +198,6 @@ generateModuleTypeclasses opts (CurryModule pkg vsn m) = do
             let hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
             let exportedClasses = allClasses \\ hiddenClasses
             printDebugMessage opts $ "Typeclasses found: " ++ show exportedClasses
-            when (fullVerbosity opts) (putStrLn $ "Done.")
             return $ Just $ ModuleTypeclasses exportedClasses
 
 generateModuleTypes :: ModuleGenerator
@@ -220,7 +216,6 @@ generateModuleTypes opts (CurryModule pkg vsn m) = do
             let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes $ getDeclarations interface
             let exportedTypes = allTypes \\ hiddenTypes
             printDebugMessage opts $ "Types found: " ++ show exportedTypes
-            when (fullVerbosity opts) (putStrLn $ "Done.")
             return $ Just $ ModuleTypes exportedTypes
 
 generateModuleOperations :: ModuleGenerator
@@ -584,6 +579,8 @@ convertDependency (pkg, jv) = do
     bounds <- getString jv
     (lb, ub) <- parseBounds bounds
     return (pkg, lb, ub)
+
+-- REMOVE Options FROM GENERATOR
 
 readPackageModules :: Options -> Package -> Version -> IO [Module]
 readPackageModules opts pkg vsn = do

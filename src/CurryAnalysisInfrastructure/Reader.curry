@@ -3,7 +3,6 @@ module CurryAnalysisInfrastructure.Reader where
 import CurryAnalysisInfrastructure.Types
 import CurryAnalysisInfrastructure.JParser (JParser, jparse)
 import CurryAnalysisInfrastructure.Paths (Path, getJSONPath)
-import CurryAnalysisInfrastructure.Options 
 import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import JSON.Parser (parseJSON)

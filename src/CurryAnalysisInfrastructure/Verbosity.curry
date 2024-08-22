@@ -1,8 +1,13 @@
 module CurryAnalysisInfrastructure.Verbosity where
 
-import CurryAnalysisInfrastructure.Options
+import CurryAnalysisInfrastructure.Types
 
 import Control.Monad (when)
+
+-- SUPPOSED TO BE REPLACED
+-- Returns true, if the verbosity option has the highest possible value.
+fullVerbosity :: Options -> Bool
+fullVerbosity opts = optVerb opts >= 4
 
 -- This action prints a line if the verbosity level in the options is at 4.
 printLine :: Options -> IO ()

@@ -1,5 +1,8 @@
 module CurryAnalysisInfrastructure.Options where
 
+import CurryAnalysisInfrastructure.Types
+import CurryAnalysisInfrastructure.Configuration
+
 import System.Console.GetOpt
 import System.Process (exitWith)
 
@@ -7,22 +10,12 @@ import Numeric (readNat)
 
 import Control.Monad (when, unless)
 
-data Options = Options
-    { optVerb       :: Int          -- The verbosity
-    , optHelp       :: Bool         -- Usage info
-    , optForce      :: Int          -- Only Extract - Generate if necessary - Generate always
-    , optPackage    :: Maybe String -- The requested package
-    , optVersion    :: Maybe String -- The requested version
-    , optModule     :: Maybe String -- The requested module
-    , optType       :: Maybe String -- The requested type
-    , optTypeclass  :: Maybe String -- The requested type class
-    , optOperation  :: Maybe String -- The requested operation
-    }
-    deriving Show 
+printRequests :: String -> Configuration a b -> String
+printRequests s conf = s ++ "\n\n" ++ unlines (map (\(req, (desc, _, _)) -> req ++ ":" ++ desc) conf) ++ "\n\n"
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 0 Nothing Nothing Nothing Nothing Nothing Nothing
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing
 
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
@@ -46,7 +39,15 @@ processOptions banner argv = do
 
 -- The usage text of the program.
 usageText :: String
-usageText = usageInfo ("Usage: tool [options] <requests>\n") options
+usageText =
+    usageInfo ("Usage: tool [options] <requests>\n") options ++
+    "\nRequests:\n\n" ++
+    printRequests "Package" packageConfiguration ++
+    printRequests "Version" versionConfiguration ++
+    printRequests "Module" moduleConfiguration ++
+    printRequests "Type" typeConfiguration ++
+    printRequests "Typeclass" typeclassConfiguration ++
+    printRequests "Operation" operationConfiguration
 
 -- The options description.
 options :: [OptDescr (Options -> Options)]
@@ -91,8 +92,3 @@ options =
         checkForce n opts = if n >= 0 && n <= 2
                                 then opts { optForce = n }
                                 else error "Illegal force level (try '-h' for help)"
-
--- SUPPOSED TO BE REPLACED
--- Returns true, if the verbosity option has the highest possible value.
-fullVerbosity :: Options -> Bool
-fullVerbosity opts = optVerb opts >= 4
