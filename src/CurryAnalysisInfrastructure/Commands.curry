@@ -88,11 +88,11 @@ cmdCurryLoad path m =
 cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
 cmdCASS path analysis m =
     let
-        cmd = "cypm exec cass -f json " ++ analysis ++ " " ++ m
+        cmd = "cypm exec cass -f xml " ++ analysis ++ " " ++ m
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
-            (exitCode, output, err) <- evalCmd "cypm" ["exec", "cass", "-f", "json", analysis, m] ""
+            (exitCode, output, err) <- evalCmd "cypm" ["exec", "cass", "-f", "xml", analysis, m] ""
             setCurrentDirectory current
             return (exitCode, output, err)
     in (cmd, action)

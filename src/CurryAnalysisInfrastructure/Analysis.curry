@@ -13,8 +13,11 @@ import JSON.Parser (parseJSON)
 
 import Data.List (init, find, intercalate)
 
+import XML
+
 -- Analysis
 
+{-
 -- This operation looksup a field with a specific name in a javascript object. If not such field can be found or
 -- the javascript value is not a javascript object, then it will return Nothing.
 findField :: [JValue] -> String -> Maybe String
@@ -38,11 +41,7 @@ analyseWithCASS opts path analysis m field parser = do
     (_, output, _) <- runCmd opts (cmdCASS path analysis m)
     printDebugMessage opts "Analysis finished."
     printDebugMessage opts "Parsing result..."
-    --case parseJSON (init output) of
-    --writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.json" output
     let tmp = parseJSON (init output)
-    --writeFile "/home/dennis/Studium/SS24/Masterarbeit/2024-thomsen/tmp/output.txt" (show tmp)
-    --print tmp
     case tmp of
         Just (JArray js) -> do
             printDebugMessage opts "Looking for result field..."
@@ -60,6 +59,60 @@ analyseWithCASS opts path analysis m field parser = do
             printDebugMessage opts output
             printDebugMessage opts "Analysis failed."
             return Nothing
+-}
+
+-- This action initiates a call to CASS to compute the given analysis for the given module.
+-- The parser argument is for parsing the result of the analysis.
+analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe a)
+analyseWithCASS opts path analysis m field parser = do
+        printLine opts
+        printDebugMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
+        (_, output, _) <- runCmd opts (cmdCASS path analysis m)
+        printDebugMessage opts "Analysis finished."
+        printDebugMessage opts "Parsing result..."
+        let tmp = parseXmlString output
+        case tmp of
+            [e] -> do
+                printDebugMessage opts "Looking for results..."
+                case getXmlResults e of
+                    Nothing -> do
+                        printDebugMessage opts "Could not find analysis results."
+                        printDebugMessage opts "Analysis failed."
+                        return Nothing
+                    Just es -> do
+                        printDebugMessage opts "Results field found. Looking for requested result..."
+                        case getXmlResult field es of
+                            Nothing -> do
+                                printDebugMessage opts $ "Could not find entry with name '" ++ field ++ "'."
+                                printDebugMessage opts "Analysis failed."
+                                return Nothing
+                            Just result -> do
+                                printDebugMessage opts "Analysis succeeded."
+                                printDebugMessage opts $ "Result found: " ++ show result
+                                return $ parser result
+            _ -> do
+                printDebugMessage opts "Could not parse output. Expected XML."
+                printDebugMessage opts "Output:"
+                printDebugMessage opts output
+                printDebugMessage opts "Analysis failed."
+                return Nothing
+    where
+        getXmlResults :: XmlExp -> Maybe [XmlExp]
+        getXmlResults e = if tagOf e == "results" then Just (elemsOf e) else Nothing
+
+        getXmlResult :: String -> [XmlExp] -> Maybe String
+        getXmlResult field es = do
+                results <- mapM elemToResult es
+                lookup field results
+
+        elemToResult :: XmlExp -> Maybe (String, String)
+        elemToResult e = do
+            case elemsOf e of
+                [_, n, r] -> do
+                    let name = textOf [n]
+                    let result = textOf [r]
+                    return (name, result)
+                _ -> Nothing
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis for the given module in
 -- the given path.
