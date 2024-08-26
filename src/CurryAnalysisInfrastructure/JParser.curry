@@ -41,8 +41,12 @@ instance JParser VersionInformation where
         "modules"       -> VersionModules <$> (join $ mapM getString <$> getArray fieldvalue)
         "dependencies"  -> VersionDependencies <$> do
             arr <- getArray fieldvalue
-            deps <- mapM getDependency arr
-            return deps
+            deps <- mapM getString arr
+            return (map read deps)
+        --"dependencies"  -> VersionDependencies <$> do
+        --    arr <- getArray fieldvalue
+        --    deps <- mapM getDependency arr
+        --    return deps
         _               -> Nothing
 
 -- MODULE
@@ -138,9 +142,11 @@ getFields jv = case jv of
     JObject x -> Just x
     _ -> Nothing
 
+{-
 -- This operation returns the dependency entry from a json object.
 -- If the given json value is not an object, Nothing is returned.
 getDependency :: JValue -> Maybe Dependency
 getDependency jv = case jv of
     JObject [("package", JString pkg), ("lowerBound", JString lb), ("upperBound", JString ub)] -> Just (pkg, lb, read ub)
     _ -> Nothing
+-}

@@ -7,15 +7,33 @@ import Data.List (init, find, intercalate, intersperse)
 import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar, char, check, (<$>), (<*>), many, (<*), (<!>))
 import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
 
--- MORE CASES FOR DEPENDENCIES
--- EXAMPLE FOR FAILING: package addtypes
--- This operation parses the bounds of a package dependency.
-parseBounds :: String -> Maybe (LowerBound, Maybe UpperBound)
-parseBounds = parse (
-        (,) <$>
-        (ge *> ws *> versionNumber) <*>
-        optional (comma *> ws *> lt *> ws *> versionNumber)
-    )
+parseVersionConstraints :: String -> Maybe Disjunction
+parseVersionConstraints = parse disjunction
+
+disjunction :: Parser Disjunction
+disjunction = parseList (word " || ") conjunction
+
+conjunction :: Parser Conjunction
+conjunction = parseList (word ", ") versionConstraint
+
+versionConstraint :: Parser VersionConstraint
+versionConstraint = comparator <*> (ws *> version)
+
+comparator :: Parser (Version -> VersionConstraint)
+comparator =
+    (word "<" *> yield VLt) <|>
+    (word "<=" *> yield VLte) <|>
+    (word ">" *> yield VGt) <|>
+    (word ">=" *> yield VGte) <|>
+    (word "=" *> yield VExact) <|>
+    (word "~" *> yield VMinCompatible) <|>
+    (word "^" *> yield VMajCompatible)
+
+version :: Parser Version
+version = (++) <$> versionNumber <*> (prerelease <!> yield [])
+
+prerelease :: Parser String
+prerelease = (:) <$> (char '-' *> yield '-') <*> (some (check (\c -> c == '-' || isAlphaNum c) anyChar))
 
 -- This operation parses the result of the 'UnsafeModule' analysis of CASS.
 parseSafe :: String -> Maybe Safe

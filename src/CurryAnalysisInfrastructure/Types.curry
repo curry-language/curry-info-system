@@ -368,12 +368,6 @@ type Package = String
 
 type Method = String
 
-type LowerBound = Version
-
-type UpperBound = Version
-
-type Dependency = (Package, LowerBound, Maybe UpperBound)
-
 type Reference = (String, Int, Int)
 
 -- Result Types
@@ -402,3 +396,22 @@ type TotallyDefined = Bool
 -- JSON
 
 type JField = (String, JValue)
+
+-- Dependency
+
+data VersionConstraint
+        = VExact Version
+        | VGt Version
+        | VLt Version
+        | VGte Version
+        | VLte Version
+        | VMinCompatible Version
+        | VMajCompatible Version
+    deriving (Eq, Show, Read)
+
+type Conjunction = [VersionConstraint]
+
+type Disjunction = [Conjunction]
+
+data Dependency = Dependency Package Disjunction
+    deriving (Eq, Show, Read)

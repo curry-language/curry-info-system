@@ -23,7 +23,7 @@ import CurryAnalysisInfrastructure.Analysis
     , analyseTotallyDefined
     )
 import CurryAnalysisInfrastructure.SourceCode (readSourceCode, readDocumentation)
-import CurryAnalysisInfrastructure.Parser (parseBounds)
+import CurryAnalysisInfrastructure.Parser (parseVersionConstraints)
 import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import Text.Pretty (text)
@@ -574,13 +574,19 @@ getDependencies jv = case jv of
             _ -> Nothing
     _ -> Nothing
 
+{-
 convertDependency :: JField -> Maybe Dependency
 convertDependency (pkg, jv) = do
     bounds <- getString jv
     (lb, ub) <- parseBounds bounds
     return (pkg, lb, ub)
+-}
 
--- REMOVE Options FROM GENERATOR
+convertDependency :: JField -> Maybe Dependency
+convertDependency (pkg, jv) = do
+    vcs <- getString jv
+    disj <- parseVersionConstraints vcs
+    return (Dependency pkg disj)
 
 readPackageModules :: Options -> Package -> Version -> IO [Module]
 readPackageModules opts pkg vsn = do

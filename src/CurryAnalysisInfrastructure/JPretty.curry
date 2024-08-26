@@ -31,9 +31,9 @@ instance JPretty VersionInformation where
     jpretty (VersionDocumentation d)        = ("documentation", JString $ pPrint d)
     jpretty (VersionCategories cats)        = ("categories", JArray (map JString cats))
     jpretty (VersionModules mods)           = ("modules", JArray (map JString mods))
-    jpretty (VersionDependencies deps)      = ("dependencies", JArray (map f deps))
-        where
-        f (pkg, lb, ub) = JObject [("package", JString pkg), ("lowerBound", JString (show lb)), ("upperBound", JString (show ub))]
+    jpretty (VersionDependencies deps)      = ("dependencies", JArray (map (JString . show) deps))
+        --where
+        --f (pkg, lb, ub) = JObject [("package", JString pkg), ("lowerBound", JString (show lb)), ("upperBound", JString (show ub))]
 
 instance JPretty ModuleInformation where
     jpretty (ModuleName m)          = ("module", JString m)
