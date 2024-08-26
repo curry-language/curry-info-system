@@ -2,133 +2,136 @@ module CurryAnalysisInfrastructure.Extractor where
 
 import CurryAnalysisInfrastructure.Types
 
-import Data.Maybe (listToMaybe)
+import Data.List (find)
+
+defaultExtractor :: (a -> Bool) -> [a] -> Maybe a
+defaultExtractor p = find p
 
 -- PACKAGE
 
 type PackageExtractor = Extractor PackageInformation
 
 extractPackageName :: PackageExtractor
-extractPackageName infos = listToMaybe $ filter isPackageName infos
+extractPackageName = defaultExtractor isPackageName
 
 extractPackageVersions :: PackageExtractor
-extractPackageVersions infos = listToMaybe $ filter isPackageVersions infos
+extractPackageVersions = defaultExtractor isPackageVersions
 
 -- VERSION
 
 type VersionExtractor = Extractor VersionInformation
 
 extractVersionVersion :: VersionExtractor
-extractVersionVersion infos = listToMaybe $ filter isVersionVersion infos
+extractVersionVersion = defaultExtractor isVersionVersion
 
 extractVersionDocumentation :: VersionExtractor
-extractVersionDocumentation infos = listToMaybe $ filter isVersionDocumentation infos
+extractVersionDocumentation = defaultExtractor isVersionDocumentation
 
 extractVersionCategories :: VersionExtractor
-extractVersionCategories infos = listToMaybe $ filter isVersionCategories infos
+extractVersionCategories = defaultExtractor isVersionCategories
 
 extractVersionModules :: VersionExtractor
-extractVersionModules infos = listToMaybe $ filter isVersionModules infos
+extractVersionModules = defaultExtractor isVersionModules
 
 extractVersionDependencies :: VersionExtractor
-extractVersionDependencies infos = listToMaybe $ filter isVersionDependencies infos
+extractVersionDependencies = defaultExtractor isVersionDependencies
 
 -- MODULE
 
 type ModuleExtractor = Extractor ModuleInformation
 
 extractModuleName :: ModuleExtractor
-extractModuleName infos = listToMaybe $ filter isModuleName infos
+extractModuleName = defaultExtractor isModuleName
 
 extractModuleDocumentation :: ModuleExtractor
-extractModuleDocumentation infos = listToMaybe $ filter isModuleDocumentation infos
+extractModuleDocumentation = defaultExtractor isModuleDocumentation
 
 extractModuleSourceCode :: ModuleExtractor
-extractModuleSourceCode infos = listToMaybe $ filter isModuleSourceCode infos
+extractModuleSourceCode = defaultExtractor isModuleSourceCode
 
 extractModuleSafe :: ModuleExtractor
-extractModuleSafe infos = listToMaybe $ filter isModuleSafe infos
+extractModuleSafe = defaultExtractor isModuleSafe
 
 extractModuleExports :: ModuleExtractor
-extractModuleExports infos = listToMaybe $ filter isModuleExports infos
+extractModuleExports = defaultExtractor isModuleExports
 
 extractModuleTypeclasses :: ModuleExtractor
-extractModuleTypeclasses infos = listToMaybe $ filter isModuleTypeclasses infos
+extractModuleTypeclasses = defaultExtractor isModuleTypeclasses
 
 extractModuleTypes :: ModuleExtractor
-extractModuleTypes infos = listToMaybe $ filter isModuleTypes infos
+extractModuleTypes = defaultExtractor isModuleTypes
 
 extractModuleOperations :: ModuleExtractor
-extractModuleOperations infos = listToMaybe $ filter isModuleOperations infos
+extractModuleOperations = defaultExtractor isModuleOperations
 
 -- TYPE
 
 type TypeExtractor = Extractor TypeInformation
 
 extractTypeName :: TypeExtractor
-extractTypeName = listToMaybe . (filter isTypeName)
+extractTypeName = defaultExtractor isTypeName
 
 extractTypeDocumentation :: TypeExtractor
-extractTypeDocumentation = listToMaybe . (filter isTypeDocumentation)
+extractTypeDocumentation = defaultExtractor isTypeDocumentation
 
 extractTypeConstructors :: TypeExtractor
-extractTypeConstructors = listToMaybe . (filter isTypeConstructors)
+extractTypeConstructors = defaultExtractor isTypeConstructors
 
 extractTypeDefinition :: TypeExtractor
-extractTypeDefinition = listToMaybe . (filter isTypeDefinition)
+extractTypeDefinition = defaultExtractor isTypeDefinition
 
 -- TYPECLASS
 
 type TypeclassExtractor = Extractor TypeclassInformation
 
 extractTypeclassName :: TypeclassExtractor
-extractTypeclassName = listToMaybe . (filter isTypeclassName)
+extractTypeclassName = defaultExtractor isTypeclassName
 
 extractTypeclassDocumentation :: TypeclassExtractor
-extractTypeclassDocumentation = listToMaybe . (filter isTypeclassDocumentation)
+extractTypeclassDocumentation = defaultExtractor isTypeclassDocumentation
 
 extractTypeclassMethods :: TypeclassExtractor
-extractTypeclassMethods = listToMaybe . (filter isTypeclassMethods)
+extractTypeclassMethods = defaultExtractor isTypeclassMethods
 
 extractTypeclassDefinition :: TypeclassExtractor
-extractTypeclassDefinition = listToMaybe . (filter isTypeclassDefinition)
+extractTypeclassDefinition = defaultExtractor isTypeclassDefinition
 
 -- OPERATION
 
 type OperationExtractor = Extractor OperationInformation
 
 extractOperationName :: OperationExtractor
-extractOperationName = listToMaybe . (filter isOperationName)
+extractOperationName = defaultExtractor isOperationName
 
 extractOperationDocumentation :: OperationExtractor
-extractOperationDocumentation = listToMaybe . (filter isOperationDocumentation)
+extractOperationDocumentation = defaultExtractor isOperationDocumentation
 
 extractOperationSourceCode :: OperationExtractor
-extractOperationSourceCode = listToMaybe . (filter isOperationSourceCode)
+extractOperationSourceCode = defaultExtractor isOperationSourceCode
 
 extractOperationSignature :: OperationExtractor
-extractOperationSignature = listToMaybe . (filter isOperationSignature)
+extractOperationSignature = defaultExtractor isOperationSignature
 
 extractOperationInfix :: OperationExtractor
-extractOperationInfix = listToMaybe . (filter isOperationInfix)
+extractOperationInfix = defaultExtractor isOperationInfix
 
 extractOperationPrecedence :: OperationExtractor
-extractOperationPrecedence = listToMaybe . (filter isOperationPrecedence)
+extractOperationPrecedence = defaultExtractor isOperationPrecedence
 
 extractOperationDeterministic :: OperationExtractor
-extractOperationDeterministic = listToMaybe . (filter isOperationDeterministic)
+extractOperationDeterministic = defaultExtractor isOperationDeterministic
 
 extractOperationDemandness :: OperationExtractor
-extractOperationDemandness = listToMaybe . (filter isOperationDemandness)
+extractOperationDemandness = defaultExtractor isOperationDemandness
 
 extractOperationIndeterministic :: OperationExtractor
-extractOperationIndeterministic = listToMaybe . (filter isOperationIndeterministic)
+extractOperationIndeterministic = defaultExtractor isOperationIndeterministic
 
 extractOperationSolutionCompleteness :: OperationExtractor
-extractOperationSolutionCompleteness = listToMaybe . (filter isOperationSolutionCompleteness)
+extractOperationSolutionCompleteness = defaultExtractor isOperationSolutionCompleteness
 
 extractOperationTermination :: OperationExtractor
-extractOperationTermination = listToMaybe . (filter isOperationTermination)
+extractOperationTermination = defaultExtractor isOperationTermination
 
 extractOperationTotallyDefined :: OperationExtractor
-extractOperationTotallyDefined = listToMaybe . (filter isOperationTotallyDefined)
+extractOperationTotallyDefined = defaultExtractor isOperationTotallyDefined
