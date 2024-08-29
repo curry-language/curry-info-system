@@ -1,8 +1,8 @@
-module CurryAnalysisInfrastructure.SourceCode where
+module CurryInfo.SourceCode where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Checkout (checkoutIfMissing)
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Types
+import CurryInfo.Checkout (checkoutIfMissing)
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import System.CurryPath (modNameToPath)
 import System.Directory (doesFileExist)

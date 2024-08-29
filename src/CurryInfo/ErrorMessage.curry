@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.ErrorMessage where
+module CurryInfo.ErrorMessage where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 class ErrorMessage a where
     errorMessage :: a -> String

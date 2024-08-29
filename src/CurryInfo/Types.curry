@@ -1,4 +1,4 @@
-module CurryAnalysisInfrastructure.Types where
+module CurryInfo.Types where
 
 import Text.Pretty (Doc)
 

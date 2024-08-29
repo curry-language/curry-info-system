@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.JParser where
+module CurryInfo.JParser where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 import JSON.Data
 

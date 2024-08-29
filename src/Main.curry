@@ -1,15 +1,15 @@
 module Main where
 
-import CurryAnalysisInfrastructure.JParser (JParser)
-import CurryAnalysisInfrastructure.JPretty (JPretty, jsonOutput)
-import CurryAnalysisInfrastructure.Configuration
-import CurryAnalysisInfrastructure.Paths (Path, initialize)
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Reader (Reader, readInformation)
-import CurryAnalysisInfrastructure.Writer (Writer, writeInformation)
-import CurryAnalysisInfrastructure.ErrorMessage (ErrorMessage, errorMessage)
-import CurryAnalysisInfrastructure.Options
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.JParser (JParser)
+import CurryInfo.JPretty (JPretty, jsonOutput)
+import CurryInfo.Configuration
+import CurryInfo.Paths (Path, initialize)
+import CurryInfo.Types
+import CurryInfo.Reader (Reader, readInformation)
+import CurryInfo.Writer (Writer, writeInformation)
+import CurryInfo.ErrorMessage (ErrorMessage, errorMessage)
+import CurryInfo.Options
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import JSON.Parser (parseJSON)
 import JSON.Pretty (ppJSON)

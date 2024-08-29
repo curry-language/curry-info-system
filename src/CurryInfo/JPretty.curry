@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.JPretty where
+module CurryInfo.JPretty where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 import JSON.Data
 import JSON.Pretty (ppJSON)

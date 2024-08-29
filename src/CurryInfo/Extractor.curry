@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.Extractor where
+module CurryInfo.Extractor where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 import Data.List (find)
 

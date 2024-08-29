@@ -1,9 +1,9 @@
-module CurryAnalysisInfrastructure.Interface where
+module CurryInfo.Interface where
 
-import CurryAnalysisInfrastructure.Checkout (getCheckoutPath, checkoutIfMissing)
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Checkout (getCheckoutPath, checkoutIfMissing)
+import CurryInfo.Types
+import CurryInfo.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
 import System.IOExts (evalCmd)
@@ -216,17 +216,17 @@ getInfixName decl = case decl of
 
 -- This operation returns the infix of the given infix declaration. If the given
 -- declaration is not of an infix, Nothing is returned.
-getOperationInfix :: IDecl -> Maybe CurryAnalysisInfrastructure.Types.Infix
+getOperationInfix :: IDecl -> Maybe CurryInfo.Types.Infix
 getOperationInfix decl = case decl of
     IInfixDecl i _ _    -> case i of
-        CurryInterface.Types.Infix  -> Just CurryAnalysisInfrastructure.Types.Infix
-        CurryInterface.Types.InfixL -> Just CurryAnalysisInfrastructure.Types.InfixL
-        CurryInterface.Types.InfixR -> Just CurryAnalysisInfrastructure.Types.InfixR
+        CurryInterface.Types.Infix  -> Just CurryInfo.Types.Infix
+        CurryInterface.Types.InfixL -> Just CurryInfo.Types.InfixL
+        CurryInterface.Types.InfixR -> Just CurryInfo.Types.InfixR
     _                   -> Nothing
 
 -- This operation returns the precedence of the given infix declaration. If the given
 -- declaration ii not of an infix, Nothing is returned.
-getOperationPrecedence :: IDecl -> Maybe CurryAnalysisInfrastructure.Types.Precedence
+getOperationPrecedence :: IDecl -> Maybe CurryInfo.Types.Precedence
 getOperationPrecedence decl = case decl of
     IInfixDecl _ p _    -> Just p
     _                   -> Nothing

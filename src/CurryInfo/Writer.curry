@@ -1,8 +1,8 @@
-module CurryAnalysisInfrastructure.Writer where
+module CurryInfo.Writer where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.JPretty (JPretty, json)
-import CurryAnalysisInfrastructure.Paths (Path, getJSONPath)
+import CurryInfo.Types
+import CurryInfo.JPretty (JPretty, json)
+import CurryInfo.Paths (Path, getJSONPath)
 
 import JSON.Pretty (ppJSON)
 

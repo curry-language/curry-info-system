@@ -1,7 +1,7 @@
-module CurryAnalysisInfrastructure.Options where
+module CurryInfo.Options where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Configuration
+import CurryInfo.Types
+import CurryInfo.Configuration
 
 import System.Console.GetOpt
 import System.Process (exitWith)

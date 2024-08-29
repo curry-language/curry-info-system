@@ -1,10 +1,10 @@
-module CurryAnalysisInfrastructure.Generator where
+module CurryInfo.Generator where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Paths
-import CurryAnalysisInfrastructure.JParser (getString)
-import CurryAnalysisInfrastructure.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
-import CurryAnalysisInfrastructure.Interface 
+import CurryInfo.Types
+import CurryInfo.Paths
+import CurryInfo.JParser (getString)
+import CurryInfo.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
+import CurryInfo.Interface 
     ( readInterface
     , getDeclarations
     , getOperations, getOperationName, getOperationDecl, getOperationSignature
@@ -13,7 +13,7 @@ import CurryAnalysisInfrastructure.Interface
     , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
-import CurryAnalysisInfrastructure.Analysis
+import CurryInfo.Analysis
     ( analyseSafeModule
     , analyseDemandness
     , analyseDeterministic
@@ -22,9 +22,9 @@ import CurryAnalysisInfrastructure.Analysis
     , analyseTermination
     , analyseTotallyDefined
     )
-import CurryAnalysisInfrastructure.SourceCode (readSourceCode, readDocumentation)
-import CurryAnalysisInfrastructure.Parser (parseVersionConstraints)
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.SourceCode (readSourceCode, readDocumentation)
+import CurryInfo.Parser (parseVersionConstraints)
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import Text.Pretty (text)
 import JSON.Data

@@ -1,12 +1,12 @@
-module CurryAnalysisInfrastructure.Analysis where
+module CurryInfo.Analysis where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Commands
-import CurryAnalysisInfrastructure.Parser
+import CurryInfo.Types
+import CurryInfo.Commands
+import CurryInfo.Parser
     ( parseSafe, parseDeterministic, parseDemandness, parseIndeterministic, parseSolutionCompleteness, parseTermination
     , parseTotallyDefined
     )
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import JSON.Data
 import JSON.Parser (parseJSON)

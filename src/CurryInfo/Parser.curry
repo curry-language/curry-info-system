@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.Parser where
+module CurryInfo.Parser where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 import Data.List (init, find, intercalate, intersperse)
 

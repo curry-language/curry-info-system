@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.Paths where
+module CurryInfo.Paths where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 import System.Directory (createDirectoryIfMissing, getDirectoryContents, getHomeDirectory, doesFileExist)
 

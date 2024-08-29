@@ -1,7 +1,7 @@
-module CurryAnalysisInfrastructure.Commands where
+module CurryInfo.Commands where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Types
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import System.IOExts (evalCmd)
 import System.Directory (setCurrentDirectory, getCurrentDirectory)

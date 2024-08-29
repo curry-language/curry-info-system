@@ -1,6 +1,6 @@
-module CurryAnalysisInfrastructure.Verbosity where
+module CurryInfo.Verbosity where
 
-import CurryAnalysisInfrastructure.Types
+import CurryInfo.Types
 
 import Control.Monad (when)
 

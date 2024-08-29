@@ -1,9 +1,9 @@
-module CurryAnalysisInfrastructure.Reader where
+module CurryInfo.Reader where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.JParser (JParser, jparse)
-import CurryAnalysisInfrastructure.Paths (Path, getJSONPath)
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Types
+import CurryInfo.JParser (JParser, jparse)
+import CurryInfo.Paths (Path, getJSONPath)
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import JSON.Parser (parseJSON)
 

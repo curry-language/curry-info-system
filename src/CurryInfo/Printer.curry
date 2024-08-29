@@ -1,7 +1,7 @@
-module CurryAnalysisInfrastructure.Printer where
+module CurryInfo.Printer where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Verbosity (printDebugMessage)
+import CurryInfo.Types
+import CurryInfo.Verbosity (printDebugMessage)
 
 import System.Directory (doesFileExist)
 

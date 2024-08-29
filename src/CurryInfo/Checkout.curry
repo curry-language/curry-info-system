@@ -1,9 +1,9 @@
-module CurryAnalysisInfrastructure.Checkout where
+module CurryInfo.Checkout where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Paths (root)
-import CurryAnalysisInfrastructure.Commands (runCmd, cmdCheckout)
-import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Types
+import CurryInfo.Paths (root)
+import CurryInfo.Commands (runCmd, cmdCheckout)
+import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)

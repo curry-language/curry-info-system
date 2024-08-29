@@ -1,9 +1,9 @@
-module CurryAnalysisInfrastructure.Configuration where
+module CurryInfo.Configuration where
 
-import CurryAnalysisInfrastructure.Types
-import CurryAnalysisInfrastructure.Extractor
-import CurryAnalysisInfrastructure.Generator
-import CurryAnalysisInfrastructure.Printer
+import CurryInfo.Types
+import CurryInfo.Extractor
+import CurryInfo.Generator
+import CurryInfo.Printer
 
 findDescription :: String -> Configuration a b -> Maybe Description
 findDescription field conf = description <$> lookup field conf
