@@ -28,7 +28,7 @@ instance JPretty PackageInformation where
 
 instance JPretty VersionInformation where
     jpretty (VersionVersion vsn)            = ("version", JString vsn)
-    jpretty (VersionDocumentation d)        = ("documentation", JString $ pPrint d)
+    jpretty (VersionDocumentation d)        = ("documentation", JString d)
     jpretty (VersionCategories cats)        = ("categories", JArray (map JString cats))
     jpretty (VersionModules mods)           = ("modules", JArray (map JString mods))
     jpretty (VersionDependencies deps)      = ("dependencies", JArray (map (JString . show) deps))

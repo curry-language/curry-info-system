@@ -12,10 +12,21 @@ type Extractor a = [a] -> Maybe a
 
 type Generator a b = Options -> a -> IO (Maybe b)
 
+-- Printer Type
+
+type Printer a = Options -> a -> IO String
+
 -- Configuration Type
 
 type Description = String
-type Configuration a b = [(String, (Description, Extractor b, Generator a b))]
+--type Configuration a b = [(String, (Description, Extractor b, Generator a b))]
+type Configuration a b = [(String, RegisteredField a b)]
+data RegisteredField a b = RegisteredField
+    { description   :: Description
+    , extractor     :: Extractor b
+    , generator     :: Generator a b
+    , printer       :: Printer b
+    }
 
 -- Options Type
 
@@ -29,6 +40,7 @@ data Options = Options
     , optType       :: Maybe String -- The requested type
     , optTypeclass  :: Maybe String -- The requested type class
     , optOperation  :: Maybe String -- The requested operation
+    , optOutput     :: String       -- The output format
     }
     deriving Show 
 
@@ -99,6 +111,7 @@ instance EqInfo OperationInformation where
 data Output
     = OutputText String
     | OutputError String
+    | OutputJSON JValue
     deriving Show
 
 -- INPUT TYPES
@@ -133,7 +146,7 @@ isPackageVersions x = case x of
 
 data VersionInformation
     = VersionVersion Version
-    | VersionDocumentation Doc
+    | VersionDocumentation String
     | VersionCategories [Category]
     | VersionModules [Module]
     | VersionDependencies [Dependency]

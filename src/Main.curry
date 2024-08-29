@@ -13,6 +13,7 @@ import CurryAnalysisInfrastructure.Verbosity (printLine, printDebugMessage)
 
 import JSON.Parser (parseJSON)
 import JSON.Pretty (ppJSON)
+import JSON.Data
 
 import Data.Maybe (catMaybes, isJust)
 import Data.List (nubBy)
@@ -20,7 +21,7 @@ import Data.List (nubBy)
 import System.Environment (getArgs)
 import System.Process (exitWith)
 
-import Control.Monad (unless)
+import Control.Monad (unless, zipWithM)
 
 -- This action extracts or generates the requested information for the given object.
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
@@ -37,7 +38,7 @@ getInfos opts location requests = do
                     return $ OutputError $ "Package '" ++ pkg ++ "' does not exist."
                 True -> do
                     printDebugMessage opts "Package exists."
-                    getInfos' opts packageConfiguration (CurryPackage pkg) requests
+                    getInfos' packageConfiguration (CurryPackage pkg)
         [("packages", pkg), ("versions", vsn)]                                      -> do
             printDebugMessage opts "Structure matches Version."
             result <- checkVersionExists pkg vsn
@@ -47,7 +48,7 @@ getInfos opts location requests = do
                     return $ OutputError $ "Version '" ++ vsn ++ "' of package '" ++ pkg ++ "' does not exist."
                 True -> do
                     printDebugMessage opts "Version exists."
-                    getInfos' opts versionConfiguration (CurryVersion pkg vsn) requests
+                    getInfos' versionConfiguration (CurryVersion pkg vsn)
         [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> do
             printDebugMessage opts "Structure matches Module."
             result <- checkModuleExists pkg vsn m
@@ -57,7 +58,7 @@ getInfos opts location requests = do
                     return $ OutputError $ "Module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Module exists."
-                    getInfos' opts moduleConfiguration (CurryModule pkg vsn m) requests
+                    getInfos' moduleConfiguration (CurryModule pkg vsn m)
         [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> do
             printDebugMessage opts "Structure matches Type"
             result <- checkTypeExists pkg vsn m t
@@ -67,7 +68,7 @@ getInfos opts location requests = do
                     return $ OutputError $ "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Type exists."
-                    getInfos' opts typeConfiguration (CurryType pkg vsn m t) requests
+                    getInfos' typeConfiguration (CurryType pkg vsn m t)
         [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> do
             printDebugMessage opts "Structure matches Typeclass"
             result <- checkTypeclassExists pkg vsn m c
@@ -77,7 +78,7 @@ getInfos opts location requests = do
                     return $ OutputError $ "Typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Typeclass exists."
-                    getInfos' opts typeclassConfiguration (CurryTypeclass pkg vsn m c) requests
+                    getInfos' typeclassConfiguration (CurryTypeclass pkg vsn m c)
         [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)]   -> do
             printDebugMessage opts "Structure matches Operation."
             result <- checkOperationExists pkg vsn m o
@@ -87,16 +88,16 @@ getInfos opts location requests = do
                     return $ OutputError $ "Operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                 True  -> do
                     printDebugMessage opts "Operation exists."
-                    getInfos' opts operationConfiguration (CurryOperation pkg vsn m o) requests
+                    getInfos' operationConfiguration (CurryOperation pkg vsn m o)
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
-        getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Options -> Configuration a b -> a -> [String] -> IO Output
-        getInfos' opts' conf input requests' = do
+        --getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Configuration a b -> a -> IO Output
+        getInfos' conf input = do
             printLine opts
             printDebugMessage opts "Initializing Input..."
             initialize input
             printDebugMessage opts "Reading current information..."
-            result <- readInformation opts' input
+            result <- readInformation opts input
             case result of
                 Nothing -> do
                     printDebugMessage opts "Reading information failed."
@@ -104,13 +105,14 @@ getInfos opts location requests = do
                 Just infos -> do
                     printDebugMessage opts "Reading information succeeded."
                     printDebugMessage opts "Extracting/Generating requested information..."
-                    results <- mapM (extractOrGenerate opts' conf input infos) requests'
+                    results <- mapM (extractOrGenerate opts conf input infos) requests
 
                     let newInformation = catMaybes results <+> infos
                     printDebugMessage opts "Overwriting with updated information..."
                     writeInformation input newInformation
                     printDebugMessage opts "Creating output..."
-                    return $ generateOutput requests' results
+                    --return $ generateOutput opts requests results
+                    generateOutput opts conf requests results 
         
         checkPackageExists :: Package -> IO Bool
         checkPackageExists pkg = do
@@ -147,6 +149,38 @@ getInfos opts location requests = do
 extractOrGenerate :: Options -> Configuration a b -> a -> [b] -> String -> IO (Maybe b)
 extractOrGenerate opts conf input infos request = do
     printDebugMessage opts $ "Looking up extractor and generator for request '" ++ request ++ "'..."
+    case optForce opts of
+        2 -> do
+            printDebugMessage opts "Force options is 2. Only generating information."
+            printDebugMessage opts "Looking for generator..."
+            case findGenerator request conf of
+                Nothing -> do
+                    printDebugMessage opts $ "Could not find generator for request '" ++ request ++ "'."
+                    return Nothing
+                Just generator -> do
+                    printDebugMessage opts "Generator found."
+                    generator opts input
+        1 -> do
+            printDebugMessage opts "Force option is 1. Extracting or generating information."
+            printDebugMessage opts "Looking for extractor and generator..."
+            case (findExtractor request conf, findGenerator request conf) of
+                (Just extractor, Just generator) -> do
+                    printDebugMessage opts "Extractor and generator found."
+                    maybe (generator opts input) (return . Just) (extractor infos)
+                _ -> do
+                    printDebugMessage opts $ "Could not find extractor/generator for request '" ++ request ++ "'."
+                    return Nothing
+        0 -> do
+            printDebugMessage opts "Force option is 0. Only extracting information."
+            printDebugMessage opts "Looking for extractor..."
+            case findExtractor request conf of
+                Nothing -> do
+                    printDebugMessage opts $ "Could not find extractor for request '" ++ request ++ "'."
+                    return Nothing
+                Just extractor -> do
+                    printDebugMessage opts "Generator found."
+                    return $ extractor infos
+    {-
     case lookup request conf of
         Nothing                     -> do
             printDebugMessage opts "Entry not found in configuration."
@@ -164,12 +198,37 @@ extractOrGenerate opts conf input infos request = do
                 0 -> do
                     printDebugMessage opts "Force option is 0. Extracting information..."
                     return $ extractor infos
+    -}
 
--- This function generates an output for the fields and respective results of extracting or generating.
+{-
 generateOutput :: JPretty a => [String] -> [Maybe a] -> Output
 generateOutput fields results =
     let outputs = zipWith (\f r -> maybe (f, "failed") jsonOutput r) fields results
     in OutputText $ unlines $ map (\(f, m) -> f ++ ": " ++ m) outputs
+-}
+
+-- This function generates an output for the fields and respective results of extracting or generating.
+generateOutput :: Options -> Configuration a b -> [String] -> [Maybe b] -> IO Output
+generateOutput opts conf fields results = do
+        outputs <- zipWithM (generateOutput') fields results
+        let output = unlines outputs
+        case optOutput opts of
+            "text"  -> return (OutputText output)
+            "json"  -> return (OutputJSON $ JObject (zipWith generateField fields outputs))
+            format  -> return (OutputError $ "Unknown output format: " ++ format)
+    where
+        generateOutput' f mr = do
+            case mr of
+                Nothing -> return (f ++ ": " ++ "FAILED TO EXTRACT/GENERATE")
+                Just r -> do
+                    case findPrinter f conf of
+                        Nothing -> return (f ++ ": " ++ "FAILED TO FIND PRINTER")
+                        Just p -> do
+                            msg <- p opts r
+                            return (f ++ ": " ++ msg)
+        generateField :: String -> String -> (String, JValue)
+        generateField field output = (field, JString output)
+        
 
 -- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
 -- to get an updated list.
@@ -185,6 +244,10 @@ printResult (OutputError err) = do
     putStrLn ""
     putStrLn "Finished with OutputError"
     putStrLn err
+printResult (OutputJSON jv) = do
+    putStrLn ""
+    putStrLn "Finished with OutputJSON"
+    putStrLn $ ppJSON jv
 
 main :: IO ()
 main = do

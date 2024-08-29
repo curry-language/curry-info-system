@@ -81,10 +81,11 @@ generateVersionDocumentation opts (CurryVersion pkg vsn) = do
     printLine opts
     printDebugMessage opts $ "Generating documentation for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts "Reading README of package..."
-    t <- readPackageREADME opts pkg vsn
-    let doc = text t
-    printDebugMessage opts $ "Documentation is: " ++ t
-    return $ Just $ VersionDocumentation doc
+    --t <- readPackageREADME opts pkg vsn
+    --printDebugMessage opts $ "Documentation is: " ++ t
+    --return $ Just $ VersionDocumentation t
+    path <- packageREADMEPath opts pkg vsn
+    return $ Just $ VersionDocumentation path
 
 generateVersionCategories :: VersionGenerator
 generateVersionCategories opts (CurryVersion pkg vsn) = do
@@ -620,6 +621,18 @@ readPackageREADME opts pkg vsn = do
             case b of
                 False -> return ""
                 True -> readFile readme
+
+packageREADMEPath :: Options -> Package -> Version -> IO String
+packageREADMEPath opts pkg vsn = do
+    result <- checkoutIfMissing opts pkg vsn
+    case result of
+        Nothing -> return ""
+        Just dir -> do
+            let readme = dir ++ "/README.md"
+            b <- doesFileExist readme
+            case b of
+                False -> return ""
+                True -> return readme
 
 readModuleSourceFile :: Options -> Package -> Version -> Module -> IO String
 readModuleSourceFile opts pkg vsn m = do

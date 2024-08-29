@@ -36,17 +36,13 @@ instance JParser PackageInformation where
 instance JParser VersionInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "version"       -> VersionVersion <$> getString fieldvalue
-        "documentation" -> (VersionDocumentation . text) <$> getString fieldvalue
+        "documentation" -> VersionDocumentation <$> getString fieldvalue
         "categories"    -> VersionCategories <$> (join $ mapM getString <$> getArray fieldvalue)
         "modules"       -> VersionModules <$> (join $ mapM getString <$> getArray fieldvalue)
         "dependencies"  -> VersionDependencies <$> do
             arr <- getArray fieldvalue
             deps <- mapM getString arr
             return (map read deps)
-        --"dependencies"  -> VersionDependencies <$> do
-        --    arr <- getArray fieldvalue
-        --    deps <- mapM getDependency arr
-        --    return deps
         _               -> Nothing
 
 -- MODULE

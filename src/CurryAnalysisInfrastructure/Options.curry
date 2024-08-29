@@ -11,11 +11,11 @@ import Numeric (readNat)
 import Control.Monad (when, unless)
 
 printRequests :: String -> Configuration a b -> String
-printRequests s conf = s ++ "\n\n" ++ unlines (map (\(req, (desc, _, _)) -> req ++ ":" ++ desc) conf) ++ "\n\n"
+printRequests s conf = s ++ "\n\n" ++ unlines (map (\(req, _) -> req ++ ":" ++ maybe "FAILED" id (findDescription req conf)) conf) ++ "\n\n"
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing "text"
 
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
@@ -72,14 +72,17 @@ options =
              (ReqArg (\args opts -> opts { optModule = Just args }) "<mod>")
              "requested module"
     , Option "t" ["type"]
-             (ReqArg (\args opts -> opts { optType = Just args }) "<mod>")
+             (ReqArg (\args opts -> opts { optType = Just args }) "<t>")
              "requested type"
     , Option "c" ["typeclass"]
-             (ReqArg (\args opts -> opts { optTypeclass = Just args }) "<mod>")
+             (ReqArg (\args opts -> opts { optTypeclass = Just args }) "<c>")
              "requested typeclass"
     , Option "o" ["operation"]
-             (ReqArg (\args opts -> opts { optOperation = Just args }) "<mod>")
+             (ReqArg (\args opts -> opts { optOperation = Just args }) "<o>")
              "requested operation"
+    , Option "" ["output"]
+             (OptArg (\args opts -> opts { optOutput = maybe "text" id args }) "<format>")
+             "output format"
     ]
     where
         safeReadNat opttrans s opts = case readNat s of
