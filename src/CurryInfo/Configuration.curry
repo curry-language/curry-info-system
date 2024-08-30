@@ -13,15 +13,15 @@ findGenerator field conf = generator <$> lookup field conf
 findPrinter :: String -> Configuration a b -> Maybe (Printer b)
 findPrinter field conf = printer <$> lookup field conf
 
--- PACKAGE generate
+-- PACKAGE
 
 packageFields :: [String]
 packageFields = map fst packageConfiguration
 
 packageConfiguration :: Configuration CurryPackage PackageInformation
 packageConfiguration =
-    [ ("package",   RegisteredField "\t\t\tThe name of the package" generatePackageName printPackageName)
-    , ("versions",  RegisteredField "\t\t\tThe versions available of the package" generatePackageVersions printPackageVersions)
+    [ ("package",   RegisteredField "\t\t\tThe name of the package" gPackageName pPackageName)
+    , ("versions",  RegisteredField "\t\t\tThe versions available of the package" gPackageVersions pPackageVersions)
     ]
 
 -- VERSION
@@ -31,11 +31,11 @@ versionFields = map fst versionConfiguration
 
 versionConfiguration :: Configuration CurryVersion VersionInformation
 versionConfiguration =
-    [ ("version",       RegisteredField "\t\tThe version number of the version" generateVersionVersion printVersionVersion)
-    , ("documentation", RegisteredField "\t\tThe documentation of the version" generateVersionDocumentation printVersionDocumentation)
-    , ("categories",    RegisteredField "\t\tThe categories of the version" generateVersionCategories printVersionCategories)
-    , ("modules",       RegisteredField "\t\tThe exported modules of the version" generateVersionModules printVersionModules)
-    , ("dependencies",  RegisteredField "\t\tThe dependencies of the version" generateVersionDependencies printVersionDependencies)
+    [ ("version",       RegisteredField "\t\tThe version number of the version" gVersionVersion pVersionVersion)
+    , ("documentation", RegisteredField "\t\tThe documentation of the version" gVersionDocumentation pVersionDocumentation)
+    , ("categories",    RegisteredField "\t\tThe categories of the version" gVersionCategories pVersionCategories)
+    , ("modules",       RegisteredField "\t\tThe exported modules of the version" gVersionModules pVersionModules)
+    , ("dependencies",  RegisteredField "\t\tThe dependencies of the version" gVersionDependencies pVersionDependencies)
     ]
 
 -- MODULE
@@ -45,14 +45,14 @@ moduleFields = map fst moduleConfiguration
 
 moduleConfiguration :: Configuration CurryModule ModuleInformation
 moduleConfiguration =
-    [ ("module",        RegisteredField "\t\t\tThe name of the module" generateModuleName printModuleName)
-    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the module" generateModuleDocumentation printModuleDocumentation)
-    , ("sourceCode",    RegisteredField "\t\tReference to the source code of the module" generateModuleSourceCode printModuleSourceCode)
-    , ("safe",          RegisteredField "\t\t\tAnalysis result whether the module is safe" generateModuleSafe printModuleSafe)
-    --, ("exports",       RegisteredField "" extractModuleExports generateModuleExports)
-    , ("typeclasses",   RegisteredField "\t\tThe exported typeclasses of the module" generateModuleTypeclasses printModuleTypeclasses)
-    , ("types",         RegisteredField "\t\t\tThe exported types of the module" generateModuleTypes printModuleTypes)
-    , ("operations",    RegisteredField "\t\tThe exported operations of the module" generateModuleOperations printModuleOperations)
+    [ ("module",        RegisteredField "\t\t\tThe name of the module" gModuleName pModuleName)
+    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the module" gModuleDocumentation pModuleDocumentation)
+    , ("sourceCode",    RegisteredField "\t\tReference to the source code of the module" gModuleSourceCode pModuleSourceCode)
+    , ("safe",          RegisteredField "\t\t\tAnalysis result whether the module is safe" gModuleSafe pModuleSafe)
+    --, ("exports",       RegisteredField "" extractModuleExports gModuleExports)
+    , ("typeclasses",   RegisteredField "\t\tThe exported typeclasses of the module" gModuleTypeclasses pModuleTypeclasses)
+    , ("types",         RegisteredField "\t\t\tThe exported types of the module" gModuleTypes pModuleTypes)
+    , ("operations",    RegisteredField "\t\tThe exported operations of the module" gModuleOperations pModuleOperations)
     ]
 
 -- TYPE
@@ -62,10 +62,10 @@ typeFields = map fst typeConfiguration
 
 typeConfiguration :: Configuration CurryType TypeInformation
 typeConfiguration =
-    [ ("typeName",      RegisteredField "\t\tThe name of the type" generateTypeName printTypeName)
-    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the type" generateTypeDocumentation printTypeDocumentation)
-    , ("constructors",  RegisteredField "\t\tThe list of the constructors of the type" generateTypeConstructors printTypeConstructors)
-    , ("definition",    RegisteredField "\t\tReference to the definition of the type" generateTypeDefinition printTypeDefinition)
+    [ ("typeName",      RegisteredField "\t\tThe name of the type" gTypeName pTypeName)
+    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the type" gTypeDocumentation pTypeDocumentation)
+    , ("constructors",  RegisteredField "\t\tThe list of the constructors of the type" gTypeConstructors pTypeConstructors)
+    , ("definition",    RegisteredField "\t\tReference to the definition of the type" gTypeDefinition pTypeDefinition)
     ]
 
 -- TYPECLASS
@@ -75,10 +75,10 @@ typeclassFields = map fst typeclassConfiguration
 
 typeclassConfiguration :: Configuration CurryTypeclass TypeclassInformation
 typeclassConfiguration =
-    [ ("typeclass",     RegisteredField "\t\tThe name of the typeclass" generateTypeclassName printTypeclassName)
-    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the typeclass" generateTypeclassDocumentation printTypeclassDocumentation)
-    , ("methods",       RegisteredField "\t\tThe list of the methods of the typeclass" generateTypeclassMethods printTypeclassMethods)
-    , ("definition",    RegisteredField "\t\tReference to the definition of the typeclass" generateTypeclassDefinition printTypeclassDefinition)
+    [ ("typeclass",     RegisteredField "\t\tThe name of the typeclass" gTypeclassName pTypeclassName)
+    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the typeclass" gTypeclassDocumentation pTypeclassDocumentation)
+    , ("methods",       RegisteredField "\t\tThe list of the methods of the typeclass" gTypeclassMethods pTypeclassMethods)
+    , ("definition",    RegisteredField "\t\tReference to the definition of the typeclass" gTypeclassDefinition pTypeclassDefinition)
     ]
     
 -- OPERATION
@@ -88,16 +88,16 @@ operationFields = map fst operationConfiguration
 
 operationConfiguration :: Configuration CurryOperation OperationInformation
 operationConfiguration =
-    [ ("operation",             RegisteredField "\t\tThe name of the operation" generateOperationName printOperationName)
-    , ("documentation",         RegisteredField "\t\tReference to the documentation comment of the operation" generateOperationDocumentation printOperationDocumentation)
-    , ("definition",            RegisteredField "\t\tReference to the definition of the operation" generateOperationSourceCode printOperationSourceCode)
-    , ("signature",             RegisteredField "\t\tThe signature of the operation" generateOperationSignature printOperationSignature)
-    , ("infix",                 RegisteredField "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)" generateOperationInfix printOperationInfix)
-    , ("precedence",            RegisteredField "\t\tPrecedence of the operation when used infix" generateOperationPrecedence printOperationPrecedence)
-    , ("deterministic",         RegisteredField "\t\tAnalysis result whether the operation is deterministic" generateOperationDeterministic printOperationDeterministic)
-    , ("demandness",            RegisteredField "\t\tAnalysis result what arguments are demanded" generateOperationDemandness printOperationDemandness)
-    , ("indeterministic",       RegisteredField "\tAnalysis result whether the operation is indeterministic" generateOperationIndeterministic printOperationIndeterministic)
-    , ("solutionCompleteness",  RegisteredField "\tAnalysis result whether the operation is solution complete" generateOperationSolutionCompleteness printOperationSolutionCompleteness)
-    , ("termination",           RegisteredField "\t\tAnalysis result whether the operation is guaranteed to always terminate" generateOperationTermination printOperationTermination)
-    , ("totallyDefined",        RegisteredField "\t\tAnalysis result whether the operation is totally defined" generateOperationTotallyDefined printOperationTotallyDefined)
+    [ ("operation",             RegisteredField "\t\tThe name of the operation" gOperationName pOperationName)
+    , ("documentation",         RegisteredField "\t\tReference to the documentation comment of the operation" gOperationDocumentation pOperationDocumentation)
+    , ("definition",            RegisteredField "\t\tReference to the definition of the operation" gOperationSourceCode pOperationSourceCode)
+    , ("signature",             RegisteredField "\t\tThe signature of the operation" gOperationSignature pOperationSignature)
+    , ("infix",                 RegisteredField "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)" gOperationInfix pOperationInfix)
+    , ("precedence",            RegisteredField "\t\tPrecedence of the operation when used infix" gOperationPrecedence pOperationPrecedence)
+    , ("deterministic",         RegisteredField "\t\tAnalysis result whether the operation is deterministic" gOperationDeterministic pOperationDeterministic)
+    , ("demandness",            RegisteredField "\t\tAnalysis result what arguments are demanded" gOperationDemandness pOperationDemandness)
+    , ("indeterministic",       RegisteredField "\tAnalysis result whether the operation is indeterministic" gOperationIndeterministic pOperationIndeterministic)
+    , ("solutionCompleteness",  RegisteredField "\tAnalysis result whether the operation is solution complete" gOperationSolutionCompleteness pOperationSolutionCompleteness)
+    , ("termination",           RegisteredField "\t\tAnalysis result whether the operation is guaranteed to always terminate" gOperationTermination pOperationTermination)
+    , ("totallyDefined",        RegisteredField "\t\tAnalysis result whether the operation is totally defined" gOperationTotallyDefined pOperationTotallyDefined)
     ]
