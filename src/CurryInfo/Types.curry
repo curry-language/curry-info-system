@@ -4,13 +4,9 @@ import Text.Pretty (Doc)
 
 import JSON.Data (JValue)
 
--- Extractor Type
-
-type Extractor a = [a] -> Maybe a
-
 -- Generator Type
 
-type Generator a b = Options -> a -> IO (Maybe b)
+type Generator a b = Options -> a -> IO (Maybe (String, b))
 
 -- Printer Type
 
@@ -23,7 +19,6 @@ type Description = String
 type Configuration a b = [(String, RegisteredField a b)]
 data RegisteredField a b = RegisteredField
     { description   :: Description
-    , extractor     :: Extractor b
     , generator     :: Generator a b
     , printer       :: Printer b
     }
@@ -43,6 +38,61 @@ data Options = Options
     , optOutput     :: String       -- The output format
     }
     deriving Show 
+
+class Field a where
+    fieldName :: a -> String
+
+instance Field PackageInformation where
+    fieldName info = case info of
+        PackageName _ -> "package"
+        PackageVersions _ -> "versions"
+
+instance Field VersionInformation where
+    fieldName info = case info of
+        VersionVersion _ -> "version"
+        VersionDocumentation _ -> "documentation"
+        VersionCategories _ -> "categories"
+        VersionModules _ -> "modules"
+        VersionDependencies _ -> "dependencies"
+
+instance Field ModuleInformation where
+    fieldName info = case info of
+        ModuleName _ -> "module"
+        ModuleDocumentation _ -> "documentation"
+        ModuleSourceCode _ -> "sourceCode"
+        ModuleSafe _ -> "safe"
+        ModuleTypeclasses _ -> "typeclasses"
+        ModuleTypes _ -> "types"
+        ModuleOperations _ -> "operations"
+
+instance Field TypeInformation where
+    fieldName info = case info of
+        TypeName _ -> "typeName"
+        TypeDocumentation _ -> "documentation"
+        TypeConstructors _ -> "constructors"
+        TypeDefinition _ -> "definition"
+
+instance Field TypeclassInformation where
+    fieldName info = case info of
+        TypeclassName _ -> "typeclass"
+        TypeclassDocumentation _ -> "documentation"
+        TypeclassMethods _ -> "methods"
+        TypeclassDefinition _ -> "definition"
+
+instance Field OperationInformation where
+    fieldName info = case info of
+        OperationName _ -> "operation"
+        OperationDocumentation _ -> "documentation"
+        OperationSourceCode _ -> "sourceCode"
+        OperationSignature _ -> "signature"
+        OperationInfix _ -> "infix"
+        OperationPrecedence _ -> "precedence"
+        OperationDeterministic _ -> "deterministic"
+        OperationDemandness _ -> "demandness"
+        OperationIndeterministic _ -> "indeterministic"
+        OperationSolutionCompleteness _ -> "solutionCompleteness"
+        OperationTermination _ -> "termination"
+        OperationTotallyDefined _ -> "totallyDefined"
 
 class EqInfo a where
     sameInfo :: a -> a -> Bool

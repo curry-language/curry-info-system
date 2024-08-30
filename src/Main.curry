@@ -103,16 +103,17 @@ getInfos opts location requests = do
                     printDebugMessage opts "Reading information failed."
                     return $ OutputError $ errorMessage input
                 Just infos -> do
+                    let infos' = map (\i -> (fieldName i, i)) infos
                     printDebugMessage opts "Reading information succeeded."
                     printDebugMessage opts "Extracting/Generating requested information..."
-                    results <- mapM (extractOrGenerate opts conf input infos) requests
+                    results <- mapM (extractOrGenerate opts conf input infos') requests
 
-                    let newInformation = catMaybes results <+> infos
+                    let newInformation = catMaybes results <+> infos'
                     printDebugMessage opts "Overwriting with updated information..."
-                    writeInformation input newInformation
+                    writeInformation input (map snd newInformation)
                     printDebugMessage opts "Creating output..."
                     --return $ generateOutput opts requests results
-                    generateOutput opts conf requests results 
+                    generateOutput opts conf requests (map (fmap snd) results) 
         
         checkPackageExists :: Package -> IO Bool
         checkPackageExists pkg = do
@@ -146,7 +147,7 @@ getInfos opts location requests = do
 
 -- This action extracts or generates the requested information for the input, depending on whether the information
 -- already exists or not.
-extractOrGenerate :: Options -> Configuration a b -> a -> [b] -> String -> IO (Maybe b)
+extractOrGenerate :: Options -> Configuration a b -> a -> [(String, b)] -> String -> IO (Maybe (String, b))
 extractOrGenerate opts conf input infos request = do
     printDebugMessage opts $ "Looking up extractor and generator for request '" ++ request ++ "'..."
     case optForce opts of
@@ -163,23 +164,17 @@ extractOrGenerate opts conf input infos request = do
         1 -> do
             printDebugMessage opts "Force option is 1. Extracting or generating information."
             printDebugMessage opts "Looking for extractor and generator..."
-            case (findExtractor request conf, findGenerator request conf) of
-                (Just extractor, Just generator) -> do
-                    printDebugMessage opts "Extractor and generator found."
-                    maybe (generator opts input) (return . Just) (extractor infos)
-                _ -> do
-                    printDebugMessage opts $ "Could not find extractor/generator for request '" ++ request ++ "'."
+            case findGenerator request conf of
+                Nothing -> do
+                    printDebugMessage opts $ "Could not find generator for request '" ++ request ++ "'."
                     return Nothing
+                Just generator -> do
+                    printDebugMessage opts "Generator found."
+                    --maybe (generator opts input) (return . Just) (extractor infos)
+                    maybe (generator opts input) (return . Just) ((,) request <$> lookup request infos)
         0 -> do
             printDebugMessage opts "Force option is 0. Only extracting information."
-            printDebugMessage opts "Looking for extractor..."
-            case findExtractor request conf of
-                Nothing -> do
-                    printDebugMessage opts $ "Could not find extractor for request '" ++ request ++ "'."
-                    return Nothing
-                Just extractor -> do
-                    printDebugMessage opts "Generator found."
-                    return $ extractor infos
+            return $ fmap (\i -> (request, i)) (lookup request infos)
     {-
     case lookup request conf of
         Nothing                     -> do
@@ -232,8 +227,10 @@ generateOutput opts conf fields results = do
 
 -- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
 -- to get an updated list.
-(<+>) :: EqInfo a => [a] -> [a] -> [a]
-info1 <+> info2 = nubBy sameInfo (info1 ++ info2)
+--(<+>) :: EqInfo a => [a] -> [a] -> [a]
+--info1 <+> info2 = nubBy sameInfo (info1 ++ info2)
+(<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
+info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
 
 printResult :: Output -> IO ()
 printResult (OutputText txt) = do
