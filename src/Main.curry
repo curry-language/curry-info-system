@@ -91,7 +91,6 @@ getInfos opts location requests = do
                     getInfos' operationConfiguration (CurryOperation pkg vsn m o)
         _ -> return $ OutputError $ show location ++ " does not match any pattern"
     where
-        --getInfos' :: (Path a, ErrorMessage a, EqInfo b, JParser b, JPretty b) => Configuration a b -> a -> IO Output
         getInfos' conf input = do
             printLine opts
             printDebugMessage opts "Initializing Input..."
@@ -227,8 +226,6 @@ generateOutput opts conf fields results = do
 
 -- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
 -- to get an updated list.
---(<+>) :: EqInfo a => [a] -> [a] -> [a]
---info1 <+> info2 = nubBy sameInfo (info1 ++ info2)
 (<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
 info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
 
