@@ -17,7 +17,7 @@ toCheckout pkg vsn = pkg ++ "-" ++ vsn
 checkouts :: IO String
 checkouts = do
     path <- root
-    return (path ++ "checkouts/")
+    return (path </> "checkouts")
 
 -- This action returns the path to the directory, in which the checkout of the given version
 -- of the given package is stored or will be stored.
@@ -25,7 +25,7 @@ getCheckoutPath :: Package -> Version -> IO String
 getCheckoutPath pkg vsn = do
     initializeCheckouts
     path <- checkouts
-    return (path ++ toCheckout pkg vsn)
+    return (path </> toCheckout pkg vsn)
 
 -- This action creates a checkouts directory if it is missing.
 initializeCheckouts :: IO ()

@@ -59,7 +59,7 @@ gPackageVersions opts (CurryPackage pkg) = do
     printDebugMessage opts $ "Generating versions for package '" ++ pkg ++ "'..."
     printDebugMessage opts "Looking for package directory in index of package manager..."
     i <- index
-    let packageDir = i ++ pkg ++ "/"
+    let packageDir = i </> pkg
     printDebugMessage opts $ "Directory in index is: " ++ packageDir
     printDebugMessage opts "Reading content of directory..."
     contents <- getReducedDirectoryContents packageDir
@@ -645,7 +645,7 @@ readPackageModules opts pkg vsn = do
     case result of
         Nothing -> return []
         Just dir -> do
-            let src = dir ++ "/src"
+            let src = dir </> "src"
             curryModulesInDirectory src
 
 readPackageJSON :: Options -> Package -> Version -> IO String
@@ -654,7 +654,7 @@ readPackageJSON opts pkg vsn = do
     case result of
         Nothing -> return "{}"
         Just dir -> do
-            let packageJSON = dir ++ "/package.json"
+            let packageJSON = dir </> "package.json"
             b <- doesFileExist packageJSON
             case b of
                 False -> return "{}"
@@ -666,7 +666,7 @@ readPackageREADME opts pkg vsn = do
     case result of
         Nothing -> return ""
         Just dir -> do
-            let readme = dir ++ "/README.md"
+            let readme = dir </> "README.md"
             b <- doesFileExist readme
             case b of
                 False -> return ""
@@ -678,7 +678,7 @@ packageREADMEPath opts pkg vsn = do
     case result of
         Nothing -> return ""
         Just dir -> do
-            let readme = dir ++ "/README.md"
+            let readme = dir </> "README.md"
             b <- doesFileExist readme
             case b of
                 False -> return ""
@@ -690,7 +690,7 @@ readModuleSourceFile opts pkg vsn m = do
     case result of
         Nothing -> return ""
         Just dir -> do
-            let src = dir ++ "/src/" ++ modNameToPath m ++ ".curry"
+            let src = dir </> "src" </> modNameToPath m <.> "curry"
             b <- doesFileExist src
             case b of 
                 False -> do

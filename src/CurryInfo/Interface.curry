@@ -9,6 +9,7 @@ import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory
 import System.IOExts (evalCmd)
 import System.FrontendExec (FrontendTarget (..), callFrontend)
 import System.CurryPath (currySubdir, modNameToPath)
+import System.FilePath ((</>), (<.>))
 
 import CurryInterface.Types
 import CurryInterface.Files (readCurryInterfaceFile)
@@ -22,7 +23,7 @@ import Text.Pretty (pPrint)
 icurryPath :: Package -> Version -> Module -> IO String
 icurryPath pkg vsn m = do
     path <- getCheckoutPath pkg vsn
-    return (path ++ "/src/" ++ currySubdir ++ "/" ++ modNameToPath m ++ ".icurry")
+    return (path </> "/src/" </> currySubdir </> modNameToPath m <.> "icurry")
 
 -- This action tries to parse the respective .icurry file. If the file does not exist yet, the action will
 -- invoke 'cypm' and 'curry' to install missing dependencies of the package and make the parser generate

@@ -6,6 +6,7 @@ import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import System.CurryPath (modNameToPath)
 import System.Directory (doesFileExist)
+import System.FilePath ((</>), (<.>))
 
 import Data.List (isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex)
 import Data.Maybe (fromMaybe)
@@ -32,7 +33,7 @@ readSourceFile opts pkg vsn m = do
             printDebugMessage opts "Failed to read source file"
             return Nothing
         Just cpath -> do
-            let path = cpath ++ "/src/" ++ modNameToPath m ++ ".curry"
+            let path = cpath </> "src" </> modNameToPath m <.> "curry"
             printDebugMessage opts $ "Path to source file: " ++ path
             b <- doesFileExist path
             case b of
