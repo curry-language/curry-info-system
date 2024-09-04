@@ -3,6 +3,7 @@ module CurryInfo.Paths where
 import CurryInfo.Types
 
 import System.Directory (createDirectoryIfMissing, getDirectoryContents, getHomeDirectory, doesFileExist)
+import System.FilePath ((</>))
 
 -- This action initializes the directory and json file for the given data. If the json file does not exist,
 -- it will be initialized with "{}". If the json already exists, it will remain unchanged.
@@ -29,8 +30,8 @@ class Path x where
 
 instance Path CurryPackage where
     getDirectoryPath (CurryPackage pkg) = do
-        path <- root
-        return (path ++ "packages/" ++ pkg ++ "/")
+        path <- packagesPath
+        return (path </> pkg ++ "/")
     
     getJSONPath x@(CurryPackage pkg) = do
         path <- getDirectoryPath x
@@ -97,3 +98,8 @@ root :: IO String
 root = do
     home <- getHomeDirectory
     return (home ++ "/tmp" ++ "/.curryanalysis/")
+
+packagesPath :: IO String
+packagesPath = do
+    path <- root
+    return (path </> "packages")

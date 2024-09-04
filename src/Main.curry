@@ -3,7 +3,7 @@ module Main where
 import CurryInfo.JParser (JParser)
 import CurryInfo.JPretty (JPretty, jsonOutput)
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, initialize)
+import CurryInfo.Paths (Path, initialize, packagesPath, getDirectoryPath, getJSONPath)
 import CurryInfo.Types
 import CurryInfo.Reader (Reader, readInformation)
 import CurryInfo.Writer (Writer, writeInformation)
@@ -20,8 +20,10 @@ import Data.List (nubBy)
 
 import System.Environment (getArgs)
 import System.Process (exitWith)
+import System.Directory (doesDirectoryExist, doesFileExist, removeDirectory, removeFile, getDirectoryContents)
+import System.FilePath ((</>))
 
-import Control.Monad (unless, zipWithM)
+import Control.Monad (unless, zipWithM, filterM)
 
 -- This action extracts or generates the requested information for the given object.
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
@@ -243,13 +245,84 @@ printResult (OutputJSON jv) = do
     putStrLn "Finished with OutputJSON"
     putStrLn $ ppJSON jv
 
+cleanObject :: Options -> [(String, String)] -> IO ()
+cleanObject opts obj = do
+        case obj of
+            [] -> cleanAll
+            [("packages", pkg)] -> let x = CurryPackage pkg in cleanJSON x >> cleanDirectory x
+            [("packages", pkg), ("versions", vsn)] -> let x = CurryVersion pkg vsn in cleanJSON x >> cleanDirectory x
+            [("packages", pkg), ("versions", vsn), ("modules", m)] -> let x = CurryModule pkg vsn m in cleanJSON x >> cleanDirectory x
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] -> let x = CurryType pkg vsn m t in cleanJSON x
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] -> let x = CurryTypeclass pkg vsn m c in cleanJSON x
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] -> let x = CurryOperation pkg vsn m o in cleanJSON x
+            _ -> printDebugMessage opts $ show obj ++ " does not match any pattern"
+    where
+        cleanJSON :: Path a => a -> IO ()
+        cleanJSON obj' = do
+            path <- getJSONPath obj'
+            b <- doesFileExist path
+            case b of
+                False -> do
+                    printDebugMessage opts $ "json file does not exist: " ++ path ++ "\nNot cleaning up json file."
+                    return ()
+                True -> do
+                    printDebugMessage opts $ "json file exists. Cleaning up json file."
+                    removeFile path
+
+        cleanDirectory :: Path a => a -> IO ()
+        cleanDirectory obj' = do
+            path <- getDirectoryPath obj'
+            b <- doesDirectoryExist path
+            case b of
+                False -> do
+                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
+                    return ()
+                True -> do
+                    printDebugMessage opts $ "directory exists. Cleaning up directory."
+                    deleteDirectory path
+
+        cleanAll :: IO ()
+        cleanAll = do
+            path <- packagesPath
+            b <- doesDirectoryExist path
+            case b of
+                False -> do
+                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
+                    return ()
+                True -> do
+                    printDebugMessage opts $ "directory exists. Cleaning up directory."
+                    deleteDirectory path
+        
+        deleteDirectory :: String -> IO ()
+        deleteDirectory path = do
+            printDebugMessage opts $ "Deleting directory: " ++ path
+
+            contents <- fmap ((map (\p -> path </> p)) . (filter (\p -> p /= "." && p /= ".."))) (getDirectoryContents path)
+            printDebugMessage opts $ "Found contents: " ++ show contents
+
+            dirs <- filterM doesDirectoryExist contents
+            printDebugMessage opts $ "Subdirectories found: " ++ show dirs
+
+            files <- filterM doesFileExist contents
+            printDebugMessage opts $ "Files found: " ++ show files
+
+            printDebugMessage opts "Deleting subdirectories..."
+            mapM deleteDirectory dirs
+
+            printDebugMessage opts "Deleting files..."
+            mapM removeFile files
+
+            printDebugMessage opts "Deleting directory..."
+            removeDirectory path
+            
+            printDebugMessage opts $ "Finished deleting directory: " ++ path
+
 main :: IO ()
 main = do
         args <- getArgs
         (opts, args2) <- processOptions "" args
 
         let pkg = extractOpt "packages"     (optPackage opts)
-        unless (isJust pkg) (putStrLn "Package name is required" >> exitWith 1)
 
         let vsn = extractOpt "versions"     (optVersion opts)
         let m   = extractOpt "modules"      (optModule opts)
@@ -259,8 +332,12 @@ main = do
 
         let obj = catMaybes [pkg, vsn, m, t, c, op]
 
-        res <- getInfos opts obj args2
-        printResult res
+        if args2 == ["clean"]
+            then cleanObject opts obj
+            else do
+                unless (isJust pkg) (putStrLn "Package name is required" >> exitWith 1)
+                res <- getInfos opts obj args2
+                printResult res
     where
         extractOpt :: String -> Maybe String -> Maybe (String, String)
         extractOpt tag = fmap (\x -> (tag, x))
