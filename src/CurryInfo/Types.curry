@@ -36,6 +36,7 @@ data Options = Options
     , optTypeclass  :: Maybe String -- The requested type class
     , optOperation  :: Maybe String -- The requested operation
     , optOutput     :: String       -- The output format
+    , optClean      :: Bool         -- Clean up information
     }
     deriving Show 
 

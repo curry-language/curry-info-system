@@ -2,20 +2,26 @@ module CurryInfo.Options where
 
 import CurryInfo.Types
 import CurryInfo.Configuration
+import CurryInfo.Paths (Path, getDirectoryPath, getJSONPath, packagesPath)
+import CurryInfo.Verbosity (printDebugMessage)
 
 import System.Console.GetOpt
 import System.Process (exitWith)
+import System.Directory (getDirectoryContents, doesFileExist, doesDirectoryExist, removeFile, removeDirectory)
+import System.FilePath ((</>))
 
 import Numeric (readNat)
 
-import Control.Monad (when, unless)
+import Control.Monad (when, unless, filterM)
+
+import Data.Maybe (catMaybes)
 
 printRequests :: String -> Configuration a b -> String
 printRequests s conf = s ++ "\n\n" ++ unlines (map (\(req, _) -> req ++ ":" ++ maybe "FAILED" id (findDescription req conf)) conf) ++ "\n\n"
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing "text"
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing "text" False
 
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
@@ -33,6 +39,7 @@ processOptions banner argv = do
     unless (null opterrors)
            (putStr (unlines opterrors) >> printUsage >> exitWith 1)
     when (optHelp opts) (printUsage >> exitWith 0)
+    when (optClean opts) (cleanObject opts (getObject opts) >> exitWith 0)
     return (opts, args)
     where
         printUsage = putStrLn (banner ++ "\n" ++ usageText)
@@ -48,6 +55,91 @@ usageText =
     printRequests "Type" typeConfiguration ++
     printRequests "Typeclass" typeclassConfiguration ++
     printRequests "Operation" operationConfiguration
+
+getObject :: Options -> [(String, String)]
+getObject opts =
+        let pkg = extractOpt "packages"     (optPackage opts)
+            vsn = extractOpt "versions"     (optVersion opts)
+            m   = extractOpt "modules"      (optModule opts)
+            t   = extractOpt "types"        (optType opts)
+            c   = extractOpt "typeclasses"  (optTypeclass opts)
+            op  = extractOpt "operations"   (optOperation opts)
+        in catMaybes [pkg, vsn, m, t, c, op]
+    where
+        extractOpt :: String -> Maybe String -> Maybe (String, String)
+        extractOpt tag = fmap (\x -> (tag, x))
+
+cleanObject :: Options -> [(String, String)] -> IO ()
+cleanObject opts obj = do
+        case obj of
+            [] -> cleanAll
+            [("packages", pkg)] -> let x = CurryPackage pkg in cleanJSON x >> cleanDirectory x
+            [("packages", pkg), ("versions", vsn)] -> let x = CurryVersion pkg vsn in cleanJSON x >> cleanDirectory x
+            [("packages", pkg), ("versions", vsn), ("modules", m)] -> let x = CurryModule pkg vsn m in cleanJSON x >> cleanDirectory x
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] -> let x = CurryType pkg vsn m t in cleanJSON x
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] -> let x = CurryTypeclass pkg vsn m c in cleanJSON x
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] -> let x = CurryOperation pkg vsn m o in cleanJSON x
+            _ -> printDebugMessage opts $ show obj ++ " does not match any pattern"
+    where
+        cleanJSON :: Path a => a -> IO ()
+        cleanJSON obj' = do
+            path <- getJSONPath obj'
+            b <- doesFileExist path
+            case b of
+                False -> do
+                    printDebugMessage opts $ "json file does not exist: " ++ path ++ "\nNot cleaning up json file."
+                    return ()
+                True -> do
+                    printDebugMessage opts $ "json file exists. Cleaning up json file."
+                    removeFile path
+
+        cleanDirectory :: Path a => a -> IO ()
+        cleanDirectory obj' = do
+            path <- getDirectoryPath obj'
+            b <- doesDirectoryExist path
+            case b of
+                False -> do
+                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
+                    return ()
+                True -> do
+                    printDebugMessage opts $ "directory exists. Cleaning up directory."
+                    deleteDirectory path
+
+        cleanAll :: IO ()
+        cleanAll = do
+            path <- packagesPath
+            b <- doesDirectoryExist path
+            case b of
+                False -> do
+                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
+                    return ()
+                True -> do
+                    printDebugMessage opts $ "directory exists. Cleaning up directory."
+                    deleteDirectory path
+        
+        deleteDirectory :: String -> IO ()
+        deleteDirectory path = do
+            printDebugMessage opts $ "Deleting directory: " ++ path
+
+            contents <- fmap ((map (\p -> path </> p)) . (filter (\p -> p /= "." && p /= ".."))) (getDirectoryContents path)
+            printDebugMessage opts $ "Found contents: " ++ show contents
+
+            dirs <- filterM doesDirectoryExist contents
+            printDebugMessage opts $ "Subdirectories found: " ++ show dirs
+
+            files <- filterM doesFileExist contents
+            printDebugMessage opts $ "Files found: " ++ show files
+
+            printDebugMessage opts "Deleting subdirectories..."
+            mapM deleteDirectory dirs
+
+            printDebugMessage opts "Deleting files..."
+            mapM removeFile files
+
+            printDebugMessage opts "Deleting directory..."
+            removeDirectory path
+
+            printDebugMessage opts $ "Finished deleting directory: " ++ path
 
 -- The options description.
 options :: [OptDescr (Options -> Options)]
@@ -83,6 +175,9 @@ options =
     , Option "" ["output"]
              (OptArg (\args opts -> opts { optOutput = maybe "text" id args }) "<format>")
              "output format"
+    , Option "" ["clean"]
+             (NoArg (\opts -> opts { optClean = True }))
+             "clean up"
     ]
     where
         safeReadNat opttrans s opts = case readNat s of

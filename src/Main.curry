@@ -8,7 +8,7 @@ import CurryInfo.Types
 import CurryInfo.Reader (Reader, readInformation)
 import CurryInfo.Writer (Writer, writeInformation)
 import CurryInfo.ErrorMessage (ErrorMessage, errorMessage)
-import CurryInfo.Options
+import CurryInfo.Options (getObject, processOptions)
 import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import JSON.Parser (parseJSON)
@@ -245,99 +245,11 @@ printResult (OutputJSON jv) = do
     putStrLn "Finished with OutputJSON"
     putStrLn $ ppJSON jv
 
-cleanObject :: Options -> [(String, String)] -> IO ()
-cleanObject opts obj = do
-        case obj of
-            [] -> cleanAll
-            [("packages", pkg)] -> let x = CurryPackage pkg in cleanJSON x >> cleanDirectory x
-            [("packages", pkg), ("versions", vsn)] -> let x = CurryVersion pkg vsn in cleanJSON x >> cleanDirectory x
-            [("packages", pkg), ("versions", vsn), ("modules", m)] -> let x = CurryModule pkg vsn m in cleanJSON x >> cleanDirectory x
-            [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] -> let x = CurryType pkg vsn m t in cleanJSON x
-            [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] -> let x = CurryTypeclass pkg vsn m c in cleanJSON x
-            [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] -> let x = CurryOperation pkg vsn m o in cleanJSON x
-            _ -> printDebugMessage opts $ show obj ++ " does not match any pattern"
-    where
-        cleanJSON :: Path a => a -> IO ()
-        cleanJSON obj' = do
-            path <- getJSONPath obj'
-            b <- doesFileExist path
-            case b of
-                False -> do
-                    printDebugMessage opts $ "json file does not exist: " ++ path ++ "\nNot cleaning up json file."
-                    return ()
-                True -> do
-                    printDebugMessage opts $ "json file exists. Cleaning up json file."
-                    removeFile path
-
-        cleanDirectory :: Path a => a -> IO ()
-        cleanDirectory obj' = do
-            path <- getDirectoryPath obj'
-            b <- doesDirectoryExist path
-            case b of
-                False -> do
-                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
-                    return ()
-                True -> do
-                    printDebugMessage opts $ "directory exists. Cleaning up directory."
-                    deleteDirectory path
-
-        cleanAll :: IO ()
-        cleanAll = do
-            path <- packagesPath
-            b <- doesDirectoryExist path
-            case b of
-                False -> do
-                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
-                    return ()
-                True -> do
-                    printDebugMessage opts $ "directory exists. Cleaning up directory."
-                    deleteDirectory path
-        
-        deleteDirectory :: String -> IO ()
-        deleteDirectory path = do
-            printDebugMessage opts $ "Deleting directory: " ++ path
-
-            contents <- fmap ((map (\p -> path </> p)) . (filter (\p -> p /= "." && p /= ".."))) (getDirectoryContents path)
-            printDebugMessage opts $ "Found contents: " ++ show contents
-
-            dirs <- filterM doesDirectoryExist contents
-            printDebugMessage opts $ "Subdirectories found: " ++ show dirs
-
-            files <- filterM doesFileExist contents
-            printDebugMessage opts $ "Files found: " ++ show files
-
-            printDebugMessage opts "Deleting subdirectories..."
-            mapM deleteDirectory dirs
-
-            printDebugMessage opts "Deleting files..."
-            mapM removeFile files
-
-            printDebugMessage opts "Deleting directory..."
-            removeDirectory path
-            
-            printDebugMessage opts $ "Finished deleting directory: " ++ path
-
 main :: IO ()
 main = do
         args <- getArgs
         (opts, args2) <- processOptions "" args
-
-        let pkg = extractOpt "packages"     (optPackage opts)
-
-        let vsn = extractOpt "versions"     (optVersion opts)
-        let m   = extractOpt "modules"      (optModule opts)
-        let t   = extractOpt "types"        (optType opts)
-        let c   = extractOpt "typeclasses"  (optTypeclass opts)
-        let op  = extractOpt "operations"   (optOperation opts)
-
-        let obj = catMaybes [pkg, vsn, m, t, c, op]
-
-        if args2 == ["clean"]
-            then cleanObject opts obj
-            else do
-                unless (isJust pkg) (putStrLn "Package name is required" >> exitWith 1)
-                res <- getInfos opts obj args2
-                printResult res
-    where
-        extractOpt :: String -> Maybe String -> Maybe (String, String)
-        extractOpt tag = fmap (\x -> (tag, x))
+        let obj = getObject opts
+        unless (isJust (optPackage opts)) (putStrLn "Package name is required" >> exitWith 1)
+        res <- getInfos opts obj args2
+        printResult res
