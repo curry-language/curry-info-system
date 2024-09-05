@@ -148,11 +148,11 @@ options =
              (NoArg (\opts -> opts { optHelp = True }))
              "print help and exit"
     , Option "v" ["verbosity"]
-             (OptArg (maybe (checkVerb 2) (safeReadNat checkVerb)) "<n>")
-             "verbosity level\n\t0: quiet (no output besides the result)\n\t1: Output what request is currently worked at\n\t2: Additionaly output about the steps taken\n\t3: Addtionaly output debug information (commands used, output of invoked commands, etc.)"
+             (OptArg (maybe (checkVerb 1) (safeReadNat checkVerb)) "<n>")
+             "verbosity level\n\t0: quiet (no output besides the result)\n\t1: Show status messages (like what request is being processed) (default)\n\t2: Show actions performed (like checkout a package version and running an analysis\n\t3: Show all detailes (like commands to be invoked and what files to update)"
     , Option "f" ["force"]
              (OptArg (maybe (checkForce 1) (safeReadNat checkForce)) "<n>")
-             "force generation of missing requested information\n\t0: No generation\n\t1: Only generate when missing\n\t2: Always generate"
+             "force generation of missing requested information\n\t0: No generation\n\t1: Only generate when missing (default)\n\t2: Always generate"
     , Option "p" ["package"]
              (ReqArg (\args opts -> opts { optPackage = Just args }) "<pkg>")
              "requested package"
@@ -173,7 +173,7 @@ options =
              "requested operation"
     , Option "" ["output"]
              (OptArg (\args opts -> opts { optOutput = maybe "text" id args }) "<format>")
-             "output format: text, json"
+             "output format: text (default), json"
     , Option "" ["clean"]
              (NoArg (\opts -> opts { optClean = True }))
              "clean up the requested object or all information and exit"
