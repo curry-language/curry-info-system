@@ -33,6 +33,7 @@ import JSON.Parser (parseJSON)
 import System.IOExts (evalCmd)
 import System.Directory (doesDirectoryExist, doesFileExist)
 import System.CurryPath (curryModulesInDirectory, modNameToPath)
+import System.FilePath ((</>), (<.>))
 
 import Data.List (isPrefixOf, intersect, (\\))
 import Data.Maybe (catMaybes)

@@ -7,6 +7,7 @@ import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
+import System.FilePath ((</>))
 
 -- This functions generates the directory name for a given package and version. It is used for
 -- checkout.
