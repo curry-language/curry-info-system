@@ -25,6 +25,12 @@ class JParser a where
 
 -- PACKAGE
 
+jrPackageName :: JValue -> Maybe PackageInformation
+jrPackageName jv = PackageName <$> getString jv
+
+jrPackageVersions :: JValue -> Maybe PackageInformation
+jrPackageVersions jv = PackageVersions <$> (join $ mapM getString <$> getArray jv)
+
 instance JParser PackageInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "package"   -> PackageName <$> getString fieldvalue
@@ -32,6 +38,24 @@ instance JParser PackageInformation where
         _           -> Nothing
 
 -- VERSION
+
+jrVersionVersion :: JValue -> Maybe VersionInformation
+jrVersionVersion jv = VersionVersion <$> getString jv
+
+jrVersionDocumentation :: JValue -> Maybe VersionInformation
+jrVersionDocumentation jv = VersionDocumentation <$> getString jv
+
+jrVersionCategories :: JValue -> Maybe VersionInformation
+jrVersionCategories jv = VersionCategories <$> (join $ mapM getString <$> getArray jv)
+
+jrVersionModules :: JValue -> Maybe VersionInformation
+jrVersionModules jv = VersionModules <$> (join $ mapM getString <$> getArray jv)
+
+jrVersionDependencies :: JValue -> Maybe VersionInformation
+jrVersionDependencies jv = VersionDependencies <$> do
+    arr <- getArray jv
+    deps <- mapM getString arr
+    return (map read deps)
 
 instance JParser VersionInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
@@ -47,6 +71,27 @@ instance JParser VersionInformation where
 
 -- MODULE
 
+jrModuleName :: JValue -> Maybe ModuleInformation
+jrModuleName jv = ModuleName <$> getString jv
+
+jrModuleDocumentation :: JValue -> Maybe ModuleInformation
+jrModuleDocumentation jv = (ModuleDocumentation . read) <$> getString jv
+
+jrModuleSourceCode :: JValue -> Maybe ModuleInformation
+jrModuleSourceCode jv = (ModuleSourceCode . read) <$> getString jv
+
+jrModuleSafe :: JValue -> Maybe ModuleInformation
+jrModuleSafe jv = (ModuleSafe . read) <$> getString jv
+
+jrModuleTypeclasses :: JValue -> Maybe ModuleInformation
+jrModuleTypeclasses jv = ModuleTypeclasses <$> (join $ mapM getString <$> getArray jv)
+
+jrModuleTypes :: JValue -> Maybe ModuleInformation
+jrModuleTypes jv = ModuleTypes <$> (join $ mapM getString <$> getArray jv)
+
+jrModuleOperations :: JValue -> Maybe ModuleInformation
+jrModuleOperations jv = ModuleOperations <$> (join $ mapM getString <$> getArray jv)
+
 instance JParser ModuleInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "module"        -> ModuleName <$> getString fieldvalue
@@ -61,6 +106,18 @@ instance JParser ModuleInformation where
 
 -- TYPE
 
+jrTypeName :: JValue -> Maybe TypeInformation
+jrTypeName jv = TypeName <$> getString jv
+
+jrTypeDocumentation :: JValue -> Maybe TypeInformation
+jrTypeDocumentation jv = (TypeDocumentation . read) <$> getString jv
+
+jrTypeConstructors :: JValue -> Maybe TypeInformation
+jrTypeConstructors jv = TypeConstructors <$> (join $ mapM getString <$> getArray jv)
+
+jrTypeDefinition :: JValue -> Maybe TypeInformation
+jrTypeDefinition jv = (TypeDefinition . read) <$> getString jv
+
 instance JParser TypeInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "typeName"      -> TypeName <$> getString fieldvalue
@@ -71,6 +128,18 @@ instance JParser TypeInformation where
 
 -- TYPECLASS
 
+jrTypeclassName :: JValue -> Maybe TypeclassInformation
+jrTypeclassName jv = TypeclassName <$> getString jv
+
+jrTypeclassDocumentation :: JValue -> Maybe TypeclassInformation
+jrTypeclassDocumentation jv = (TypeclassDocumentation . read) <$> getString jv
+
+jrTypeclassMethods :: JValue -> Maybe TypeclassInformation
+jrTypeclassMethods jv = TypeclassMethods <$> (read <$> getString jv)
+
+jrTypeclassDefinition :: JValue -> Maybe TypeclassInformation
+jrTypeclassDefinition jv = (TypeclassDefinition . read) <$> getString jv
+
 instance JParser TypeclassInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
         "typeclass"     -> TypeclassName <$> getString fieldvalue
@@ -80,6 +149,45 @@ instance JParser TypeclassInformation where
         _               -> Nothing
 
 -- OPERATION
+
+jrOperationName :: JValue -> Maybe OperationInformation
+jrOperationName jv = OperationName <$> getString jv
+
+jrOperationDocumentation :: JValue -> Maybe OperationInformation
+jrOperationDocumentation jv = (OperationDocumentation . read) <$> getString jv
+
+jrOperationSourceCode :: JValue -> Maybe OperationInformation
+jrOperationSourceCode jv = (OperationSourceCode . read) <$> getString jv
+
+jrOperationSignature :: JValue -> Maybe OperationInformation
+jrOperationSignature jv = OperationSignature <$> getString jv
+
+jrOperationInfix :: JValue -> Maybe OperationInformation
+jrOperationInfix jv = OperationInfix <$> (read <$> getString jv)
+
+jrOperationPrecedence :: JValue -> Maybe OperationInformation
+jrOperationPrecedence jv = OperationPrecedence <$> (read <$> getString jv)
+
+jrOperationDeterministic :: JValue -> Maybe OperationInformation
+jrOperationDeterministic jv = OperationDeterministic <$> (read <$> getString jv)
+
+jrOperationDemandness :: JValue -> Maybe OperationInformation
+jrOperationDemandness jv = OperationDemandness <$> do
+    arr <- getArray jv
+    numbers <- mapM getNumber arr
+    return numbers
+
+jrOperationIndeterministic :: JValue -> Maybe OperationInformation
+jrOperationIndeterministic jv = OperationIndeterministic <$> (getBool jv)
+
+jrOperationSolutionCompleteness :: JValue -> Maybe OperationInformation
+jrOperationSolutionCompleteness jv = OperationSolutionCompleteness <$> (getBool jv)
+
+jrOperationTermination :: JValue -> Maybe OperationInformation
+jrOperationTermination jv = OperationTermination <$> (getBool jv)
+
+jrOperationTotallyDefined :: JValue -> Maybe OperationInformation
+jrOperationTotallyDefined jv = OperationTotallyDefined <$> (getBool jv)
 
 instance JParser OperationInformation where
     jparseField (fieldname, fieldvalue) = case fieldname of
