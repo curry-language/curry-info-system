@@ -22,9 +22,34 @@ jsonOutput x =
 class JPretty a where
     jpretty :: a -> JField
 
+-- PACKAGE
+
+jsPackageName :: PackageInformation -> JValue
+jsPackageName (PackageName s) = JString s
+
+jsPackageVersions :: PackageInformation -> JValue
+jsPackageVersions (PackageVersions vsns) = JArray (map JString vsns)
+
 instance JPretty PackageInformation where
     jpretty (PackageName s)         = ("package", JString s)
     jpretty (PackageVersions vsns)  = ("versions", JArray (map JString vsns))
+
+-- VERSION
+
+jsVersionVersion :: VersionInformation -> JValue
+jsVersionVersion (VersionVersion vsn) = JString vsn
+
+jsVersionDocumentation :: VersionInformation -> JValue
+jsVersionDocumentation (VersionDocumentation d) = JString d
+
+jsVersionCategories :: VersionInformation -> JValue
+jsVersionCategories (VersionCategories cats) = JArray (map JString cats)
+
+jsVersionModules :: VersionInformation -> JValue
+jsVersionModules (VersionModules mods) = JArray (map JString mods)
+
+jsVersionDependencies :: VersionInformation -> JValue
+jsVersionDependencies (VersionDependencies deps) = JArray (map (JString . show) deps)
 
 instance JPretty VersionInformation where
     jpretty (VersionVersion vsn)            = ("version", JString vsn)
@@ -34,6 +59,29 @@ instance JPretty VersionInformation where
     jpretty (VersionDependencies deps)      = ("dependencies", JArray (map (JString . show) deps))
         --where
         --f (pkg, lb, ub) = JObject [("package", JString pkg), ("lowerBound", JString (show lb)), ("upperBound", JString (show ub))]
+
+-- MODULE
+
+jsModuleName :: ModuleInformation -> JValue
+jsModuleName (ModuleName m) = JString m
+
+jsModuleDocumentation :: ModuleInformation -> JValue
+jsModuleDocumentation (ModuleDocumentation d) = JString $ show d
+
+jsModuleSourceCode :: ModuleInformation -> JValue
+jsModuleSourceCode (ModuleSourceCode d) = JString $ show d
+
+jsModuleSafe :: ModuleInformation -> JValue
+jsModuleSafe (ModuleSafe s) = JString $ show s
+
+jsModuleTypeclasses :: ModuleInformation -> JValue
+jsModuleTypeclasses (ModuleTypeclasses tcs) = JArray (map JString tcs)
+
+jsModuleTypes :: ModuleInformation -> JValue
+jsModuleTypes (ModuleTypes ts) = JArray (map JString ts)
+
+jsModuleOperations :: ModuleInformation -> JValue
+jsModuleOperations (ModuleOperations ops) = JArray (map JString ops)
 
 instance JPretty ModuleInformation where
     jpretty (ModuleName m)          = ("module", JString m)
@@ -45,17 +93,84 @@ instance JPretty ModuleInformation where
     jpretty (ModuleTypes ts)        = ("types", JArray (map JString ts))
     jpretty (ModuleOperations ops)  = ("operations", JArray (map JString ops))
 
+-- TYPE
+
+jsTypeName :: TypeInformation -> JValue
+jsTypeName (TypeName n) = JString n
+
+jsTypeDocumentation :: TypeInformation -> JValue
+jsTypeDocumentation (TypeDocumentation d) = JString $ show d
+
+jsTypeConstructors :: TypeInformation -> JValue
+jsTypeConstructors (TypeConstructors cs) = JArray (map JString cs)
+
+jsTypeDefinition :: TypeInformation -> JValue
+jsTypeDefinition (TypeDefinition d) = JString $ show d
+
 instance JPretty TypeInformation where
     jpretty (TypeName n)            = ("typeName", JString n)
     jpretty (TypeDocumentation d)   = ("documentation", JString $ show d)
     jpretty (TypeConstructors cs)   = ("constructors", JArray (map JString cs))
     jpretty (TypeDefinition d)      = ("definition", JString $ show d)
 
+-- TYPECLASS
+
+jsTypeclassName :: TypeclassInformation -> JValue
+jsTypeclassName (TypeclassName n) = JString n
+
+jsTypeclassDocumentation :: TypeclassInformation -> JValue
+jsTypeclassDocumentation (TypeclassDocumentation d) = JString $ show d
+
+jsTypeclassMethods :: TypeclassInformation -> JValue
+jsTypeclassMethods (TypeclassMethods signs) = JArray (map JString signs)
+
+jsTypeclassDefinition :: TypeclassInformation -> JValue
+jsTypeclassDefinition (TypeclassDefinition d) = JString $ show d
+
 instance JPretty TypeclassInformation where
     jpretty (TypeclassName n)           = ("typeclass", JString n)
     jpretty (TypeclassDocumentation d)  = ("documentation", JString $ show d)
     jpretty (TypeclassMethods signs)    = ("methods", JArray (map JString signs))
     jpretty (TypeclassDefinition d)     = ("definition", JString $ show d)
+
+-- OPERATION
+
+jsOperationName :: OperationInformation -> JValue
+jsOperationName (OperationName n) = JString n
+
+jsOperationDocumentation :: OperationInformation -> JValue
+jsOperationDocumentation (OperationDocumentation d) = JString $ show d
+
+jsOperationSourceCode :: OperationInformation -> JValue
+jsOperationSourceCode (OperationSourceCode d) = JString $ show d
+
+jsOperationSignature :: OperationInformation -> JValue
+jsOperationSignature (OperationSignature sign) = JString sign
+
+jsOperationInfix :: OperationInformation -> JValue
+jsOperationInfix (OperationInfix i) = JString $ show i
+
+jsOperationPrecedence :: OperationInformation -> JValue
+jsOperationPrecedence (OperationPrecedence p) = JString $ show p
+
+jsOperationDeterministic :: OperationInformation -> JValue
+jsOperationDeterministic (OperationDeterministic det) = JString $ show det
+
+jsOperationDemandness :: OperationInformation -> JValue
+jsOperationDemandness (OperationDemandness dems) = JArray (map JNumber dems)
+
+jsOperationIndeterministic :: OperationInformation -> JValue
+jsOperationIndeterministic (OperationIndeterministic b) = if b then JTrue else JFalse
+
+jsOperationSolutionCompleteness :: OperationInformation -> JValue
+jsOperationSolutionCompleteness (OperationSolutionCompleteness b) = if b then JTrue else JFalse
+
+jsOperationTermination :: OperationInformation -> JValue
+jsOperationTermination (OperationTermination b) = if b then JTrue else JFalse
+
+jsOperationTotallyDefined :: OperationInformation -> JValue
+jsOperationTotallyDefined (OperationTotallyDefined b) = if b then JTrue else JFalse
+
 
 instance JPretty OperationInformation where
     jpretty (OperationName n)                   = ("operation", JString n)
