@@ -149,11 +149,10 @@ options =
              "print help and exit"
     , Option "v" ["verbosity"]
              (OptArg (maybe (checkVerb 2) (safeReadNat checkVerb)) "<n>")
-             "verbosity level: NOT YET DEFINED"
+             "verbosity level\n\t0: quiet (no output besides the result)\n\t1: Output what request is currently worked at\n\t2: Additionaly output about the steps taken\n\t3: Addtionaly output debug information (commands used, output of invoked commands, etc.)"
     , Option "f" ["force"]
-             --(NoArg (\opts -> opts { optForce = True }))
-             (OptArg (maybe (checkForce 0) (safeReadNat checkForce)) "<n>")
-             "force generation of missing requested information"
+             (OptArg (maybe (checkForce 1) (safeReadNat checkForce)) "<n>")
+             "force generation of missing requested information\n\t0: No generation\n\t1: Only generate when missing\n\t2: Always generate"
     , Option "p" ["package"]
              (ReqArg (\args opts -> opts { optPackage = Just args }) "<pkg>")
              "requested package"
@@ -174,17 +173,17 @@ options =
              "requested operation"
     , Option "" ["output"]
              (OptArg (\args opts -> opts { optOutput = maybe "text" id args }) "<format>")
-             "output format"
+             "output format: text, json"
     , Option "" ["clean"]
              (NoArg (\opts -> opts { optClean = True }))
-             "clean up"
+             "clean up the requested object or all information and exit"
     ]
     where
         safeReadNat opttrans s opts = case readNat s of
             [(n, "")] -> opttrans n opts
             _ -> error "Illegal number argument (try '-h' for help)"
         
-        checkVerb n opts = if n >= 0 && n <= 4
+        checkVerb n opts = if n >= 0 && n <= 3
                                 then opts { optVerb = n }
                                 else error "Illegal verbosity level (try '-h' for help)"
         checkForce n opts = if n >= 0 && n <= 2
