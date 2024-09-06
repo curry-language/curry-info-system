@@ -26,18 +26,9 @@ import Control.Monad (unless)
 info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
 
 printResult :: Output -> IO ()
-printResult (OutputText txt) = do
-    putStrLn ""
-    putStrLn "Finished with OutputText"
-    putStrLn txt
-printResult (OutputError err) = do
-    putStrLn ""
-    putStrLn "Finished with OutputError"
-    putStrLn err
-printResult (OutputJSON jv) = do
-    putStrLn ""
-    putStrLn "Finished with OutputJSON"
-    putStrLn $ ppJSON jv
+printResult (OutputText txt) = putStrLn txt
+printResult (OutputError err) = putStrLn $ "Error: " ++ err
+printResult (OutputJSON jv) = putStrLn $ ppJSON jv
 
 getInfos2 :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos2 opts input reqs = do
