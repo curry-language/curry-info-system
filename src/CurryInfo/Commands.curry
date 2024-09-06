@@ -39,60 +39,60 @@ runCmd opts (cmd, action) = do
 cmdCheckout :: String -> Package -> Version -> (String, IO (Int, String, String))
 cmdCheckout path pkg vsn =
     let
-        cmd = "cypm checkout -o " ++ path ++ " " ++ pkg ++ " " ++ vsn
-        action = evalCmd "cypm" ["checkout", "-o", path, pkg, vsn] ""
-    in (cmd, action)
+        x@(cmd:args) = ["cypm", "checkout", "-o", path, pkg, vsn]
+        action = evalCmd cmd args ""
+    in (unwords x, action)
 
 -- This action calls CYPM to install dependencies in the given path.
 cmdCYPMInstall :: String -> (String, IO (Int, String, String))
 cmdCYPMInstall path = 
     let
-        cmd = "cypm exec cypm install"
+        x@(cmd:args) = ["cypm", "exec", "cypm", "install"]
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
-            (exitCode, output, err) <- evalCmd "cypm" ["exec", "cypm", "install"] ""
+            (exitCode, output, err) <- evalCmd cmd args ""
             setCurrentDirectory current
             return (exitCode, output, err)
-    in (cmd, action)
+    in (unwords x, action)
 
 -- This action calls CYPM to update the package index in the given path.
 cmdCYPMUpdate :: String -> (String, IO (Int, String, String))
 cmdCYPMUpdate path =
     let
-        cmd = "cypm update"
+        x@(cmd:args) = ["cypm", "update"]
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
-            (exitCode, output, err) <- evalCmd "cypm" ["update"] ""
+            (exitCode, output, err) <- evalCmd cmd args ""
             setCurrentDirectory current
             return (exitCode, output, err)
-    in (cmd, action)
+    in (unwords x, action)
 
 -- This action calls curry to load a specific module and immediatly quits again.
 -- This is done to initiate the compiler to generate files for the module (i.e. icurry).
 cmdCurryLoad :: String -> Module -> (String, IO (Int, String, String))
 cmdCurryLoad path m =
     let
-        cmd = "cypm exec curry :l " ++ m ++ " :q"
+        x@(cmd:args) = ["cypm", "exec", "curry", ":l", m, ":q"]
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
             getCurrentDirectory >>= print
-            (exitCode, output, err) <- evalCmd "cypm" ["exec", "curry", ":l", m, ":q"] ""
+            (exitCode, output, err) <- evalCmd cmd args ""
             setCurrentDirectory current
             return (exitCode, output, err)
-    in (cmd, action)
+    in (unwords x, action)
 
 -- This action calls CASS to compute the given analysis for the given module in the given path.
 cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
 cmdCASS path analysis m =
     let
-        cmd = "cypm exec cass -f xml " ++ analysis ++ " " ++ m
+        x@(cmd:args) = ["cypm", "exec", "cass", "-f", "xml", analysis, m]
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
-            (exitCode, output, err) <- evalCmd "cypm" ["exec", "cass", "-f", "xml", analysis, m] ""
+            (exitCode, output, err) <- evalCmd cmd args ""
             setCurrentDirectory current
             return (exitCode, output, err)
-    in (cmd, action)
+    in (unwords x, action)
