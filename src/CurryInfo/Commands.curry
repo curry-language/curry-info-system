@@ -47,11 +47,11 @@ cmdCheckout path pkg vsn =
 cmdCYPMInstall :: String -> (String, IO (Int, String, String))
 cmdCYPMInstall path = 
     let
-        cmd = "cpym exec cypm install"
+        cmd = "cypm exec cypm install"
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
-            (exitCode, output, err) <- evalCmd "cypm" ["install"] ""
+            (exitCode, output, err) <- evalCmd "cypm" ["exec", "cypm", "install"] ""
             setCurrentDirectory current
             return (exitCode, output, err)
     in (cmd, action)

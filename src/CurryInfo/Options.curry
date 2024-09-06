@@ -16,8 +16,8 @@ import Control.Monad (when, unless, filterM)
 
 import Data.Maybe (catMaybes)
 
-printRequests :: String -> Configuration a b -> String
-printRequests s conf = s ++ "\n\n" ++ unlines (map (\(req, _) -> req ++ ":" ++ maybe "FAILED" id (findDescription req conf)) conf) ++ "\n\n"
+printRequests :: String -> [RegisteredRequest a] -> String
+printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":" ++ description' rreq) conf) ++ "\n\n"
 
 defaultOptions :: Options
 defaultOptions =

@@ -4,25 +4,6 @@ import Text.Pretty (Doc)
 
 import JSON.Data (JValue)
 
--- Generator Type
-
-type Generator a b = Options -> a -> IO (Maybe (String, b))
-
--- Printer Type
-
-type Printer a = Options -> a -> IO String
-
--- Configuration Type
-
-type Description = String
---type Configuration a b = [(String, (Description, Extractor b, Generator a b))]
-type Configuration a b = [(String, RegisteredField a b)]
-data RegisteredField a b = RegisteredField
-    { description   :: Description
-    , generator     :: Generator a b
-    , printer       :: Printer b
-    }
-
 -- Options Type
 
 data Options = Options
@@ -55,70 +36,19 @@ data Output
 
 data CurryPackage = CurryPackage Package
 
-instance Field PackageInformation where
-    fieldName info = case info of
-        PackageName _ -> "package"
-        PackageVersions _ -> "versions"
-
 data CurryVersion = CurryVersion Package Version
-
-instance Field VersionInformation where
-    fieldName info = case info of
-        VersionVersion _ -> "version"
-        VersionDocumentation _ -> "documentation"
-        VersionCategories _ -> "categories"
-        VersionModules _ -> "modules"
-        VersionDependencies _ -> "dependencies"
 
 data CurryModule = CurryModule Package Version Module
 
-instance Field ModuleInformation where
-    fieldName info = case info of
-        ModuleName _ -> "module"
-        ModuleDocumentation _ -> "documentation"
-        ModuleSourceCode _ -> "sourceCode"
-        ModuleSafe _ -> "safe"
-        ModuleTypeclasses _ -> "typeclasses"
-        ModuleTypes _ -> "types"
-        ModuleOperations _ -> "operations"
-
 data CurryType = CurryType Package Version Module Type
-
-instance Field TypeInformation where
-    fieldName info = case info of
-        TypeName _ -> "typeName"
-        TypeDocumentation _ -> "documentation"
-        TypeConstructors _ -> "constructors"
-        TypeDefinition _ -> "definition"
 
 data CurryTypeclass = CurryTypeclass Package Version Module Typeclass
 
-instance Field TypeclassInformation where
-    fieldName info = case info of
-        TypeclassName _ -> "typeclass"
-        TypeclassDocumentation _ -> "documentation"
-        TypeclassMethods _ -> "methods"
-        TypeclassDefinition _ -> "definition"
-
 data CurryOperation = CurryOperation Package Version Module Operation
-
-instance Field OperationInformation where
-    fieldName info = case info of
-        OperationName _ -> "operation"
-        OperationDocumentation _ -> "documentation"
-        OperationSourceCode _ -> "sourceCode"
-        OperationSignature _ -> "signature"
-        OperationInfix _ -> "infix"
-        OperationPrecedence _ -> "precedence"
-        OperationDeterministic _ -> "deterministic"
-        OperationDemandness _ -> "demandness"
-        OperationIndeterministic _ -> "indeterministic"
-        OperationSolutionCompleteness _ -> "solutionCompleteness"
-        OperationTermination _ -> "termination"
-        OperationTotallyDefined _ -> "totallyDefined"
 
 -- INFORMATION TYPES
 
+{-
 data PackageInformation
     = PackageName String
     | PackageVersions [Version]
@@ -165,6 +95,7 @@ data OperationInformation
     | OperationSolutionCompleteness SolutionCompleteness
     | OperationTermination Termination
     | OperationTotallyDefined TotallyDefined
+-}
 
 data Infix = Infix | InfixL | InfixR
     deriving (Read, Show)
@@ -242,3 +173,13 @@ type Disjunction = [Conjunction]
 
 data Dependency = Dependency Package Disjunction
     deriving (Eq, Show, Read)
+
+--------------------------
+
+type Generator a b = Options -> a -> IO (Maybe b)
+
+type JReader b = JValue -> Maybe b
+
+type JShower b = b -> JValue
+
+type Printer b = Options -> b -> IO String

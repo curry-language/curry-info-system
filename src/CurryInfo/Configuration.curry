@@ -3,101 +3,140 @@ module CurryInfo.Configuration where
 import CurryInfo.Types
 import CurryInfo.Generator
 import CurryInfo.Printer
+import CurryInfo.JRead
+import CurryInfo.JShow
+import CurryInfo.Verbosity
+import CurryInfo.Reader
+import CurryInfo.Paths
 
-findDescription :: String -> Configuration a b -> Maybe Description
-findDescription field conf = description <$> lookup field conf
+import JSON.Data
+import JSON.Pretty (ppJSON)
 
-findGenerator :: String -> Configuration a b -> Maybe (Generator a b)
-findGenerator field conf = generator <$> lookup field conf
+import Data.List (find)
 
-findPrinter :: String -> Configuration a b -> Maybe (Printer b)
-findPrinter field conf = printer <$> lookup field conf
+----------------------------
 
 -- PACKAGE
 
-packageFields :: [String]
-packageFields = map fst packageConfiguration
-
-packageConfiguration :: Configuration CurryPackage PackageInformation
+packageConfiguration :: [RegisteredRequest CurryPackage]
 packageConfiguration =
-    [ ("package",   RegisteredField "\t\t\tThe name of the package" gPackageName pPackageName)
-    , ("versions",  RegisteredField "\t\t\tThe versions available of the package" gPackageVersions pPackageVersions)
+    [ registerRequest "package"     "\t\t\tThe name of the package"                 gPackageName        jrPackageName       jsPackageName       pPackageName
+    , registerRequest "versions"    "\t\t\tThe versions available of the package"   gPackageVersions    jrPackageVersions   jsPackageVersions   pPackageVersions
     ]
 
 -- VERSION
 
-versionFields :: [String]
-versionFields = map fst versionConfiguration
-
-versionConfiguration :: Configuration CurryVersion VersionInformation
+versionConfiguration :: [RegisteredRequest CurryVersion]
 versionConfiguration =
-    [ ("version",       RegisteredField "\t\tThe version number of the version" gVersionVersion pVersionVersion)
-    , ("documentation", RegisteredField "\t\tThe documentation of the version" gVersionDocumentation pVersionDocumentation)
-    , ("categories",    RegisteredField "\t\tThe categories of the version" gVersionCategories pVersionCategories)
-    , ("modules",       RegisteredField "\t\tThe exported modules of the version" gVersionModules pVersionModules)
-    , ("dependencies",  RegisteredField "\t\tThe dependencies of the version" gVersionDependencies pVersionDependencies)
+    [ registerRequest "version" "\t\tThe version number of the version"         gVersionVersion         jrVersionVersion        jsVersionVersion        pVersionVersion
+    , registerRequest "documentation" "\t\tThe documentation of the version"    gVersionDocumentation   jrVersionDocumentation  jsVersionDocumentation  pVersionDocumentation
+    , registerRequest "categories" "\t\tThe categories of the version"          gVersionCategories      jrVersionCategories     jsVersionCategories     pVersionCategories
+    , registerRequest "modules" "\t\tThe exported modules of the version"       gVersionModules         jrVersionModules        jsVersionModules        pVersionModules
+    , registerRequest "dependencies" "\t\tThe dependencies of the version"      gVersionDependencies    jrVersionDependencies   jsVersionDependencies   pVersionDependencies
     ]
 
 -- MODULE
 
-moduleFields :: [String]
-moduleFields = map fst moduleConfiguration
-
-moduleConfiguration :: Configuration CurryModule ModuleInformation
+moduleConfiguration :: [RegisteredRequest CurryModule]
 moduleConfiguration =
-    [ ("module",        RegisteredField "\t\t\tThe name of the module" gModuleName pModuleName)
-    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the module" gModuleDocumentation pModuleDocumentation)
-    , ("sourceCode",    RegisteredField "\t\tReference to the source code of the module" gModuleSourceCode pModuleSourceCode)
-    , ("safe",          RegisteredField "\t\t\tAnalysis result whether the module is safe" gModuleSafe pModuleSafe)
-    --, ("exports",       RegisteredField "" extractModuleExports gModuleExports)
-    , ("typeclasses",   RegisteredField "\t\tThe exported typeclasses of the module" gModuleTypeclasses pModuleTypeclasses)
-    , ("types",         RegisteredField "\t\t\tThe exported types of the module" gModuleTypes pModuleTypes)
-    , ("operations",    RegisteredField "\t\tThe exported operations of the module" gModuleOperations pModuleOperations)
+    [ registerRequest "module"          "\t\t\tThe name of the module"                              gModuleName             jrModuleName             jsModuleName             pModuleName 
+    , registerRequest "documentation"   "\t\tReference to the documentation comment of the module"  gModuleDocumentation    jrModuleDocumentation    jsModuleDocumentation    pModuleDocumentation
+    , registerRequest "sourceCode"      "\t\tReference to the source code of the module"            gModuleSourceCode       jrModuleSourceCode       jsModuleSourceCode       pModuleSourceCode
+    , registerRequest "safe"            "\t\t\tAnalysis result whether the module is safe"          gModuleSafe             jrModuleSafe             jsModuleSafe             pModuleSafe
+    , registerRequest "typeclasses"     "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      jrModuleTypeclasses      jsModuleTypeclasses      pModuleTypeclasses
+    , registerRequest "types"           "\t\t\tThe exported types of the module"                    gModuleTypes            jrModuleTypes            jsModuleTypes            pModuleTypes
+    , registerRequest "operations"      "\t\tThe exported operations of the module"                 gModuleOperations       jrModuleOperations       jsModuleOperations       pModuleOperations
     ]
 
 -- TYPE
 
-typeFields :: [String]
-typeFields = map fst typeConfiguration
-
-typeConfiguration :: Configuration CurryType TypeInformation
+typeConfiguration :: [RegisteredRequest CurryType]
 typeConfiguration =
-    [ ("typeName",      RegisteredField "\t\tThe name of the type" gTypeName pTypeName)
-    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the type" gTypeDocumentation pTypeDocumentation)
-    , ("constructors",  RegisteredField "\t\tThe list of the constructors of the type" gTypeConstructors pTypeConstructors)
-    , ("definition",    RegisteredField "\t\tReference to the definition of the type" gTypeDefinition pTypeDefinition)
+    [ registerRequest "typeName"        "\t\tThe name of the type"                                  gTypeName           jrTypeName           jsTypeName           pTypeName
+    , registerRequest "documentation"   "\t\tReference to the documentation comment of the type"    gTypeDocumentation  jrTypeDocumentation  jsTypeDocumentation  pTypeDocumentation
+    , registerRequest "constructors"    "\t\tThe list of the constructors of the type"              gTypeConstructors   jrTypeConstructors   jsTypeConstructors   pTypeConstructors
+    , registerRequest "definition"      "\t\tReference to the definition of the type"               gTypeDefinition     jrTypeDefinition     jsTypeDefinition     pTypeDefinition
     ]
 
 -- TYPECLASS
 
-typeclassFields :: [String]
-typeclassFields = map fst typeclassConfiguration
-
-typeclassConfiguration :: Configuration CurryTypeclass TypeclassInformation
+typeclassConfiguration :: [RegisteredRequest CurryTypeclass]
 typeclassConfiguration =
-    [ ("typeclass",     RegisteredField "\t\tThe name of the typeclass" gTypeclassName pTypeclassName)
-    , ("documentation", RegisteredField "\t\tReference to the documentation comment of the typeclass" gTypeclassDocumentation pTypeclassDocumentation)
-    , ("methods",       RegisteredField "\t\tThe list of the methods of the typeclass" gTypeclassMethods pTypeclassMethods)
-    , ("definition",    RegisteredField "\t\tReference to the definition of the typeclass" gTypeclassDefinition pTypeclassDefinition)
+    [ registerRequest "typeclass"       "\t\tThe name of the typeclass"                                 gTypeclassName          jrTypeclassName          jsTypeclassName          pTypeclassName
+    , registerRequest "documentation"   "\t\tReference to the documentation comment of the typeclass"   gTypeclassDocumentation jrTypeclassDocumentation jsTypeclassDocumentation pTypeclassDocumentation
+    , registerRequest "methods"         "\t\tThe list of the methods of the typeclass"                  gTypeclassMethods       jrTypeclassMethods       jsTypeclassMethods       pTypeclassMethods
+    , registerRequest "definition"      "\t\tReference to the definition of the typeclass"              gTypeclassDefinition    jrTypeclassDefinition    jsTypeclassDefinition    pTypeclassDefinition
     ]
-    
+
 -- OPERATION
 
-operationFields :: [String]
-operationFields = map fst operationConfiguration
-
-operationConfiguration :: Configuration CurryOperation OperationInformation
+operationConfiguration :: [RegisteredRequest CurryOperation]
 operationConfiguration =
-    [ ("operation",             RegisteredField "\t\tThe name of the operation" gOperationName pOperationName)
-    , ("documentation",         RegisteredField "\t\tReference to the documentation comment of the operation" gOperationDocumentation pOperationDocumentation)
-    , ("definition",            RegisteredField "\t\tReference to the definition of the operation" gOperationSourceCode pOperationSourceCode)
-    , ("signature",             RegisteredField "\t\tThe signature of the operation" gOperationSignature pOperationSignature)
-    , ("infix",                 RegisteredField "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)" gOperationInfix pOperationInfix)
-    , ("precedence",            RegisteredField "\t\tPrecedence of the operation when used infix" gOperationPrecedence pOperationPrecedence)
-    , ("deterministic",         RegisteredField "\t\tAnalysis result whether the operation is deterministic" gOperationDeterministic pOperationDeterministic)
-    , ("demandness",            RegisteredField "\t\tAnalysis result what arguments are demanded" gOperationDemandness pOperationDemandness)
-    , ("indeterministic",       RegisteredField "\tAnalysis result whether the operation is indeterministic" gOperationIndeterministic pOperationIndeterministic)
-    , ("solutionCompleteness",  RegisteredField "\tAnalysis result whether the operation is solution complete" gOperationSolutionCompleteness pOperationSolutionCompleteness)
-    , ("termination",           RegisteredField "\t\tAnalysis result whether the operation is guaranteed to always terminate" gOperationTermination pOperationTermination)
-    , ("totallyDefined",        RegisteredField "\t\tAnalysis result whether the operation is totally defined" gOperationTotallyDefined pOperationTotallyDefined)
+    [ registerRequest "operation"               "\t\tThe name of the operation"                                                 gOperationName                  jrOperationName                  jsOperationName                  pOperationName
+    , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         jrOperationDocumentation         jsOperationDocumentation         pOperationDocumentation
+    , registerRequest "definition"              "\t\tReference to the definition of the operation"                              gOperationSourceCode            jrOperationSourceCode            jsOperationSourceCode            pOperationSourceCode
+    , registerRequest "signature"               "\t\tThe signature of the operation"                                            gOperationSignature             jrOperationSignature             jsOperationSignature             pOperationSignature
+    , registerRequest "infix"                   "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)"  gOperationInfix                 jrOperationInfix                 jsOperationInfix                 pOperationInfix
+    , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"                               gOperationPrecedence            jrOperationPrecedence            jsOperationPrecedence            pOperationPrecedence
+    , registerRequest "deterministic"           "\t\tAnalysis result whether the operation is deterministic"                    gOperationDeterministic         jrOperationDeterministic         jsOperationDeterministic         pOperationDeterministic
+    , registerRequest "demandness"              "\t\tAnalysis result what arguments are demanded"                               gOperationDemandness            jrOperationDemandness            jsOperationDemandness            pOperationDemandness
+    , registerRequest "indeterministic"         "\tAnalysis result whether the operation is indeterministic"                    gOperationIndeterministic       jrOperationIndeterministic       jsOperationIndeterministic       pOperationIndeterministic
+    , registerRequest "solutionCompleteness"    "\tAnalysis result whether the operation is solution complete"                  gOperationSolutionCompleteness  jrOperationSolutionCompleteness  jsOperationSolutionCompleteness  pOperationSolutionCompleteness
+    , registerRequest "termination"             "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationTermination           jrOperationTermination           jsOperationTermination           pOperationTermination
+    , registerRequest "totallyDefined"          "\t\tAnalysis result whether the operation is totally defined"                  gOperationTotallyDefined        jrOperationTotallyDefined        jsOperationTotallyDefined        pOperationTotallyDefined
     ]
+
+------------------------------------
+
+data RegisteredRequest a = RegisteredRequest
+    { request :: String
+    , description' :: String
+    , extraction :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String)))
+    , generation :: (Options -> a -> IO (Maybe (JValue, String)))
+    }
+
+lookupRequest :: String -> [RegisteredRequest a] -> Maybe (String, String, (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))), (Options -> a -> IO (Maybe (JValue, String))))
+lookupRequest req conf = do
+    rreq <- find (\x -> request x == req) conf
+    return (request rreq, description' rreq, extraction rreq, generation rreq)
+
+registerRequest :: String -> String -> Generator a b -> JReader b -> JShower b -> Printer b -> RegisteredRequest a
+registerRequest req desc generator jreader jshower printer =
+    RegisteredRequest req desc (createExtraction req jreader printer) (createGeneration req generator jshower printer)
+
+createExtraction :: String -> JReader b -> Printer b -> (Options -> [(String, JValue)] -> IO (Maybe (JValue, String)))
+createExtraction req jreader printer opts infos = do
+    printDebugMessage opts $ "Looking for information for request '" ++ req ++ "'..."
+    case lookup req infos of
+        Nothing -> do
+            printDebugMessage opts "Information not found."
+            return Nothing
+        Just jv -> do
+            printDebugMessage opts "Information found."
+            printDebugMessage opts "Reading information..."
+            case jreader jv of
+                Nothing -> do
+                    printDebugMessage opts "Reading failed."
+                    return Nothing
+                Just info -> do
+                    printDebugMessage opts "Reading succeeded."
+                    printDebugMessage opts "Creating output..."
+                    output <- printer opts info
+                    printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+                    return $ Just (jv, output)
+
+createGeneration :: String -> Generator a b -> JShower b -> Printer b -> (Options -> a -> IO (Maybe (JValue, String)))
+createGeneration req generator jshower printer opts obj = do
+    printDebugMessage opts $ "Generating information for request '" ++ req ++ "'..."
+    res <- generator opts obj
+    case res of
+        Nothing -> do
+            printDebugMessage opts "Generating failed."
+            return Nothing
+        Just info -> do
+            printDebugMessage opts "Generating succeeded."
+            let jv = jshower info
+            printDebugMessage opts "Creating output..."
+            output <- printer opts info
+            printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+            return $ Just (jv, output)

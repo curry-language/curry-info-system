@@ -5,6 +5,8 @@ import CurryInfo.Verbosity (printDebugMessage)
 
 import System.Directory (doesFileExist)
 
+import JSON.Data
+
 --type Printer a = Options -> a -> IO (Maybe String)
 
 slice :: Int -> Int -> [a] -> [a]
@@ -28,203 +30,123 @@ printFromReference opts (path, start, end) = do
 
 -- PACKAGE
 
-type PackagePrinter = Printer PackageInformation
+pPackageName :: Printer String
+pPackageName opts s = return s
 
-pPackageName :: PackagePrinter
-pPackageName opts info = case info of
-    PackageName name -> return (name)
-    _ -> return failMessage
-
-pPackageVersions :: PackagePrinter
-pPackageVersions opts info = case info of
-    PackageVersions vsns -> return (show vsns)
-    _ -> return failMessage
+pPackageVersions :: Printer [String]
+pPackageVersions opts vsns = return (show vsns)
 
 -- VERSION
 
-type VersionPrinter = Printer VersionInformation
+pVersionVersion :: Printer String
+pVersionVersion opts vsn = return (vsn)
 
-pVersionVersion :: VersionPrinter
-pVersionVersion opts info = case info of
-    VersionVersion vsn -> return (vsn)
-    _ -> return failMessage
+pVersionDocumentation :: Printer String
+pVersionDocumentation opts path = do
+    b <- doesFileExist path
+    case b of
+        False -> do
+            printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
+            return "FAILED DUE TO FILE NOT EXISTING"
+        True -> do
+            printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
+            content <- readFile path
+            return content
 
-pVersionDocumentation :: VersionPrinter
-pVersionDocumentation opts info = case info of
-    VersionDocumentation path -> do
-        b <- doesFileExist path
-        case b of
-            False -> do
-                printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
-                return "FAILED DUE TO FILE NOT EXISTING"
-            True -> do
-                printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-                content <- readFile path
-                return content
-    _ -> return failMessage
+pVersionCategories :: Printer [String]
+pVersionCategories opts cats = return (show cats)
 
-pVersionCategories :: VersionPrinter
-pVersionCategories opts info = case info of
-    VersionCategories cats -> return (show cats)
-    _ -> return failMessage
+pVersionModules :: Printer [String]
+pVersionModules opts mods = return (show mods)
 
-pVersionModules :: VersionPrinter
-pVersionModules opts info = case info of
-    VersionModules mods -> return (show mods)
-    _ -> return failMessage
-
-pVersionDependencies :: VersionPrinter
-pVersionDependencies opts info = case info of
-    VersionDependencies deps -> return (show deps)
-    _ -> return failMessage
+pVersionDependencies :: Printer [Dependency]
+pVersionDependencies opts deps = return (show deps)
     
 -- MODULE
 
-type ModulePrinter = Printer ModuleInformation
+pModuleName :: Printer String
+pModuleName opts name = return (name)
 
-pModuleName :: ModulePrinter
-pModuleName opts info = case info of
-    ModuleName name -> return (name)
-    _ -> return failMessage
+pModuleDocumentation :: Printer Reference
+pModuleDocumentation opts ref = printFromReference opts ref
 
-pModuleDocumentation :: ModulePrinter
-pModuleDocumentation opts info = case info of
-    ModuleDocumentation ref -> printFromReference opts ref
-    _ -> return failMessage
+pModuleSourceCode :: Printer Reference
+pModuleSourceCode opts ref = printFromReference opts ref
 
-pModuleSourceCode :: ModulePrinter
-pModuleSourceCode opts info = case info of
-    ModuleSourceCode ref -> printFromReference opts ref
-    _ -> return failMessage
+pModuleSafe :: Printer Safe
+pModuleSafe opts safe = return (show safe)
 
-pModuleSafe :: ModulePrinter
-pModuleSafe opts info = case info of
-    ModuleSafe safe -> return (show safe)
-    _ -> return failMessage
+pModuleTypeclasses :: Printer [String]
+pModuleTypeclasses opts cs = return (show cs)
 
-pModuleTypeclasses :: ModulePrinter
-pModuleTypeclasses opts info = case info of
-    ModuleTypeclasses cs -> return (show cs)
-    _ -> return failMessage
+pModuleTypes :: Printer [String]
+pModuleTypes opts ts = return (show ts)
 
-pModuleTypes :: ModulePrinter
-pModuleTypes opts info = case info of
-    ModuleTypes ts -> return (show ts)
-    _ -> return failMessage
-
-pModuleOperations :: ModulePrinter
-pModuleOperations opts info = case info of
-    ModuleOperations os -> return (show os)
-    _ -> return failMessage
+pModuleOperations :: Printer [String]
+pModuleOperations opts os = return (show os)
 
 -- TYPE
 
-type TypePrinter = Printer TypeInformation
+pTypeName :: Printer String
+pTypeName opts name = return (name)
 
-pTypeName :: TypePrinter
-pTypeName opts info = case info of
-    TypeName name -> return (name)
-    _ -> return failMessage
+pTypeDocumentation :: Printer Reference
+pTypeDocumentation opts ref = printFromReference opts ref
 
-pTypeDocumentation :: TypePrinter
-pTypeDocumentation opts info = case info of
-    TypeDocumentation ref -> printFromReference opts ref
-    _ -> return failMessage
+pTypeConstructors :: Printer [String]
+pTypeConstructors opts cons = return (show cons)
 
-pTypeConstructors :: TypePrinter
-pTypeConstructors opts info = case info of
-    TypeConstructors cons -> return (show cons)
-    _ -> return failMessage
-
-pTypeDefinition :: TypePrinter
-pTypeDefinition opts info = case info of
-    TypeDefinition ref -> printFromReference opts ref
-    _ -> return failMessage
+pTypeDefinition :: Printer Reference
+pTypeDefinition opts ref = printFromReference opts ref
 
 -- TYPECLASS
 
-type TypeclassPrinter = Printer TypeclassInformation
+pTypeclassName :: Printer String
+pTypeclassName opts name = return (name)
 
-pTypeclassName :: TypeclassPrinter
-pTypeclassName opts info = case info of
-    TypeclassName name -> return (name)
-    _ -> return failMessage
+pTypeclassDocumentation :: Printer Reference
+pTypeclassDocumentation opts ref = printFromReference opts ref
 
-pTypeclassDocumentation :: TypeclassPrinter
-pTypeclassDocumentation opts info = case info of
-    TypeclassDocumentation ref -> printFromReference opts ref
-    _ -> return failMessage
+pTypeclassMethods :: Printer [String]
+pTypeclassMethods opts ms = return (show ms)
 
-pTypeclassMethods :: TypeclassPrinter
-pTypeclassMethods opts info = case info of
-    TypeclassMethods ms -> return (show ms)
-    _ -> return failMessage
-
-pTypeclassDefinition :: TypeclassPrinter
-pTypeclassDefinition opts info = case info of
-    TypeclassDefinition ref -> printFromReference opts ref
-    _ -> return failMessage
+pTypeclassDefinition :: Printer Reference
+pTypeclassDefinition opts ref = printFromReference opts ref
 
 -- OPERATION
 
-type OperationPrinter = Printer OperationInformation
+pOperationName :: Printer String
+pOperationName opts name = return (name)
 
-pOperationName :: OperationPrinter
-pOperationName opts info = case info of
-    OperationName name -> return (name)
-    _ -> return failMessage
+pOperationDocumentation :: Printer Reference
+pOperationDocumentation opts ref = printFromReference opts ref
 
-pOperationDocumentation :: OperationPrinter
-pOperationDocumentation opts info = case info of
-    OperationDocumentation ref -> printFromReference opts ref
-    _ -> return failMessage
+pOperationSourceCode :: Printer Reference
+pOperationSourceCode opts ref = printFromReference opts ref
 
-pOperationSourceCode :: OperationPrinter
-pOperationSourceCode opts info = case info of
-    OperationSourceCode ref -> printFromReference opts ref
-    _ -> return failMessage
+pOperationSignature :: Printer Signature
+pOperationSignature opts s = return (s)
 
-pOperationSignature :: OperationPrinter
-pOperationSignature opts info = case info of
-    OperationSignature s -> return (s)
-    _ -> return failMessage
+pOperationInfix :: Printer (Maybe Infix)
+pOperationInfix opts inf = return (show inf)
 
-pOperationInfix :: OperationPrinter
-pOperationInfix opts info = case info of
-    OperationInfix inf -> return (show inf)
-    _ -> return failMessage
+pOperationPrecedence :: Printer (Maybe Precedence)
+pOperationPrecedence opts p = return (show p)
 
-pOperationPrecedence :: OperationPrinter
-pOperationPrecedence opts info = case info of
-    OperationPrecedence p -> return (show p)
-    _ -> return failMessage
+pOperationDeterministic :: Printer Deterministic
+pOperationDeterministic opts det = return (show det)
 
-pOperationDeterministic :: OperationPrinter
-pOperationDeterministic opts info = case info of
-    OperationDeterministic det -> return (show det)
-    _ -> return failMessage
+pOperationDemandness :: Printer Demandness
+pOperationDemandness opts dem = return (show dem)
 
-pOperationDemandness :: OperationPrinter
-pOperationDemandness opts info = case info of
-    OperationDemandness dem -> return (show dem)
-    _ -> return failMessage
+pOperationIndeterministic :: Printer Indeterministic
+pOperationIndeterministic opts ind = return (show ind)
 
-pOperationIndeterministic :: OperationPrinter
-pOperationIndeterministic opts info = case info of
-    OperationIndeterministic ind -> return (show ind)
-    _ -> return failMessage
+pOperationSolutionCompleteness :: Printer SolutionCompleteness
+pOperationSolutionCompleteness opts sol = return (show sol)
 
-pOperationSolutionCompleteness :: OperationPrinter
-pOperationSolutionCompleteness opts info = case info of
-    OperationSolutionCompleteness sol -> return (show sol)
-    _ -> return failMessage
+pOperationTermination :: Printer Termination
+pOperationTermination opts t = return (show t)
 
-pOperationTermination :: OperationPrinter
-pOperationTermination opts info = case info of
-    OperationTermination t -> return (show t)
-    _ -> return failMessage
-
-pOperationTotallyDefined :: OperationPrinter
-pOperationTotallyDefined opts info = case info of
-    OperationTotallyDefined t -> return (show t)
-    _ -> return failMessage
+pOperationTotallyDefined :: Printer TotallyDefined
+pOperationTotallyDefined opts t = return (show t)

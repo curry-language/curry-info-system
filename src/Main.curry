@@ -1,37 +1,50 @@
 module Main where
 
-import CurryInfo.JParser (JParser)
-import CurryInfo.JPretty (JPretty, jsonOutput)
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, initialize, packagesPath, getDirectoryPath, getJSONPath)
+import CurryInfo.Paths (Path, initialize)
 import CurryInfo.Types
-import CurryInfo.Reader (Reader, readInformation)
-import CurryInfo.Writer (Writer, writeInformation)
-import CurryInfo.ErrorMessage (ErrorMessage, errorMessage)
+import CurryInfo.Reader
+import CurryInfo.Writer
+import CurryInfo.ErrorMessage
 import CurryInfo.Options (getObject, processOptions)
 import CurryInfo.Verbosity (printLine, printDebugMessage)
 
-import JSON.Parser (parseJSON)
 import JSON.Pretty (ppJSON)
 import JSON.Data
 
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (isJust, fromJust)
 import Data.List (nubBy)
 
 import System.Environment (getArgs)
 import System.Process (exitWith)
-import System.Directory (doesDirectoryExist, doesFileExist, removeDirectory, removeFile, getDirectoryContents)
-import System.FilePath ((</>))
 
-import Control.Monad (unless, zipWithM, filterM)
+import Control.Monad (unless)
 
--- This action extracts or generates the requested information for the given object.
-getInfos :: Options -> [(String, String)] -> [String] -> IO Output
-getInfos opts location requests = do
+-- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
+-- to get an updated list.
+(<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
+info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
+
+printResult :: Output -> IO ()
+printResult (OutputText txt) = do
+    putStrLn ""
+    putStrLn "Finished with OutputText"
+    putStrLn txt
+printResult (OutputError err) = do
+    putStrLn ""
+    putStrLn "Finished with OutputError"
+    putStrLn err
+printResult (OutputJSON jv) = do
+    putStrLn ""
+    putStrLn "Finished with OutputJSON"
+    putStrLn $ ppJSON jv
+
+getInfos2 :: Options -> [(String, String)] -> [String] -> IO Output
+getInfos2 opts input reqs = do
     printLine opts
     printDebugMessage opts "Checking structure of the request..."
-    case location of
-        [("packages", pkg)]                                                         -> do
+    case input of
+        [("packages", pkg)] -> do
             printDebugMessage opts "Structure matches Package."
             result <- checkPackageExists pkg
             case result of
@@ -91,30 +104,108 @@ getInfos opts location requests = do
                 True  -> do
                     printDebugMessage opts "Operation exists."
                     getInfos' operationConfiguration (CurryOperation pkg vsn m o)
-        _ -> return $ OutputError $ show location ++ " does not match any pattern"
+        _ -> return $ OutputError $ show input ++ " does not match any pattern"
     where
-        getInfos' conf input = do
+        getInfos' conf obj = do
             printLine opts
             printDebugMessage opts "Initializing Input..."
-            initialize input
+            initialize obj
             printDebugMessage opts "Reading current information..."
-            result <- readInformation opts input
-            case result of
+            mfields <- readInformation opts obj
+            case mfields of
                 Nothing -> do
                     printDebugMessage opts "Reading information failed."
-                    return $ OutputError $ errorMessage input
-                Just infos -> do
-                    let infos' = map (\i -> (fieldName i, i)) infos
+                    return $ OutputError $ errorMessage obj
+                Just fields -> do
                     printDebugMessage opts "Reading information succeeded."
                     printDebugMessage opts "Extracting/Generating requested information..."
-                    results <- mapM (extractOrGenerate opts conf input infos') requests
+                    results <- mapM (extractOrGenerate' conf fields obj) reqs
 
-                    let newInformation = catMaybes results <+> infos'
+                    let successfulFields = map (\(req, mres) -> (req, fst (fromJust mres))) $ filter (\(_, mres) -> isJust mres) results
+                    let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
+
+                    let newInformation = successfulFields <+> fields
                     printDebugMessage opts "Overwriting with updated information..."
-                    writeInformation input (map snd newInformation)
+                    writeInformation obj newInformation
                     printDebugMessage opts "Creating output..."
-                    --return $ generateOutput opts requests results
-                    generateOutput opts conf requests (map (fmap snd) results) 
+                    generateOutput' conf mouts
+        
+        extractOrGenerate' conf fields obj req = do
+            case lookupRequest req conf of
+                Nothing -> do
+                    printDebugMessage opts $ "Could not find request '" ++ req ++ "'."
+                    return (req, Nothing)
+                Just (_, _, extractor, generator) -> do
+                    printDebugMessage opts "Found request. Looking at Force option..."
+                    case optForce opts of
+                        0 -> do
+                            printDebugMessage opts "Force option 0: Only extraction"
+                            extractionResult <- extract extractor fields
+                            case extractionResult of
+                                Nothing -> do
+                                    printDebugMessage opts "Executing request failed"
+                                    return (req, Nothing)
+                                Just (jv, output) -> do
+                                    printDebugMessage opts "Executing request succeeded."
+                                    return $ (req, Just (jv, output))
+                        1 -> do
+                            printDebugMessage opts "Force option 1: Extraction, then generation if failed"
+                            extractionResult <- extract extractor  fields
+                            case extractionResult of
+                                Nothing -> do
+                                    generationResult <- generate generator obj
+                                    case generationResult of
+                                        Nothing -> do
+                                            printDebugMessage opts "Executing request failed."
+                                            return (req, Nothing)
+                                        Just (jv, output) -> do
+                                            printDebugMessage opts "Executing request succeeded."
+                                            return $ (req, Just (jv, output))
+                                Just (jv, output) -> do
+                                    printDebugMessage opts "Executing request succeeded."
+                                    return $ (req, Just (jv, output))
+                        2 -> do
+                            printDebugMessage opts "Force option 2: Only generation"
+                            generationResult <- generate generator obj
+                            case generationResult of
+                                Nothing -> do
+                                    printDebugMessage opts "Executing request failed"
+                                    return (req, Nothing)
+                                Just (jv, output) -> do
+                                    printDebugMessage opts "Executing request succeeded."
+                                    return $ (req, Just (jv, output))
+
+        extract extractor fields = do
+            printDebugMessage opts "Trying extraction..."
+            extractionResult <- extractor opts fields
+            case extractionResult of
+                Nothing -> do
+                    printDebugMessage opts "Extraction failed."
+                    return Nothing
+                Just (jv, output) -> do
+                    printDebugMessage opts "Extraction succeeded."
+                    return $ Just (jv, output)
+        
+        generate generator obj = do
+            printDebugMessage opts "Trying generation..."
+            generationResult <- generator opts obj
+            case generationResult of
+                Nothing -> do
+                    printDebugMessage opts "Generation failed."
+                    return Nothing
+                Just (jv, output) -> do
+                    printDebugMessage opts "Generation succeeded."
+                    return $ Just (jv, output)
+        
+        generateOutput' conf mouts = do
+            --outputs :: (String, Maybe String)
+            case optOutput opts of
+                "text" -> do
+                    let outs = map (\(req, mout) -> req ++ ": " ++ maybe "FAILED" id mout) mouts
+                    return $ OutputText (unlines outs)
+                "json" -> do
+                    let outs = map (\(req, mout) -> (req, JString (maybe "FAILED" id mout))) mouts
+                    return $ OutputJSON (JObject outs)
         
         checkPackageExists :: Package -> IO Bool
         checkPackageExists pkg = do
@@ -146,110 +237,11 @@ getInfos opts location requests = do
             putStrLn "NOT YET IMPLEMENTED: checkOperationExists"
             return True
 
--- This action extracts or generates the requested information for the input, depending on whether the information
--- already exists or not.
-extractOrGenerate :: Options -> Configuration a b -> a -> [(String, b)] -> String -> IO (Maybe (String, b))
-extractOrGenerate opts conf input infos request = do
-    printDebugMessage opts $ "Looking up extractor and generator for request '" ++ request ++ "'..."
-    case optForce opts of
-        2 -> do
-            printDebugMessage opts "Force options is 2. Only generating information."
-            printDebugMessage opts "Looking for generator..."
-            case findGenerator request conf of
-                Nothing -> do
-                    printDebugMessage opts $ "Could not find generator for request '" ++ request ++ "'."
-                    return Nothing
-                Just generator -> do
-                    printDebugMessage opts "Generator found."
-                    generator opts input
-        1 -> do
-            printDebugMessage opts "Force option is 1. Extracting or generating information."
-            printDebugMessage opts "Looking for extractor and generator..."
-            case findGenerator request conf of
-                Nothing -> do
-                    printDebugMessage opts $ "Could not find generator for request '" ++ request ++ "'."
-                    return Nothing
-                Just generator -> do
-                    printDebugMessage opts "Generator found."
-                    --maybe (generator opts input) (return . Just) (extractor infos)
-                    maybe (generator opts input) (return . Just) ((,) request <$> lookup request infos)
-        0 -> do
-            printDebugMessage opts "Force option is 0. Only extracting information."
-            return $ fmap (\i -> (request, i)) (lookup request infos)
-    {-
-    case lookup request conf of
-        Nothing                     -> do
-            printDebugMessage opts "Entry not found in configuration."
-            return Nothing
-        Just (_, extractor, generator) -> do
-            printDebugMessage opts "Extractor and Generator found."
-            printDebugMessage opts "Looking at force option..."
-            case optForce opts of
-                2 -> do
-                    printDebugMessage opts "Force option is 2. Generating information..."
-                    generator opts input
-                1 -> do
-                    printDebugMessage opts "Force option is 1. Generating/Extracting information..."
-                    maybe (generator opts input) (return . Just) (extractor infos)
-                0 -> do
-                    printDebugMessage opts "Force option is 0. Extracting information..."
-                    return $ extractor infos
-    -}
-
-{-
-generateOutput :: JPretty a => [String] -> [Maybe a] -> Output
-generateOutput fields results =
-    let outputs = zipWith (\f r -> maybe (f, "failed") jsonOutput r) fields results
-    in OutputText $ unlines $ map (\(f, m) -> f ++ ": " ++ m) outputs
--}
-
--- This function generates an output for the fields and respective results of extracting or generating.
-generateOutput :: Options -> Configuration a b -> [String] -> [Maybe b] -> IO Output
-generateOutput opts conf fields results = do
-        outputs <- zipWithM (generateOutput') fields results
-        let output = unlines outputs
-        case optOutput opts of
-            "text"  -> return (OutputText output)
-            "json"  -> return (OutputJSON $ JObject (zipWith generateField fields outputs))
-            format  -> return (OutputError $ "Unknown output format: " ++ format)
-    where
-        generateOutput' f mr = do
-            case mr of
-                Nothing -> return (f ++ ": " ++ "FAILED TO EXTRACT/GENERATE")
-                Just r -> do
-                    case findPrinter f conf of
-                        Nothing -> return (f ++ ": " ++ "FAILED TO FIND PRINTER")
-                        Just p -> do
-                            msg <- p opts r
-                            return (f ++ ": " ++ msg)
-        generateField :: String -> String -> (String, JValue)
-        generateField field output = (field, JString output)
-        
-
--- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
--- to get an updated list.
-(<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
-info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
-
-printResult :: Output -> IO ()
-printResult (OutputText txt) = do
-    putStrLn ""
-    putStrLn "Finished with OutputText"
-    putStrLn txt
-printResult (OutputError err) = do
-    putStrLn ""
-    putStrLn "Finished with OutputError"
-    putStrLn err
-printResult (OutputJSON jv) = do
-    putStrLn ""
-    putStrLn "Finished with OutputJSON"
-    putStrLn $ ppJSON jv
-
 main :: IO ()
 main = do
         args <- getArgs
         (opts, args2) <- processOptions "" args
         let obj = getObject opts
         unless (isJust (optPackage opts)) (putStrLn "Package name is required" >> exitWith 1)
-        res <- getInfos opts obj args2
+        res <- getInfos2 opts obj args2
         printResult res

@@ -35,7 +35,7 @@ instance Path CurryPackage where
     
     getJSONPath x@(CurryPackage pkg) = do
         path <- getDirectoryPath x
-        return (path ++ pkg <.> "json")
+        return (path </> pkg <.> "json")
 
 instance Path CurryVersion where
     getDirectoryPath (CurryVersion pkg vsn) = do
@@ -62,7 +62,7 @@ instance Path CurryType where
     
     getJSONPath x@(CurryType _ _ _ t) = do
         path <- getDirectoryPath x
-        return (path ++ t <.> "json")
+        return (path </> t <.> "json")
 
 instance Path CurryTypeclass where 
     getDirectoryPath (CurryTypeclass pkg vsn m _) = do
@@ -71,7 +71,7 @@ instance Path CurryTypeclass where
     
     getJSONPath x@(CurryTypeclass _ _ _ c) = do
         path <- getDirectoryPath x
-        return (path ++ c <.> "json")
+        return (path </> c <.> "json")
 
 instance Path CurryOperation where 
     getDirectoryPath (CurryOperation pkg vsn m _) = do
@@ -80,7 +80,7 @@ instance Path CurryOperation where
     
     getJSONPath x@(CurryOperation _ _ _ o) = do
         path <- getDirectoryPath x
-        return (path ++ o <.> "json")    
+        return (path </> o <.> "json")    
 
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]

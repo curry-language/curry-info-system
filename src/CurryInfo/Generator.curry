@@ -2,7 +2,7 @@ module CurryInfo.Generator where
 
 import CurryInfo.Types
 import CurryInfo.Paths
-import CurryInfo.JParser (getString)
+import CurryInfo.JRead (getString)
 import CurryInfo.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 import CurryInfo.Interface 
     ( readInterface
@@ -44,17 +44,15 @@ import DetParse (parse)
 
 -- PACKAGE
 
-type PackageGenerator = Generator CurryPackage PackageInformation
-
-gPackageName :: PackageGenerator
+gPackageName :: Generator CurryPackage String
 gPackageName opts (CurryPackage pkg) = do
     printLine opts
     printDebugMessage opts $ "Generating name for package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ pkg
-    let res = PackageName pkg
-    return $ Just (fieldName res, res)
+    let res = pkg
+    return $ Just res
 
-gPackageVersions :: PackageGenerator
+gPackageVersions :: Generator CurryPackage [String]
 gPackageVersions opts (CurryPackage pkg) = do
     printLine opts
     printDebugMessage opts $ "Generating versions for package '" ++ pkg ++ "'..."
@@ -65,22 +63,20 @@ gPackageVersions opts (CurryPackage pkg) = do
     printDebugMessage opts "Reading content of directory..."
     contents <- getReducedDirectoryContents packageDir
     printDebugMessage opts $ "Versions found: " ++ show contents
-    let res = PackageVersions contents
-    return $ Just (fieldName res, res)
+    let res = contents
+    return $ Just res
 
 -- VERSION
 
-type VersionGenerator = Generator CurryVersion VersionInformation
-
-gVersionVersion :: VersionGenerator
+gVersionVersion :: Generator CurryVersion String
 gVersionVersion opts (CurryVersion pkg vsn) = do
     printLine opts
     printDebugMessage opts $ "Generating version number for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Version number is: " ++ vsn
-    let res = VersionVersion vsn
-    return $ Just (fieldName res, res)
+    let res = vsn
+    return $ Just res
 
-gVersionDocumentation :: VersionGenerator
+gVersionDocumentation :: Generator CurryVersion String
 gVersionDocumentation opts (CurryVersion pkg vsn) = do
     printLine opts
     printDebugMessage opts $ "Generating documentation for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -89,10 +85,10 @@ gVersionDocumentation opts (CurryVersion pkg vsn) = do
     --printDebugMessage opts $ "Documentation is: " ++ t
     --return $ Just $ VersionDocumentation t
     path <- packageREADMEPath opts pkg vsn
-    let res = VersionDocumentation path
-    return $ Just (fieldName res, res)
+    let res = path
+    return $ Just res
 
-gVersionCategories :: VersionGenerator
+gVersionCategories :: Generator CurryVersion [String]
 gVersionCategories opts (CurryVersion pkg vsn) = do
     printLine opts
     printDebugMessage opts $ "Generating categories for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -100,10 +96,10 @@ gVersionCategories opts (CurryVersion pkg vsn) = do
     packageJSON <- readPackageJSON opts pkg vsn
     let cats = maybe [] id (parseJSON packageJSON >>= getCategories)
     printDebugMessage opts $ "Categories found: " ++ show cats
-    let res = VersionCategories cats
-    return $ Just (fieldName res, res)
+    let res = cats
+    return $ Just res
 
-gVersionModules :: VersionGenerator
+gVersionModules :: Generator CurryVersion [String]
 gVersionModules opts (CurryVersion pkg vsn) = do
     printLine opts
     printDebugMessage opts $ "Generating modules for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -117,10 +113,10 @@ gVersionModules opts (CurryVersion pkg vsn) = do
     let intersection = intersect allMods exportedMods
     printDebugMessage opts $ "Exported modules: " ++ show intersection
 
-    let res = VersionModules intersection
-    return $ Just (fieldName res, res)
+    let res = intersection
+    return $ Just res
 
-gVersionDependencies :: VersionGenerator
+gVersionDependencies :: Generator CurryVersion [Dependency]
 gVersionDependencies opts (CurryVersion pkg vsn) = do
     printLine opts
     printDebugMessage opts $ "Generating dependencies for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -128,22 +124,20 @@ gVersionDependencies opts (CurryVersion pkg vsn) = do
     packageJSON <- readPackageJSON opts pkg vsn
     let deps = maybe [] id (parseJSON packageJSON >>= getDependencies)
     printDebugMessage opts $ "Dependencies found: " ++ show deps
-    let res = VersionDependencies deps
-    return $ Just (fieldName res, res)
+    let res = deps
+    return $ Just res
 
 -- MODULE
 
-type ModuleGenerator = Generator CurryModule ModuleInformation
-
-gModuleName :: ModuleGenerator
+gModuleName :: Generator CurryModule String
 gModuleName opts (CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating name for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ m
-    let res = ModuleName m
-    return $ Just (fieldName res, res)
+    let res = m
+    return $ Just res
 
-gModuleDocumentation :: ModuleGenerator
+gModuleDocumentation :: Generator CurryModule Reference
 gModuleDocumentation opts x@(CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating documentation for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -154,10 +148,10 @@ gModuleDocumentation opts x@(CurryModule pkg vsn m) = do
             return Nothing
         Just docs -> do
             printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = ModuleDocumentation docs
-            return $ Just (fieldName res, res)
+            let res = docs
+            return $ Just res
 
-gModuleSourceCode :: ModuleGenerator
+gModuleSourceCode :: Generator CurryModule Reference
 gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating source code for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -168,10 +162,10 @@ gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
             return Nothing
         Just source -> do
             printDebugMessage opts $ "Source code is: " ++ show source
-            let res = ModuleSourceCode source
-            return $ Just (fieldName res, res)
+            let res = source
+            return $ Just res
 
-gModuleSafe :: ModuleGenerator
+gModuleSafe :: Generator CurryModule Safe
 gModuleSafe opts (CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -183,8 +177,8 @@ gModuleSafe opts (CurryModule pkg vsn m) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Analysis result: " ++ show result
-                    let res = ModuleSafe result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing
@@ -192,10 +186,7 @@ gModuleSafe opts (CurryModule pkg vsn m) = do
             printDebugMessage opts "Generating failed."
             return Nothing
 
-gModuleExports :: ModuleGenerator
-gModuleExports = failed
-
-gModuleTypeclasses :: ModuleGenerator
+gModuleTypeclasses :: Generator CurryModule [String]
 gModuleTypeclasses opts (CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating exported typeclasses for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -211,10 +202,10 @@ gModuleTypeclasses opts (CurryModule pkg vsn m) = do
             let hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
             let exportedClasses = allClasses \\ hiddenClasses
             printDebugMessage opts $ "Typeclasses found: " ++ show exportedClasses
-            let res = ModuleTypeclasses exportedClasses
-            return $ Just (fieldName res, res)
+            let res = exportedClasses
+            return $ Just res
 
-gModuleTypes :: ModuleGenerator
+gModuleTypes :: Generator CurryModule [String]
 gModuleTypes opts (CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating exported types for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -230,10 +221,10 @@ gModuleTypes opts (CurryModule pkg vsn m) = do
             let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes $ getDeclarations interface
             let exportedTypes = allTypes \\ hiddenTypes
             printDebugMessage opts $ "Types found: " ++ show exportedTypes
-            let res = ModuleTypes exportedTypes
-            return $ Just (fieldName res, res)
+            let res = exportedTypes
+            return $ Just res
 
-gModuleOperations :: ModuleGenerator
+gModuleOperations :: Generator CurryModule [String]
 gModuleOperations opts (CurryModule pkg vsn m) = do
     printLine opts
     printDebugMessage opts $ "Generating exported operations for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -247,22 +238,20 @@ gModuleOperations opts (CurryModule pkg vsn m) = do
             printDebugMessage opts "Reading operations from interface..."
             let operations = catMaybes $ map getOperationName $ getOperations $ getDeclarations interface
             printDebugMessage opts $ "Operations found: " ++ show operations
-            let res = ModuleOperations operations
-            return $ Just (fieldName res, res)
+            let res = operations
+            return $ Just res
 
 -- TYPE
 
-type TypeGenerator = Generator CurryType TypeInformation
-
-gTypeName :: TypeGenerator
+gTypeName :: Generator CurryType String
 gTypeName opts (CurryType pkg vsn m t) = do
     printLine opts
     printDebugMessage opts $ "Generating name for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ t
-    let res = TypeName t
-    return $ Just (fieldName res, res)
+    let res = t
+    return $ Just res
 
-gTypeDocumentation :: TypeGenerator
+gTypeDocumentation :: Generator CurryType Reference
 gTypeDocumentation opts x@(CurryType pkg vsn m t) = do
     printLine opts
     printDebugMessage opts $ "Generating documentation for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
@@ -273,10 +262,10 @@ gTypeDocumentation opts x@(CurryType pkg vsn m t) = do
             return Nothing
         Just docs -> do
             printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = TypeDocumentation docs
-            return $ Just (fieldName res, res)
+            let res = docs
+            return $ Just res
 
-gTypeConstructors :: TypeGenerator
+gTypeConstructors :: Generator CurryType [String]
 gTypeConstructors opts (CurryType pkg vsn m t) = do
     printLine opts
     printDebugMessage opts $ "Generating constructors for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -295,10 +284,10 @@ gTypeConstructors opts (CurryType pkg vsn m t) = do
                     return Nothing
                 Just constructors -> do
                     printDebugMessage opts $ "Constructors found: " ++ show constructors
-                    let res = TypeConstructors constructors
-                    return $ Just (fieldName res, res)
+                    let res = constructors
+                    return $ Just res
 
-gTypeDefinition :: TypeGenerator
+gTypeDefinition :: Generator CurryType Reference
 gTypeDefinition opts x@(CurryType pkg vsn m t) = do
     printLine opts
     printDebugMessage opts $ "Generating definition for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
@@ -309,22 +298,20 @@ gTypeDefinition opts x@(CurryType pkg vsn m t) = do
             return Nothing
         Just source -> do
             printDebugMessage opts $ "Definition is: " ++ show source
-            let res = TypeDefinition source
-            return $ Just (fieldName res, res)
+            let res =  source
+            return $ Just res
 
 -- TYPECLASS
 
-type TypeclassGenerator = Generator CurryTypeclass TypeclassInformation
-
-gTypeclassName :: TypeclassGenerator
+gTypeclassName :: Generator CurryTypeclass String
 gTypeclassName opts (CurryTypeclass pkg vsn m c) = do
     printLine opts
     printDebugMessage opts $ "Generating name of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ c
-    let res = TypeclassName c
-    return $ Just (fieldName res, res)
+    let res = c
+    return $ Just res
 
-gTypeclassDocumentation :: TypeclassGenerator
+gTypeclassDocumentation :: Generator CurryTypeclass Reference
 gTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
     printLine opts
     printDebugMessage opts $ "Generating documentation of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -335,10 +322,10 @@ gTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
             return Nothing
         Just docs -> do
             printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = TypeclassDocumentation docs
-            return $ Just (fieldName res, res)
+            let res = docs
+            return $ Just res
 
-gTypeclassMethods :: TypeclassGenerator
+gTypeclassMethods :: Generator CurryTypeclass [String]
 gTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
     printLine opts
     printDebugMessage opts $ "Generating methods of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -356,11 +343,10 @@ gTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
                     printDebugMessage opts "Finding methods failed."
                     return Nothing
                 Just methods -> do
-                    let res = TypeclassMethods methods
-                    return $ Just (fieldName res, res)
+                    let res = methods
+                    return $ Just res
 
-
-gTypeclassDefinition :: TypeclassGenerator
+gTypeclassDefinition :: Generator CurryTypeclass Reference
 gTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
     printLine opts
     printDebugMessage opts $ "Generating definition of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -371,22 +357,20 @@ gTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
             return Nothing
         Just source -> do
             printDebugMessage opts $ "Definition is: " ++ show source
-            let res = TypeclassDefinition source
-            return $ Just (fieldName res, res)
+            let res = source
+            return $ Just res
 
 -- OPERATION
 
-type OperationGenerator = Generator CurryOperation OperationInformation
-
-gOperationName :: OperationGenerator
+gOperationName :: Generator CurryOperation String
 gOperationName opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating name of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ o
-    let res = OperationName o
-    return $ Just (fieldName res, res)
+    let res = o
+    return $ Just res
 
-gOperationDocumentation :: OperationGenerator
+gOperationDocumentation :: Generator CurryOperation Reference
 gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating documentation of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -397,10 +381,10 @@ gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
             return Nothing
         Just docs -> do
             printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = OperationDocumentation docs
-            return $ Just (fieldName res, res)
+            let res = docs
+            return $ Just res
 
-gOperationSourceCode :: OperationGenerator
+gOperationSourceCode :: Generator CurryOperation Reference
 gOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating source code of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -411,10 +395,10 @@ gOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
             return Nothing
         Just source -> do
             printDebugMessage opts $ "Source code is: " ++ show source
-            let res = OperationSourceCode source
-            return $ Just (fieldName res, res)
+            let res = source
+            return $ Just res
 
-gOperationSignature :: OperationGenerator
+gOperationSignature :: Generator CurryOperation Signature
 gOperationSignature opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating signature of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -433,10 +417,10 @@ gOperationSignature opts (CurryOperation pkg vsn m o) = do
                     return Nothing
                 Just signature -> do
                     printDebugMessage opts $ "Signature is: " ++ show signature
-                    let res = OperationSignature signature
-                    return $ Just (fieldName res, res)
+                    let res = signature
+                    return $ Just res
 
-gOperationInfix :: OperationGenerator
+gOperationInfix :: Generator CurryOperation (Maybe Infix)
 gOperationInfix opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating infix of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -450,10 +434,10 @@ gOperationInfix opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Reading infix from interface..."
             let inf = getInfixDecl o (getDeclarations interface) >>= getOperationInfix
             printDebugMessage opts $ "Infix is: " ++ show inf
-            let res = OperationInfix inf
-            return $ Just (fieldName res, res)
+            let res = inf
+            return $ Just res
 
-gOperationPrecedence :: OperationGenerator
+gOperationPrecedence :: Generator CurryOperation (Maybe Precedence)
 gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating precedence of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -467,10 +451,10 @@ gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Reading precedence from interface..."
             let precedence = getInfixDecl o (getDeclarations interface) >>= getOperationPrecedence
             printDebugMessage opts $ "Precedence is: " ++ show precedence
-            let res = OperationPrecedence precedence
-            return $ Just (fieldName res, res)
+            let res = precedence
+            return $ Just res
 
-gOperationDeterministic :: OperationGenerator
+gOperationDeterministic :: Generator CurryOperation Deterministic
 gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating deterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -482,8 +466,8 @@ gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Result is: " ++ show result
-                    let res = OperationDeterministic result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing
@@ -491,7 +475,7 @@ gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
 
-gOperationDemandness :: OperationGenerator
+gOperationDemandness :: Generator CurryOperation Demandness
 gOperationDemandness opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating demandness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -503,8 +487,8 @@ gOperationDemandness opts (CurryOperation pkg vsn m o) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Result is: " ++ show result
-                    let res = OperationDemandness result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing
@@ -512,7 +496,7 @@ gOperationDemandness opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
 
-gOperationIndeterministic :: OperationGenerator
+gOperationIndeterministic :: Generator CurryOperation Indeterministic
 gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating indeterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -524,8 +508,8 @@ gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Result is: " ++ show result
-                    let res = OperationIndeterministic result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing
@@ -533,7 +517,7 @@ gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
 
-gOperationSolutionCompleteness :: OperationGenerator
+gOperationSolutionCompleteness :: Generator CurryOperation SolutionCompleteness
 gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating solution completeness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -545,8 +529,8 @@ gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Result is: " ++ show result
-                    let res = OperationSolutionCompleteness result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing
@@ -554,7 +538,7 @@ gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
 
-gOperationTermination :: OperationGenerator
+gOperationTermination :: Generator CurryOperation Termination
 gOperationTermination opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating termination analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -566,8 +550,8 @@ gOperationTermination opts (CurryOperation pkg vsn m o) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Result is: " ++ show result
-                    let res = OperationTermination result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing
@@ -575,7 +559,7 @@ gOperationTermination opts (CurryOperation pkg vsn m o) = do
             printDebugMessage opts "Generating failed."
             return Nothing
 
-gOperationTotallyDefined :: OperationGenerator
+gOperationTotallyDefined :: Generator CurryOperation TotallyDefined
 gOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
     printLine opts
     printDebugMessage opts $ "Generating totally defined analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
@@ -587,8 +571,8 @@ gOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
             case mresult of
                 Just result -> do
                     printDebugMessage opts $ "Result is: " ++ show result
-                    let res = OperationTotallyDefined result
-                    return $ Just (fieldName res, res)
+                    let res = result
+                    return $ Just res
                 Nothing -> do
                     printDebugMessage opts "Analysis failed."
                     return Nothing

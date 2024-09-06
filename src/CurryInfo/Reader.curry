@@ -1,37 +1,39 @@
 module CurryInfo.Reader where
 
 import CurryInfo.Types
-import CurryInfo.JParser (JParser, jparse)
 import CurryInfo.Paths (Path, getJSONPath)
 import CurryInfo.Verbosity (printLine, printDebugMessage)
 
 import JSON.Parser (parseJSON)
+import JSON.Data
 
 import System.Directory (doesFileExist)
 
 type Reader a b = Options -> a -> IO (Maybe [b])
 
 -- This action reads the current information for the input that exist at the moment.
-readInformation :: (Path a, JParser b) => Reader a b
-readInformation opts input = do
+readInformation :: Path a => Options -> a -> IO (Maybe [(String, JValue)])
+readInformation opts obj = do
     printLine opts
-    printDebugMessage opts "Determining path to json file..."
-    path <- getJSONPath input
+    printDebugMessage opts "Detemining path to json file..."
+    path <- getJSONPath obj
     printDebugMessage opts $ "Path to json file: " ++ path
     b <- doesFileExist path
     case b of
         False -> do
-            printDebugMessage opts "json file does not exist."
-            printDebugMessage opts "Reading failed."
+            printDebugMessage opts "json file does not exist.\nReading failed."
             return Nothing
         True -> do
             printDebugMessage opts "json file exists."
             jtext <- readFile path
             printDebugMessage opts $ "Read json file.\n" ++ jtext
             case parseJSON jtext of
+                Just (JObject fields) -> do
+                    printDebugMessage opts "Parsing json file succeeded."
+                    return $ Just fields
                 Nothing -> do
-                    printDebugMessage opts "Parsing json file failed."
+                    printDebugMessage opts "Parsing failed."
                     return Nothing
-                Just jv -> do
-                    printDebugMessage opts $ "Parsed json file.\n" ++ show jv
-                    return $ jparse jv
+                _ -> do
+                    printDebugMessage opts "Parsing succeeded, but structure was not expected."
+                    return Nothing
