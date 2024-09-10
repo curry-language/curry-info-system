@@ -117,7 +117,7 @@ jrOperationDemandness :: JReader Demandness
 jrOperationDemandness jv = do
     arr <- getArray jv
     numbers <- mapM getNumber arr
-    return numbers
+    return (map round numbers)
 
 jrOperationIndeterministic :: JReader Indeterministic
 jrOperationIndeterministic jv =(getBool jv)

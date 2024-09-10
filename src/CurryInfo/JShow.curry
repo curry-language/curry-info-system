@@ -106,7 +106,7 @@ jsOperationDeterministic :: JShower Deterministic
 jsOperationDeterministic det = JString $ show det
 
 jsOperationDemandness :: JShower Demandness
-jsOperationDemandness dems = JArray (map JNumber dems)
+jsOperationDemandness dems = JArray (map (JNumber . toFloat) dems)
 
 jsOperationIndeterministic :: JShower Indeterministic
 jsOperationIndeterministic b = if b then JTrue else JFalse
