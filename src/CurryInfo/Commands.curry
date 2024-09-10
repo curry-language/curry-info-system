@@ -1,7 +1,7 @@
 module CurryInfo.Commands where
 
 import CurryInfo.Types
-import CurryInfo.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import System.IOExts (evalCmd)
 import System.Directory (setCurrentDirectory, getCurrentDirectory)
@@ -10,28 +10,23 @@ import System.Directory (setCurrentDirectory, getCurrentDirectory)
 -- Additionaly it also prints messages to the output depending on the exit code of the command.
 runCmd :: Options -> (String, IO (Int, String, String)) -> IO (Int, String, String)
 runCmd opts (cmd, action) = do
-    printLine opts
-    printDebugMessage opts $ "Running command '" ++ cmd ++ "'..."
+    printDetailMessage opts $ "Running command '" ++ cmd ++ "'..."
     (exitCode, output, err) <- action
     case exitCode of
                 127 -> do
-                    printDebugMessage opts "Command could not be found."
+                    printDetailMessage opts "Command could not be found."
                 126 -> do
-                    printDebugMessage opts "Command was not an executable."
+                    printDetailMessage opts "Command was not an executable."
                 0 -> do
-                    printDebugMessage opts "Command finished successfully."
+                    printDetailMessage opts "Command finished successfully."
                 _ -> do
-                    printDebugMessage opts $ "Command failed with exit code '" ++ show exitCode ++ "'."
+                    printDetailMessage opts $ "Command failed with exit code '" ++ show exitCode ++ "'."
 
     printDebugMessage opts "Command finished with output:"
-    printLine opts
     printDebugMessage opts output
-    printLine opts
 
     printDebugMessage opts "Command finished with error output:"
-    printLine opts
     printDebugMessage opts err
-    printLine opts
 
     return (exitCode, output, err)
 

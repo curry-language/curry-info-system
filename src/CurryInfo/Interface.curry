@@ -3,7 +3,7 @@ module CurryInfo.Interface where
 import CurryInfo.Checkout (getCheckoutPath, checkoutIfMissing)
 import CurryInfo.Types
 import CurryInfo.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
-import CurryInfo.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
 import System.IOExts (evalCmd)
@@ -23,15 +23,14 @@ import Text.Pretty (pPrint)
 icurryPath :: Package -> Version -> Module -> IO String
 icurryPath pkg vsn m = do
     path <- getCheckoutPath pkg vsn
-    return (path </> "/src/" </> currySubdir </> modNameToPath m <.> "icurry")
+    return (path </> "src" </> currySubdir </> modNameToPath m <.> "icurry")
 
 -- This action tries to parse the respective .icurry file. If the file does not exist yet, the action will
 -- invoke 'cypm' and 'curry' to install missing dependencies of the package and make the parser generate
 -- the .icurry file.
 readInterface :: Options -> Package -> Version -> Module -> IO (Maybe Interface)
 readInterface opts pkg vsn m = do
-    printLine opts
-    printDebugMessage opts $ "Checkout for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    printDetailMessage opts $ "Checkout for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     mpath <- checkoutIfMissing opts pkg vsn
     case mpath of
         Just path -> do
@@ -44,6 +43,9 @@ readInterface opts pkg vsn m = do
                 True -> do
                     printDebugMessage opts "icurry file exists."
                     printDebugMessage opts "Reading interface..."
+                    current <- getCurrentDirectory
+                    printDebugMessage opts current
+                    printDebugMessage opts icurry
                     result <- readCurryInterfaceFile icurry
                     return $ Just result
                 False -> do
@@ -52,6 +54,9 @@ readInterface opts pkg vsn m = do
                     runCmd opts (cmdCYPMInstall path)
                     runCmd opts (cmdCurryLoad path m)
                     printDebugMessage opts "Reading interface..."
+                    current <- getCurrentDirectory
+                    printDebugMessage opts current
+                    printDebugMessage opts icurry
                     result <- readCurryInterfaceFile icurry
                     return $ Just result
         Nothing -> do

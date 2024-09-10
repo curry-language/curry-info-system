@@ -3,7 +3,7 @@ module CurryInfo.Options where
 import CurryInfo.Types
 import CurryInfo.Configuration
 import CurryInfo.Paths (Path, getDirectoryPath, getJSONPath, packagesPath)
-import CurryInfo.Verbosity (printDebugMessage)
+import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import System.Console.GetOpt
 import System.Process (exitWith)

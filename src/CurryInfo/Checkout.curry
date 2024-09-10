@@ -3,7 +3,7 @@ module CurryInfo.Checkout where
 import CurryInfo.Types
 import CurryInfo.Paths (root)
 import CurryInfo.Commands (runCmd, cmdCheckout)
-import CurryInfo.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
@@ -48,18 +48,18 @@ cmdSuccess = 0
 -- This action creates a checkout for the given version of the given package.
 checkoutIfMissing :: Options -> Package -> Version -> IO (Maybe String)
 checkoutIfMissing opts pkg vsn = do
-    printLine opts
-    printDebugMessage opts $ "Computing checkout path for package '" ++ pkg ++ "' with version '" ++ vsn ++ "'..."
+    printDetailMessage opts $ "Computing checkout path for package '" ++ pkg ++ "' with version '" ++ vsn ++ "'..."
     path <- getCheckoutPath pkg vsn
-    printDebugMessage opts $ "Checkout path: " ++ path
-    printDebugMessage opts "Determining if checkout is necessary..."
+    printDetailMessage opts $ "Checkout path: " ++ path
+    printDetailMessage opts "Determining if checkout is necessary..."
     b <- doesDirectoryExist path
     case b of
         True -> do
-            printDebugMessage opts "Directory already exists. Checkout unnecessary."
+            printDetailMessage opts "Directory already exists. Checkout unnecessary."
             return $ Just path
         False -> do
-            printDebugMessage opts "Directory does not exist. Checkout necessary."
-            printDebugMessage opts $ "Creating checkout..."
+            printDetailMessage opts "Directory does not exist. Checkout necessary."
+            printDetailMessage opts $ "Creating checkout..."
             runCmd opts $ cmdCheckout path pkg vsn
+            printDetailMessage opts "Checkout created."
             return $ Just path

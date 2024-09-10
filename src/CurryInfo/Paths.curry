@@ -84,7 +84,8 @@ instance Path CurryOperation where
 
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]
-getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
+getReducedDirectoryContents path = fmap (filter (\p -> p /= "." && p /= "..")) (getDirectoryContents path)
+--getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
 
 --- This action returns the path to the index of the package manager.
 index :: IO String

@@ -2,7 +2,7 @@ module CurryInfo.Reader where
 
 import CurryInfo.Types
 import CurryInfo.Paths (Path, getJSONPath)
-import CurryInfo.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import JSON.Parser (parseJSON)
 import JSON.Data
@@ -14,7 +14,6 @@ type Reader a b = Options -> a -> IO (Maybe [b])
 -- This action reads the current information for the input that exist at the moment.
 readInformation :: Path a => Options -> a -> IO (Maybe [(String, JValue)])
 readInformation opts obj = do
-    printLine opts
     printDebugMessage opts "Detemining path to json file..."
     path <- getJSONPath obj
     printDebugMessage opts $ "Path to json file: " ++ path

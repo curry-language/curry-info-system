@@ -2,7 +2,7 @@ module CurryInfo.SourceCode where
 
 import CurryInfo.Types
 import CurryInfo.Checkout (checkoutIfMissing)
-import CurryInfo.Verbosity (printLine, printDebugMessage)
+import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import System.CurryPath (modNameToPath)
 import System.Directory (doesFileExist)
@@ -25,7 +25,6 @@ belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
 -- and the read content of that file.
 readSourceFile :: Options -> Package -> Version -> Module -> IO (Maybe (String, String))
 readSourceFile opts pkg vsn m = do
-    printLine opts
     printDebugMessage opts "Reading source file..."
     mpath <- checkoutIfMissing opts pkg vsn
     case mpath of
@@ -44,12 +43,10 @@ readSourceFile opts pkg vsn m = do
                     printDebugMessage opts "Reading content..."
                     content <- readFile path
                     return (Just (path, content))
-                    --return (Just content)
 
 -- This operation looks for the part of the source code that corresponds to the given checker and returns a reference to that part.
 takeSourceCode :: Options -> Checker -> (String -> Bool) -> String -> String -> IO (Maybe Reference)
 takeSourceCode opts check belong path content = do
-    printLine opts
     printDebugMessage opts "Taking source code..."
     case findDefinition check content of
         Nothing -> do
@@ -68,7 +65,6 @@ takeSourceCode opts check belong path content = do
 -- This operation looks for the documentation that corresponds to the given checker and returns a reference to that part.
 takeDocumentation :: Options -> Checker -> String -> String -> IO (Maybe Reference)
 takeDocumentation opts check path content = do
-    printLine opts
     printDebugMessage opts "Taking documentation..."
     case findDefinition check content of
         Nothing -> do
@@ -95,7 +91,7 @@ instance SourceCode CurryModule where
                 return Nothing
             Just (path, content) -> do
                 let ls = lines content
-                let (tmp, source) = span (isPrefixOf "--") ls
+                let (tmp, _) = span (isPrefixOf "--") ls
                 return (Just (path, length tmp, length ls))
     
     readDocumentation opts (CurryModule pkg vsn m) = do
