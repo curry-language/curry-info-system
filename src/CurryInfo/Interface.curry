@@ -43,9 +43,6 @@ readInterface opts pkg vsn m = do
                 True -> do
                     printDebugMessage opts "icurry file exists."
                     printDebugMessage opts "Reading interface..."
-                    current <- getCurrentDirectory
-                    printDebugMessage opts current
-                    printDebugMessage opts icurry
                     result <- readCurryInterfaceFile icurry
                     return $ Just result
                 False -> do
@@ -54,9 +51,6 @@ readInterface opts pkg vsn m = do
                     runCmd opts (cmdCYPMInstall path)
                     runCmd opts (cmdCurryLoad path m)
                     printDebugMessage opts "Reading interface..."
-                    current <- getCurrentDirectory
-                    printDebugMessage opts current
-                    printDebugMessage opts icurry
                     result <- readCurryInterfaceFile icurry
                     return $ Just result
         Nothing -> do
