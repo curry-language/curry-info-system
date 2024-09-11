@@ -18,7 +18,7 @@ import Data.List (nubBy)
 import System.Environment (getArgs)
 import System.Process (exitWith)
 
-import Control.Monad (unless)
+import Control.Monad (unless, zipWithM)
 
 -- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
 -- to get an updated list.
@@ -108,22 +108,38 @@ getInfos opts input reqs = do
                     return $ OutputError $ errorMessage obj
                 Just fields -> do
                     printDetailMessage opts "Reading information succeeded."
-                    printDetailMessage opts "Extracting/Generating requested information..."
-                    results <- mapM (extractOrGenerate' conf fields obj) reqs
+                    case reqs of
+                        [] -> do
+                            printDebugMessage opts "No requests. Returning all currently available information..."
+                            let fieldNames = map fst fields
+                            case mapM (flip lookupRequest conf) fieldNames of
+                                Nothing -> do
+                                    return $ OutputError $ "One of the fields could not be found: " ++ show fieldNames
+                                Just allReqs -> do
+                                    results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames
+                                    let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
+                                    printDebugMessage opts "Creating output..."
+                                    output <- generateOutput conf mouts
+                                    printDetailMessage opts "Output created."
+                                    return output
+                        _ -> do
+                            printDetailMessage opts "Extracting/Generating requested information..."
+                            results <- mapM (extractOrGenerate conf fields obj) reqs
 
-                    let successfulFields = map (\(req, mres) -> (req, fst (fromJust mres))) $ filter (\(_, mres) -> isJust mres) results
-                    let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
+                            let successfulFields = map (\(req, mres) -> (req, fst (fromJust mres))) $ filter (\(_, mres) -> isJust mres) results
+                            let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
 
-                    let newInformation = successfulFields <+> fields
-                    printDebugMessage opts "Overwriting with updated information..."
-                    writeInformation obj newInformation
-                    printDetailMessage opts "Overwriting finished."
-                    printDebugMessage opts "Creating output..."
-                    output <- generateOutput' conf mouts
-                    printDetailMessage opts "Output created."
-                    return output
+                            let newInformation = successfulFields <+> fields
+                            printDebugMessage opts "Overwriting with updated information..."
+                            writeInformation obj newInformation
+                            printDetailMessage opts "Overwriting finished."
+                            printDebugMessage opts "Creating output..."
+                            output <- generateOutput conf mouts
+                            printDetailMessage opts "Output created."
+                            return output
         
-        extractOrGenerate' conf fields obj req = do
+        extractOrGenerate :: [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
+        extractOrGenerate conf fields obj req = do
             printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
             case lookupRequest req conf of
                 Nothing -> do
@@ -144,7 +160,7 @@ getInfos opts input reqs = do
                                     return $ (req, Just (jv, output))
                         1 -> do
                             printDebugMessage opts "Force option 1: Extraction, then generation if failed"
-                            extractionResult <- extract extractor  fields
+                            extractionResult <- extract extractor fields
                             case extractionResult of
                                 Nothing -> do
                                     generationResult <- generate generator obj
@@ -169,6 +185,7 @@ getInfos opts input reqs = do
                                     printDetailMessage opts "Executing request succeeded."
                                     return $ (req, Just (jv, output))
 
+        extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))) -> [(String, JValue)] -> IO (Maybe (JValue, String))
         extract extractor fields = do
             printDebugMessage opts "Trying extraction..."
             extractionResult <- extractor opts fields
@@ -180,6 +197,7 @@ getInfos opts input reqs = do
                     printDetailMessage opts "Extraction succeeded."
                     return $ Just (jv, output)
         
+        generate :: (Options -> a -> IO (Maybe (JValue, String))) -> a -> IO (Maybe (JValue, String))
         generate generator obj = do
             printDebugMessage opts "Trying generation..."
             generationResult <- generator opts obj
@@ -191,7 +209,8 @@ getInfos opts input reqs = do
                     printDetailMessage opts "Generation succeeded."
                     return $ Just (jv, output)
         
-        generateOutput' conf mouts = do
+        generateOutput :: [RegisteredRequest a] -> [(String, Maybe String)] -> IO Output
+        generateOutput conf mouts = do
             --outputs :: (String, Maybe String)
             case optOutput opts of
                 OutText -> do
