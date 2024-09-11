@@ -4,6 +4,8 @@ import Text.Pretty (Doc)
 
 import JSON.Data (JValue)
 
+import Data.Char (toLower)
+
 -- Options Type
 
 data Options = Options
@@ -16,7 +18,7 @@ data Options = Options
     , optType       :: Maybe String -- The requested type
     , optTypeclass  :: Maybe String -- The requested type class
     , optOperation  :: Maybe String -- The requested operation
-    , optOutput     :: String       -- The output format
+    , optOutput     :: OutFormat    -- The output format
     , optClean      :: Bool         -- Clean up information
     }
     deriving Show 
@@ -28,8 +30,9 @@ class Field a where
 
 data Output
     = OutputText String
-    | OutputError String
     | OutputJSON JValue
+    | OutputTerm [(String, String)]
+    | OutputError String
     deriving Show
 
 -- INPUT TYPES
@@ -183,3 +186,18 @@ type JReader b = JValue -> Maybe b
 type JShower b = b -> JValue
 
 type Printer b = Options -> b -> IO String
+
+data OutFormat = OutText | OutJSON | OutTerm
+    deriving Eq
+
+instance Show OutFormat where
+    show OutText = "Text"
+    show OutJSON = "JSON"
+    show OutTerm = "CurryTerm"
+
+instance Read OutFormat where
+    readsPrec _ s = case map toLower s of
+        "text"      -> [(OutText, "")]
+        "json"      -> [(OutJSON, "")]
+        "curryterm" -> [(OutTerm, "")]
+        _ -> []

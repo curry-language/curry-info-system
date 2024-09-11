@@ -27,8 +27,9 @@ info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
 
 printResult :: Output -> IO ()
 printResult (OutputText txt) = putStrLn txt
-printResult (OutputError err) = putStrLn $ "Error: " ++ err
 printResult (OutputJSON jv) = putStrLn $ ppJSON jv
+printResult (OutputTerm ts) = putStrLn $ show ts
+printResult (OutputError err) = putStrLn $ "Error: " ++ err
 
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts input reqs = do
@@ -193,12 +194,15 @@ getInfos opts input reqs = do
         generateOutput' conf mouts = do
             --outputs :: (String, Maybe String)
             case optOutput opts of
-                "text" -> do
+                OutText -> do
                     let outs = map (\(req, mout) -> req ++ ": " ++ maybe "FAILED" id mout) mouts
                     return $ OutputText (unlines outs)
-                "json" -> do
+                OutJSON -> do
                     let outs = map (\(req, mout) -> (req, JString (maybe "FAILED" id mout))) mouts
                     return $ OutputJSON (JObject outs)
+                OutTerm -> do
+                    let outs = map (\(req, mout) -> (req, maybe "FAILED" id mout)) mouts
+                    return $ OutputTerm outs
         
         checkPackageExists :: Package -> IO Bool
         checkPackageExists pkg = do

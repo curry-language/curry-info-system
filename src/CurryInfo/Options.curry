@@ -21,7 +21,7 @@ printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":"
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing "text" False
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False
 
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
@@ -172,7 +172,7 @@ options =
              (ReqArg (\args opts -> opts { optOperation = Just args }) "<o>")
              "requested operation"
     , Option "" ["output"]
-             (OptArg (\args opts -> opts { optOutput = maybe "text" id args }) "<format>")
+             (OptArg (\args opts -> opts { optOutput = maybe OutText read args }) "<format>")
              "output format: text (default), json"
     , Option "" ["clean"]
              (NoArg (\opts -> opts { optClean = True }))
