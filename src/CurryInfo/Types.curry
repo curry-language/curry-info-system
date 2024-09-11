@@ -20,6 +20,7 @@ data Options = Options
     , optOperation  :: Maybe String -- The requested operation
     , optOutput     :: OutFormat    -- The output format
     , optClean      :: Bool         -- Clean up information
+    , optShowAll    :: Bool         -- Show all currently available information
     }
     deriving Show 
 
@@ -49,56 +50,7 @@ data CurryTypeclass = CurryTypeclass Package Version Module Typeclass
 
 data CurryOperation = CurryOperation Package Version Module Operation
 
--- INFORMATION TYPES
-
-{-
-data PackageInformation
-    = PackageName String
-    | PackageVersions [Version]
-
-data VersionInformation
-    = VersionVersion Version
-    | VersionDocumentation String
-    | VersionCategories [Category]
-    | VersionModules [Module]
-    | VersionDependencies [Dependency]
-
-data ModuleInformation
-    = ModuleName String
-    | ModuleDocumentation Reference
-    | ModuleSourceCode Reference
-    | ModuleSafe Safe
-    | ModuleExports [Export]
-    | ModuleTypeclasses [Typeclass]
-    | ModuleTypes [Type]
-    | ModuleOperations [Operation]
-
-data TypeInformation
-    = TypeName String
-    | TypeDocumentation Reference
-    | TypeConstructors [Constructor]
-    | TypeDefinition Reference
-
-data TypeclassInformation
-    = TypeclassName String
-    | TypeclassDocumentation Reference
-    | TypeclassMethods [Signature]
-    | TypeclassDefinition Reference
-
-data OperationInformation
-    = OperationName String
-    | OperationDocumentation Reference
-    | OperationSourceCode Reference
-    | OperationSignature Signature
-    | OperationInfix (Maybe Infix)
-    | OperationPrecedence (Maybe Precedence)
-    | OperationDeterministic Deterministic
-    | OperationDemandness Demandness
-    | OperationIndeterministic Indeterministic
-    | OperationSolutionCompleteness SolutionCompleteness
-    | OperationTermination Termination
-    | OperationTotallyDefined TotallyDefined
--}
+-- HELPER TYPES
 
 data Infix = Infix | InfixL | InfixR
     deriving (Read, Show)

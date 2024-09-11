@@ -21,7 +21,7 @@ printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":"
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False False
 
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
@@ -177,6 +177,9 @@ options =
     , Option "" ["clean"]
              (NoArg (\opts -> opts { optClean = True }))
              "clean up the requested object or all information and exit"
+    , Option "" ["showall"]
+             (NoArg (\opts -> opts { optShowAll = True }))
+             "show all currently available information (without generating)"
     ]
     where
         safeReadNat opttrans s opts = case readNat s of

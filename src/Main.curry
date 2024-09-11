@@ -108,8 +108,8 @@ getInfos opts input reqs = do
                     return $ OutputError $ errorMessage obj
                 Just fields -> do
                     printDetailMessage opts "Reading information succeeded."
-                    case reqs of
-                        [] -> do
+                    case optShowAll opts of
+                        True -> do
                             printDebugMessage opts "No requests. Returning all currently available information..."
                             let fieldNames = map fst fields
                             case mapM (flip lookupRequest conf) fieldNames of
@@ -122,7 +122,7 @@ getInfos opts input reqs = do
                                     output <- generateOutput conf mouts
                                     printDetailMessage opts "Output created."
                                     return output
-                        _ -> do
+                        False -> do
                             printDetailMessage opts "Extracting/Generating requested information..."
                             results <- mapM (extractOrGenerate conf fields obj) reqs
 
