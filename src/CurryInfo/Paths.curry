@@ -79,8 +79,14 @@ instance Path CurryOperation where
         return (path </> "operations")
     
     getJSONPath x@(CurryOperation _ _ _ o) = do
-        path <- getDirectoryPath x
-        return (path </> o <.> "json")    
+            path <- getDirectoryPath x
+            let name = if isOperator o then convert o else o
+            return (path </> name <.> "json")
+        where
+            isOperator = not . and . map isAlphaNum
+            convert o' = '_': concat (map (intToHex . ord) o')
+            intToHex i = reverse $ map (cs !!) (map (flip mod 16) (takeWhile (> 0) (iterate (flip div 16) i)))
+            cs = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
 
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]
