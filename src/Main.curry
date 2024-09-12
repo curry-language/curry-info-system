@@ -1,16 +1,18 @@
 module Main where
 
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, initialize)
+import CurryInfo.Paths (Path, initialize, index)
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
 import CurryInfo.ErrorMessage
-import CurryInfo.Options (getObject, processOptions)
+import CurryInfo.Options (getObject, processOptions, queryOptions)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Generator (readPackageJSON, getExportedModules, readPackageModules)
 
 import JSON.Pretty (ppJSON)
 import JSON.Data
+import JSON.Parser (parseJSON)
 
 import Data.Maybe (isJust, fromJust)
 import Data.List (nubBy)
@@ -18,6 +20,8 @@ import Data.Either (partitionEithers)
 
 import System.Environment (getArgs)
 import System.Process (exitWith)
+import System.FilePath ((</>), (<.>))
+import System.Directory (doesDirectoryExist)
 
 import Control.Monad (unless, zipWithM)
 
@@ -41,8 +45,9 @@ getInfos opts input reqs = do
             result <- checkPackageExists pkg
             case result of
                 False -> do
-                    printDebugMessage opts "Package does not exist."
-                    return $ OutputError $ "Package '" ++ pkg ++ "' does not exist."
+                    let err = "Package '" ++ pkg ++ "' does not exist."
+                    printDebugMessage opts err
+                    return $ OutputError err
                 True -> do
                     printDebugMessage opts "Package exists."
                     getInfos' packageConfiguration (CurryPackage pkg)
@@ -51,8 +56,9 @@ getInfos opts input reqs = do
             result <- checkVersionExists pkg vsn
             case result of
                 False -> do
-                    printDetailMessage opts "Checked Version: does not exist."
-                    return $ OutputError $ "Version '" ++ vsn ++ "' of package '" ++ pkg ++ "' does not exist."
+                    let err = "Version '" ++ vsn ++ "' of package '" ++ pkg ++ "' does not exists."
+                    printDetailMessage opts err
+                    return $ OutputError $ err
                 True -> do
                     printDetailMessage opts "Checked Version: exists."
                     getInfos' versionConfiguration (CurryVersion pkg vsn)
@@ -61,8 +67,9 @@ getInfos opts input reqs = do
             result <- checkModuleExists pkg vsn m
             case result of
                 False -> do
-                    printDetailMessage opts "Checked Module: does not exist or is not exported."
-                    return $ OutputError $ "Module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    let err = "Module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    printDetailMessage opts err
+                    return $ OutputError err
                 True  -> do
                     printDetailMessage opts "Checked Module: exists."
                     getInfos' moduleConfiguration (CurryModule pkg vsn m)
@@ -71,8 +78,9 @@ getInfos opts input reqs = do
             result <- checkTypeExists pkg vsn m t
             case result of
                 False -> do
-                    printDetailMessage opts "Checked Type: does not exist or is not exported."
-                    return $ OutputError $ "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    let err = "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    printDetailMessage opts err
+                    return $ OutputError err
                 True  -> do
                     printDetailMessage opts "Checked Type: exists."
                     getInfos' typeConfiguration (CurryType pkg vsn m t)
@@ -81,8 +89,9 @@ getInfos opts input reqs = do
             result <- checkTypeclassExists pkg vsn m c
             case result of
                 False -> do
-                    printDetailMessage opts "Checked Typeclass: does not exist or is not exported."
-                    return $ OutputError $ "Typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    let err = "Typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    printDetailMessage opts err
+                    return $ OutputError err
                 True  -> do
                     printDetailMessage opts "Checked Typeclass: exists."
                     getInfos' typeclassConfiguration (CurryTypeclass pkg vsn m c)
@@ -91,8 +100,9 @@ getInfos opts input reqs = do
             result <- checkOperationExists pkg vsn m o
             case result of
                 False -> do
-                    printDetailMessage opts "Checker Operation: does not exist or is not exported."
-                    return $ OutputError $ "Operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    let err = "Operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+                    printDetailMessage opts err
+                    return $ OutputError err
                 True  -> do
                     printDetailMessage opts "Checker Operation: exists."
                     getInfos' operationConfiguration (CurryOperation pkg vsn m o)
@@ -111,7 +121,7 @@ getInfos opts input reqs = do
                     printDetailMessage opts "Reading information succeeded."
                     case optShowAll opts of
                         True -> do
-                            printDebugMessage opts "No requests. Returning all currently available information..."
+                            printStatusMessage opts "Returning all currently available information..."
                             let fieldNames = map fst fields
                             case mapM (flip lookupRequest conf) fieldNames of
                                 Nothing -> do
@@ -120,7 +130,7 @@ getInfos opts input reqs = do
                                     results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames
                                     let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
                                     printDebugMessage opts "Creating output..."
-                                    output <- generateOutput conf (map (\(req, mout) -> (req, maybe "Extracting information failed" id mout)) mouts)
+                                    output <- generateOutput (map (\(req, mout) -> (req, maybe "Extracting information failed" id mout)) mouts)
                                     printDetailMessage opts "Output created."
                                     return output
                         False -> do
@@ -134,23 +144,9 @@ getInfos opts input reqs = do
                             printDetailMessage opts "Overwriting finished."
                             printDebugMessage opts "Creating output..."
                             let outs = map (either id (\(r, _, s) -> (r, s))) results
-                            output <- generateOutput conf outs
+                            output <- generateOutput outs
                             printDetailMessage opts "Output created."
                             return output
-
-                            {-
-                            let successfulFields = map (\(req, eres) -> (req, fst (fromRight eres))) $ filter (\(_, eres) -> isRight eres) results
-                            let mouts = map (\(req, eres) -> (req, fmap snd eres)) results
-
-                            let newInformation = successfulFields <+> fields
-                            printDebugMessage opts "Overwriting with updated information..."
-                            writeInformation obj newInformation
-                            printDetailMessage opts "Overwriting finished."
-                            printDebugMessage opts "Creating output..."
-                            output <- generateOutput conf mouts
-                            printDetailMessage opts "Output created."
-                            return output
-                            -}
         
         extractOrGenerate :: [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (Either (String, String) (String, JValue, String))-- (String, Either String (JValue, String))
         extractOrGenerate conf fields obj req = do
@@ -223,8 +219,8 @@ getInfos opts input reqs = do
                     printDetailMessage opts "Generation succeeded."
                     return $ Just (jv, output)
         
-        generateOutput :: [RegisteredRequest a] -> [(String, String)] -> IO Output
-        generateOutput conf outs = do
+        generateOutput :: [(String, String)] -> IO Output
+        generateOutput outs = do
             case optOutput opts of
                 OutText -> do
                     let msgs = map (\(req, out) -> req ++ ": " ++ out) outs
@@ -234,51 +230,59 @@ getInfos opts input reqs = do
                     return $ OutputJSON (JObject fields)
                 OutTerm -> do
                     return $ OutputTerm outs
-
-        {-
-        generateOutput :: [RegisteredRequest a] -> [(String, Maybe String)] -> IO Output
-        generateOutput conf mouts = do
-            case optOutput opts of
-                OutText -> do
-                    let outs = map (\(req, mout) -> req ++ ": " ++ maybe "FAILED" id mout) mouts
-                    return $ OutputText (unlines outs)
-                OutJSON -> do
-                    let outs = map (\(req, mout) -> (req, JString (maybe "FAILED" id mout))) mouts
-                    return $ OutputJSON (JObject outs)
-                OutTerm -> do
-                    let outs = map (\(req, mout) -> (req, maybe "FAILED" id mout)) mouts
-                    return $ OutputTerm outs
-        -}
         
         checkPackageExists :: Package -> IO Bool
         checkPackageExists pkg = do
-            putStrLn "NOT YET IMPLEMENTED: checkPackageExists"
-            return True
+            path <- index
+            printDebugMessage opts $ "Looking for package in index..."
+            b <- doesDirectoryExist (path </> pkg)
+            return b
 
         checkVersionExists :: Package -> Version -> IO Bool
         checkVersionExists pkg vsn = do
-            putStrLn "NOT YET IMPLEMENTED: checkVersionExists"
-            return True
+            path <- index
+            printDebugMessage opts $ "Looking for version in index..."
+            b <- doesDirectoryExist (path </> pkg </> vsn)
+            return b
 
         checkModuleExists :: Package -> Version -> Module -> IO Bool
         checkModuleExists pkg vsn m = do
-            putStrLn "NOT YET IMPLEMENTED: checkModuleExists"
-            return True
+            allMods <- readPackageModules opts pkg vsn
+
+            packageJSON <- readPackageJSON opts pkg vsn
+            let exportedMods = maybe allMods id (parseJSON packageJSON >>= getExportedModules)
+
+            return (elem m exportedMods)
 
         checkTypeExists :: Package -> Version -> Module -> Type -> IO Bool
         checkTypeExists pkg vsn m t = do
-            putStrLn "NOT YET IMPLEMENTED: checkTypeExists"
-            return True
+            res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["types"]
+            case res of
+                OutputTerm terms -> case lookup "types" terms of
+                    Nothing -> return False
+                    Just ts -> do
+                        return $ elem t (read ts)
+                _ -> return False
 
         checkTypeclassExists :: Package -> Version -> Module -> Typeclass -> IO Bool
         checkTypeclassExists pkg vsn m c = do
-            putStrLn "NOT YET IMPLEMENTED: checkTypeclassExists"
-            return True
+            res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["typeclasses"]
+            case res of
+                OutputTerm terms -> case lookup "typeclasses" terms of
+                    Nothing -> return False
+                    Just cs -> do
+                        return $ elem c (read cs)
+                _ -> return False
 
         checkOperationExists :: Package -> Version -> Module -> Operation -> IO Bool
         checkOperationExists pkg vsn m o = do
-            putStrLn "NOT YET IMPLEMENTED: checkOperationExists"
-            return True
+            res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["operations"]
+            case res of
+                OutputTerm terms -> case lookup "operations" terms of
+                    Nothing -> return False
+                    Just os -> do
+                        return $ elem o (read os)
+                _ -> return False
 
 main :: IO ()
 main = do

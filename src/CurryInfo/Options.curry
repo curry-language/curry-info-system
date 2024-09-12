@@ -29,6 +29,9 @@ silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
 testOptions :: Options
 testOptions = defaultOptions { optVerb = 4 }
 
+queryOptions :: Options
+queryOptions = silentOptions { optOutput = OutTerm }
+
 -- This action takes the agrument given to the program and processes the arguments.
 -- If the help option is True, it prints the usage text and stops.
 -- If some error happens, an error message is printed and the program stops.
