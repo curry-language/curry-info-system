@@ -173,7 +173,7 @@ options =
              "requested operation"
     , Option "" ["output"]
              (OptArg (\args opts -> opts { optOutput = maybe OutText read args }) "<format>")
-             "output format: text (default), json"
+             "output format: Text (default), JSON, CurryTerm"
     , Option "" ["clean"]
              (NoArg (\opts -> opts { optClean = True }))
              "clean up the requested object or all information and exit"

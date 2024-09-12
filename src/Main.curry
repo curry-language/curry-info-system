@@ -14,6 +14,7 @@ import JSON.Data
 
 import Data.Maybe (isJust, fromJust)
 import Data.List (nubBy)
+import Data.Either (partitionEithers)
 
 import System.Environment (getArgs)
 import System.Process (exitWith)
@@ -119,15 +120,27 @@ getInfos opts input reqs = do
                                     results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames
                                     let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
                                     printDebugMessage opts "Creating output..."
-                                    output <- generateOutput conf mouts
+                                    output <- generateOutput conf (map (\(req, mout) -> (req, maybe "Extracting information failed" id mout)) mouts)
                                     printDetailMessage opts "Output created."
                                     return output
                         False -> do
                             printDetailMessage opts "Extracting/Generating requested information..."
                             results <- mapM (extractOrGenerate conf fields obj) reqs
 
-                            let successfulFields = map (\(req, mres) -> (req, fst (fromJust mres))) $ filter (\(_, mres) -> isJust mres) results
-                            let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
+                            let (_, successfulRequests) = partitionEithers results
+                            let newInformation = map (\(r, jv, _) -> (r, jv)) successfulRequests <+> fields
+                            printDebugMessage opts "Overwriting with updated information..."
+                            writeInformation obj newInformation
+                            printDetailMessage opts "Overwriting finished."
+                            printDebugMessage opts "Creating output..."
+                            let outs = map (either id (\(r, _, s) -> (r, s))) results
+                            output <- generateOutput conf outs
+                            printDetailMessage opts "Output created."
+                            return output
+
+                            {-
+                            let successfulFields = map (\(req, eres) -> (req, fst (fromRight eres))) $ filter (\(_, eres) -> isRight eres) results
+                            let mouts = map (\(req, eres) -> (req, fmap snd eres)) results
 
                             let newInformation = successfulFields <+> fields
                             printDebugMessage opts "Overwriting with updated information..."
@@ -137,14 +150,15 @@ getInfos opts input reqs = do
                             output <- generateOutput conf mouts
                             printDetailMessage opts "Output created."
                             return output
+                            -}
         
-        extractOrGenerate :: [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
+        extractOrGenerate :: [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (Either (String, String) (String, JValue, String))-- (String, Either String (JValue, String))
         extractOrGenerate conf fields obj req = do
             printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
             case lookupRequest req conf of
                 Nothing -> do
                     printDetailMessage opts $ "Could not find request '" ++ req ++ "'."
-                    return (req, Nothing)
+                    return $ Left (req, "Could not find request.")
                 Just (_, _, extractor, generator) -> do
                     printDetailMessage opts "Found request. Looking at Force option..."
                     case optForce opts of
@@ -154,10 +168,10 @@ getInfos opts input reqs = do
                             case extractionResult of
                                 Nothing -> do
                                     printDetailMessage opts "Executing request failed"
-                                    return (req, Nothing)
+                                    return $ Left (req, "Extracting information failed.")
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return $ (req, Just (jv, output))
+                                    return $ Right (req, jv, output)
                         1 -> do
                             printDebugMessage opts "Force option 1: Extraction, then generation if failed"
                             extractionResult <- extract extractor fields
@@ -167,23 +181,23 @@ getInfos opts input reqs = do
                                     case generationResult of
                                         Nothing -> do
                                             printDetailMessage opts "Executing request failed."
-                                            return (req, Nothing)
+                                            return $ Left (req, "Extracting and Generating information failed.")
                                         Just (jv, output) -> do
                                             printDetailMessage opts "Executing request succeeded."
-                                            return $ (req, Just (jv, output))
+                                            return $ Right (req, jv, output)
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return $ (req, Just (jv, output))
+                                    return $ Right (req, jv, output)
                         2 -> do
                             printDebugMessage opts "Force option 2: Only generation"
                             generationResult <- generate generator obj
                             case generationResult of
                                 Nothing -> do
                                     printDetailMessage opts "Executing request failed"
-                                    return (req, Nothing)
+                                    return $ Left (req, "Generating information failed.")
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return $ (req, Just (jv, output))
+                                    return $ Right (req, jv, output)
 
         extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))) -> [(String, JValue)] -> IO (Maybe (JValue, String))
         extract extractor fields = do
@@ -209,9 +223,21 @@ getInfos opts input reqs = do
                     printDetailMessage opts "Generation succeeded."
                     return $ Just (jv, output)
         
+        generateOutput :: [RegisteredRequest a] -> [(String, String)] -> IO Output
+        generateOutput conf outs = do
+            case optOutput opts of
+                OutText -> do
+                    let msgs = map (\(req, out) -> req ++ ": " ++ out) outs
+                    return $ OutputText (unlines msgs)
+                OutJSON -> do
+                    let fields = map (\(req, out) -> (req, JString out)) outs
+                    return $ OutputJSON (JObject fields)
+                OutTerm -> do
+                    return $ OutputTerm outs
+
+        {-
         generateOutput :: [RegisteredRequest a] -> [(String, Maybe String)] -> IO Output
         generateOutput conf mouts = do
-            --outputs :: (String, Maybe String)
             case optOutput opts of
                 OutText -> do
                     let outs = map (\(req, mout) -> req ++ ": " ++ maybe "FAILED" id mout) mouts
@@ -222,6 +248,7 @@ getInfos opts input reqs = do
                 OutTerm -> do
                     let outs = map (\(req, mout) -> (req, maybe "FAILED" id mout)) mouts
                     return $ OutputTerm outs
+        -}
         
         checkPackageExists :: Package -> IO Bool
         checkPackageExists pkg = do
