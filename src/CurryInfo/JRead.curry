@@ -4,176 +4,155 @@ import CurryInfo.Types
 
 import JSON.Data
 
-import Text.Pretty (text)
-
-import Data.List (find)
-import Data.Maybe (catMaybes)
-
-import Control.Monad (join)
-
 -- PACKAGE
 
 jrPackageName :: JReader String
-jrPackageName jv = getString jv
+jrPackageName = jrString
 
 jrPackageVersions :: JReader [String]
-jrPackageVersions jv = (join $ mapM getString <$> getArray jv)
+jrPackageVersions = jrMap jrString
 
 -- VERSION
 
 jrVersionVersion :: JReader String
-jrVersionVersion jv = getString jv
+jrVersionVersion = jrString
 
 jrVersionDocumentation :: JReader String
-jrVersionDocumentation jv = getString jv
+jrVersionDocumentation = jrString
 
 jrVersionCategories :: JReader [String]
-jrVersionCategories jv = (join $ mapM getString <$> getArray jv)
+jrVersionCategories = jrMap jrString
 
 jrVersionModules :: JReader [String]
-jrVersionModules jv = (join $ mapM getString <$> getArray jv)
+jrVersionModules = jrMap jrString
 
 jrVersionDependencies :: JReader [Dependency]
-jrVersionDependencies jv = do
-    arr <- getArray jv
-    deps <- mapM getString arr
-    return (map read deps)
+jrVersionDependencies = jrMap jrRead
 
 -- MODULE
 
 jrModuleName :: JReader String
-jrModuleName jv = getString jv
+jrModuleName = jrString
 
 jrModuleDocumentation :: JReader Reference
-jrModuleDocumentation jv = read <$> getString jv
+jrModuleDocumentation = jrRead
 
 jrModuleSourceCode :: JReader Reference
-jrModuleSourceCode jv = read <$> getString jv
+jrModuleSourceCode = jrRead
 
 jrModuleSafe :: JReader Safe
-jrModuleSafe jv = read <$> getString jv
+jrModuleSafe = jrRead
 
 jrModuleTypeclasses :: JReader [String]
-jrModuleTypeclasses jv = (join $ mapM getString <$> getArray jv)
+jrModuleTypeclasses = jrMap jrString
 
 jrModuleTypes :: JReader [String]
-jrModuleTypes jv = (join $ mapM getString <$> getArray jv)
+jrModuleTypes = jrMap jrString
 
 jrModuleOperations :: JReader [String]
-jrModuleOperations jv = (join $ mapM getString <$> getArray jv)
+jrModuleOperations = jrMap jrString
 
 -- TYPE
 
 jrTypeName :: JReader String
-jrTypeName jv = getString jv
+jrTypeName = jrString
 
 jrTypeDocumentation :: JReader Reference
-jrTypeDocumentation jv = read <$> getString jv
+jrTypeDocumentation = jrRead
 
 jrTypeConstructors :: JReader [String]
-jrTypeConstructors jv = (join $ mapM getString <$> getArray jv)
+jrTypeConstructors = jrMap jrString
 
 jrTypeDefinition :: JReader Reference
-jrTypeDefinition jv = read <$> getString jv
+jrTypeDefinition = jrRead
 
 -- TYPECLASS
 
 jrTypeclassName :: JReader String
-jrTypeclassName jv = getString jv
+jrTypeclassName = jrString
 
 jrTypeclassDocumentation :: JReader Reference
-jrTypeclassDocumentation jv = read <$> getString jv
+jrTypeclassDocumentation = jrRead
 
 jrTypeclassMethods :: JReader [String]
-jrTypeclassMethods jv = (read <$> getString jv)
+jrTypeclassMethods = jrRead
 
 jrTypeclassDefinition :: JReader Reference
-jrTypeclassDefinition jv = read <$> getString jv
+jrTypeclassDefinition = jrRead
 
 -- OPERATION
 
 jrOperationName :: JReader String
-jrOperationName jv = getString jv
+jrOperationName = jrString
 
 jrOperationDocumentation :: JReader Reference
-jrOperationDocumentation jv = read <$> getString jv
+jrOperationDocumentation = jrRead
 
 jrOperationSourceCode :: JReader Reference
-jrOperationSourceCode jv = read <$> getString jv
+jrOperationSourceCode = jrRead
 
 jrOperationSignature :: JReader Signature
-jrOperationSignature jv = getString jv
+jrOperationSignature = jrString
 
 jrOperationInfix :: JReader (Maybe Infix)
-jrOperationInfix jv = (read <$> getString jv)
+jrOperationInfix = jrRead
 
 jrOperationPrecedence :: JReader (Maybe Precedence)
-jrOperationPrecedence jv = (read <$> getString jv)
+jrOperationPrecedence = jrRead
 
 jrOperationDeterministic :: JReader Deterministic
-jrOperationDeterministic jv = (read <$> getString jv)
+jrOperationDeterministic = jrRead
 
 jrOperationDemandness :: JReader Demandness
-jrOperationDemandness jv = do
-    arr <- getArray jv
-    numbers <- mapM getNumber arr
-    return (map round numbers)
+jrOperationDemandness = jrMap (fmap round . jrNumber)
 
 jrOperationIndeterministic :: JReader Indeterministic
-jrOperationIndeterministic jv =(getBool jv)
+jrOperationIndeterministic = jrBool
 
 jrOperationSolutionCompleteness :: JReader SolutionCompleteness
-jrOperationSolutionCompleteness jv = (getBool jv)
+jrOperationSolutionCompleteness = jrBool
 
 jrOperationTermination :: JReader Termination
-jrOperationTermination jv = (getBool jv)
+jrOperationTermination = jrBool
 
 jrOperationTotallyDefined :: JReader TotallyDefined
-jrOperationTotallyDefined jv = (getBool jv)
+jrOperationTotallyDefined = jrBool
 
 ------------------------------------------------------------------------
 
---- This operation converts a string json value into a regular string.
---- If the given value is not a string, Nothing is returned.
-getString :: JValue -> Maybe String
-getString jv = case jv of
-    JString s -> Just s
+--- This operation converts a number json value into a regular float.
+--- If the given value is not a number, Nothing is returned.
+jrNumber :: JValue -> Maybe Float
+jrNumber jv = case jv of
+    JNumber n -> Just n
     _ -> Nothing
 
 --- This operation converts a boolean json value into a regular boolean.
 --- If the given value is not a boolean, Nothing is returned.
-getBool :: JValue -> Maybe Bool
-getBool jv = case jv of 
+jrBool :: JValue -> Maybe Bool
+jrBool jv = case jv of
     JTrue -> Just True
     JFalse -> Just False
     _ -> Nothing
 
---- This operation converts a number json value into a regular float.
---- If the given value is not a number, Nothing is returned.
-getNumber :: JValue -> Maybe Float
-getNumber jv = case jv of 
-    JNumber n -> Just n
+--- This operation converts a string json value into a regular string.
+--- If the given value is not a string, Nothing is returned.
+jrString :: JValue -> Maybe String
+jrString jv = case jv of
+    JString s -> Just s
     _ -> Nothing
 
--- This operation returns the list from an array json value.
--- If the given json value is not an array, Nothing is returned.
-getArray :: JValue -> Maybe [JValue]
-getArray jv = case jv of
-    JArray x -> Just x
+jrRead :: Read a => JValue -> Maybe a
+jrRead jv = case jv of
+    JString s -> Just (read s)
     _ -> Nothing
 
--- This operation returns the list of fields from a json object.
--- If the given json value is not an object, Nothing is returned.
-getFields :: JValue -> Maybe [JField]
-getFields jv = case jv of
-    JObject x -> Just x
+jrMap :: (JValue -> Maybe a) -> JValue -> Maybe [a]
+jrMap f jv = case jv of
+    JArray arr -> mapM f arr
     _ -> Nothing
 
-{-
--- This operation returns the dependency entry from a json object.
--- If the given json value is not an object, Nothing is returned.
-getDependency :: JValue -> Maybe Dependency
-getDependency jv = case jv of
-    JObject [("package", JString pkg), ("lowerBound", JString lb), ("upperBound", JString ub)] -> Just (pkg, lb, read ub)
+getString :: JValue -> Maybe String
+getString jv = case jv of
+    JString s -> Just s
     _ -> Nothing
--}
