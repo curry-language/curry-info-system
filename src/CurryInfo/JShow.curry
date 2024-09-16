@@ -9,113 +9,131 @@ import Text.Pretty
 -- PACKAGE
 
 jsPackageName :: JShower String
-jsPackageName = JString
+jsPackageName = jsString
 
 jsPackageVersions :: JShower [String]
-jsPackageVersions vsns = JArray (map JString vsns)
+jsPackageVersions = jsMap jsString
 
 -- VERSION
 
 jsVersionVersion :: JShower String
-jsVersionVersion vsn = JString vsn
+jsVersionVersion vsn = jsString vsn
 
 jsVersionDocumentation :: JShower String
-jsVersionDocumentation d = JString d
+jsVersionDocumentation = jsString
 
 jsVersionCategories :: JShower [String]
-jsVersionCategories cats = JArray (map JString cats)
+jsVersionCategories = jsMap jsString
 
 jsVersionModules :: JShower [String]
-jsVersionModules mods = JArray (map JString mods)
+jsVersionModules = jsMap jsString
 
 jsVersionDependencies :: JShower [Dependency]
-jsVersionDependencies deps = JArray (map (JString . show) deps)
+jsVersionDependencies = jsMap jsShow
 
 -- MODULE
 
 jsModuleName :: JShower String
-jsModuleName m = JString m
+jsModuleName = jsString
 
 jsModuleDocumentation :: JShower Reference
-jsModuleDocumentation d = JString $ show d
+jsModuleDocumentation = jsShow
 
 jsModuleSourceCode :: JShower Reference
-jsModuleSourceCode s = JString $ show s
+jsModuleSourceCode = jsShow
 
 jsModuleSafe :: JShower Safe
-jsModuleSafe s = JString $ show s
+jsModuleSafe = jsShow
 
 jsModuleTypeclasses :: JShower [String]
-jsModuleTypeclasses cs = JArray (map JString cs)
+jsModuleTypeclasses = jsMap jsString
 
 jsModuleTypes :: JShower [String]
-jsModuleTypes ts = JArray (map JString ts)
+jsModuleTypes = jsMap jsString
 
 jsModuleOperations :: JShower [String]
-jsModuleOperations os = JArray (map JString os )
+jsModuleOperations = jsMap jsString
 
 -- TYPE
 
 jsTypeName :: JShower String
-jsTypeName t = JString t
+jsTypeName = jsString
 
 jsTypeDocumentation :: JShower Reference
-jsTypeDocumentation d = JString $ show d
+jsTypeDocumentation = jsShow
 
 jsTypeConstructors :: JShower [String]
-jsTypeConstructors cons = JArray (map JString cons)
+jsTypeConstructors = jsMap jsString
 
 jsTypeDefinition :: JShower Reference
-jsTypeDefinition d = JString $ show d
+jsTypeDefinition = jsShow
 
 -- TYPECLASS
 
 jsTypeclassName :: JShower String
-jsTypeclassName c = JString c
+jsTypeclassName = jsString
 
 jsTypeclassDocumentation :: JShower Reference
-jsTypeclassDocumentation d = JString $ show d
+jsTypeclassDocumentation = jsShow
 
 jsTypeclassMethods :: JShower [String]
-jsTypeclassMethods methods = JArray (map JString methods)
+jsTypeclassMethods = jsMap jsString
 
 jsTypeclassDefinition :: JShower Reference
-jsTypeclassDefinition d = JString $ show d
+jsTypeclassDefinition = jsShow
 
 -- OPERATION
 
 jsOperationName :: JShower String
-jsOperationName o = JString o
+jsOperationName = jsString
 
 jsOperationDocumentation :: JShower Reference
-jsOperationDocumentation d = JString $ show d
+jsOperationDocumentation = jsShow
 
 jsOperationSourceCode :: JShower Reference
-jsOperationSourceCode s = JString $ show s
+jsOperationSourceCode = jsShow
 
 jsOperationSignature :: JShower Signature
-jsOperationSignature sign = JString sign
+jsOperationSignature = jsString
 
 jsOperationInfix :: JShower (Maybe Infix)
-jsOperationInfix i = JString $ show i
+jsOperationInfix = jsShow
 
 jsOperationPrecedence :: JShower (Maybe Precedence)
-jsOperationPrecedence p = JString $ show p
+jsOperationPrecedence = jsShow
 
 jsOperationDeterministic :: JShower Deterministic
-jsOperationDeterministic det = JString $ show det
+jsOperationDeterministic = jsShow
 
 jsOperationDemandness :: JShower Demandness
-jsOperationDemandness dems = JArray (map (JNumber . toFloat) dems)
+jsOperationDemandness = jsMap jsNumber
 
 jsOperationIndeterministic :: JShower Indeterministic
-jsOperationIndeterministic b = if b then JTrue else JFalse
+jsOperationIndeterministic = jsBool
 
 jsOperationSolutionCompleteness :: JShower SolutionCompleteness
-jsOperationSolutionCompleteness b = if b then JTrue else JFalse
+jsOperationSolutionCompleteness = jsBool
 
 jsOperationTermination :: JShower Termination
-jsOperationTermination b = if b then JTrue else JFalse
+jsOperationTermination = jsBool
 
 jsOperationTotallyDefined :: JShower TotallyDefined
-jsOperationTotallyDefined b = if b then JTrue else JFalse
+jsOperationTotallyDefined = jsBool
+
+-- HELPER
+
+jsBool :: Bool -> JValue
+jsBool True = JTrue
+jsBool False = JFalse
+
+jsString :: String -> JValue
+jsString = JString
+
+jsShow :: Show a => a -> JValue
+jsShow = JString . show
+
+jsMap :: (a -> JValue) -> [a] -> JValue
+jsMap f = JArray . map f
+
+jsNumber :: Real a => a -> JValue
+jsNumber = JNumber . toFloat
