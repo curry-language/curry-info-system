@@ -19,7 +19,8 @@ import XML
 
 -- This action initiates a call to CASS to compute the given analysis for the given module.
 -- The parser argument is for parsing the result of the analysis.
-analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe a)
+analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe ([(String, a)], a))
+--analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe a)
 analyseWithCASS opts path analysis m field parser = do
         printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
         (_, output, _) <- runCmd opts (cmdCASS path analysis m)
@@ -34,9 +35,9 @@ analyseWithCASS opts path analysis m field parser = do
                         printDebugMessage opts "Could not find analysis results."
                         printDetailMessage opts "Analysis failed."
                         return Nothing
-                    Just es -> do
-                        printDebugMessage opts "Results field found. Looking for requested result..."
-                        case getXmlResult es of
+                    Just results -> do
+                        printDebugMessage opts "Results found. Looking for requested result..."
+                        case lookup field results of
                             Nothing -> do
                                 printDebugMessage opts $ "Could not find entry with name '" ++ field ++ "'."
                                 printDetailMessage opts "Analysis failed."
@@ -44,7 +45,9 @@ analyseWithCASS opts path analysis m field parser = do
                             Just result -> do
                                 printDetailMessage opts "Analysis succeeded."
                                 printDebugMessage opts $ "Result found: " ++ show result
-                                return $ parser result
+                                -- results :: [(String, String)]
+                                let otherResults = foldr (\(f, sr) xs -> maybe xs (\r -> (f, r):xs) (parser sr)) [] results
+                                return $ fmap (\r -> (otherResults, r)) (parser result)
             _ -> do
                 printDebugMessage opts "Could not parse output. Expected XML."
                 printDebugMessage opts "Output:"
@@ -52,14 +55,11 @@ analyseWithCASS opts path analysis m field parser = do
                 printDetailMessage opts "Analysis failed."
                 return Nothing
     where
-        getXmlResults :: XmlExp -> Maybe [XmlExp]
-        getXmlResults e = if tagOf e == "results" then Just (elemsOf e) else Nothing
-
-        getXmlResult :: [XmlExp] -> Maybe String
-        getXmlResult es = do
-                results <- mapM elemToResult es
-                lookup field results
-
+        getXmlResults :: XmlExp -> Maybe [(String, String)]
+        getXmlResults e = case tagOf e of
+            "results" -> mapM elemToResult (elemsOf e)
+            _ -> Nothing
+        
         elemToResult :: XmlExp -> Maybe (String, String)
         elemToResult e = do
             case elemsOf e of
@@ -71,42 +71,42 @@ analyseWithCASS opts path analysis m field parser = do
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis for the given module in
 -- the given path.
-analyseSafeModule :: Options -> String -> Module -> IO (Maybe Safe)
+analyseSafeModule :: Options -> String -> Module -> IO (Maybe ([(String, Safe)], Safe))
 analyseSafeModule opts path m = do
     analyseWithCASS opts path "UnsafeModule" m m parseSafe
 
 -- This action initiates a call to CASS to compute the 'Deterministic' analysis for the given module in
 -- the given path.
-analyseDeterministic :: Options -> String -> Module -> Operation -> IO (Maybe Deterministic)
+analyseDeterministic :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Deterministic)], Deterministic))
 analyseDeterministic opts path m op = do
     analyseWithCASS opts path "Deterministic" m op parseDeterministic
 
 -- This action initiates a call to CASS to compute the 'Demand' analysis for the given module in
 -- the given path.
-analyseDemandness :: Options -> String -> Module -> Operation -> IO (Maybe Demandness)
+analyseDemandness :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Demandness)], Demandness))
 analyseDemandness opts path m op = do
     analyseWithCASS opts path "Demand" m op parseDemandness
 
 -- This action initiates a call to CASS to compute the 'Indeterministic' analysis for the given module in
 -- the given path.
-analyseIndeterministic :: Options -> String -> Module -> Operation -> IO (Maybe Indeterministic)
+analyseIndeterministic :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Indeterministic)], Indeterministic))
 analyseIndeterministic opts path m op = do
     analyseWithCASS opts path "Indeterministic" m op parseIndeterministic
 
 -- This action initiates a call to CASS to compute the 'SolComplete' analysis for the given module in
 -- the given path.
-analyseSolutionCompleteness :: Options -> String -> Module -> Operation -> IO (Maybe SolutionCompleteness)
+analyseSolutionCompleteness :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, SolutionCompleteness)], SolutionCompleteness))
 analyseSolutionCompleteness opts path m op = do
     analyseWithCASS opts path "SolComplete" m op parseSolutionCompleteness
 
 -- This action initiates a call to CASS to compute the 'Terminating' analysis for the given module in
 -- the given path.
-analyseTermination :: Options -> String -> Module -> Operation -> IO (Maybe Termination)
+analyseTermination :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Termination)], Termination))
 analyseTermination opts path m op = do
     analyseWithCASS opts path "Terminating" m op parseTermination
 
 -- This action initiates a call to CASS to compute the 'Total' analysis for the given module in
 -- the given path.
-analyseTotallyDefined :: Options -> String -> Module -> Operation -> IO (Maybe TotallyDefined)
+analyseTotallyDefined :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, TotallyDefined)], TotallyDefined))
 analyseTotallyDefined opts path m op = do
     analyseWithCASS opts path "Total" m op parseTotallyDefined

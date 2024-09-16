@@ -25,6 +25,9 @@ import CurryInfo.Analysis
 import CurryInfo.SourceCode (readSourceCode, readDocumentation)
 import CurryInfo.Parser (parseVersionConstraints)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Reader (readInformation)
+import CurryInfo.Writer (writeInformation, (<+>))
+import CurryInfo.JShow
 
 import Text.Pretty (text)
 import JSON.Data
@@ -167,7 +170,7 @@ gModuleSafe opts (CurryModule pkg vsn m) = do
         Just path -> do
             mresult <- analyseSafeModule opts path m
             case mresult of
-                Just result -> do
+                Just (_, result) -> do
                     printDebugMessage opts $ "Analysis result: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished succesfully."
@@ -448,7 +451,9 @@ gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
         Just path -> do
             mresult <- analyseDeterministic opts path m o
             case mresult of
-                Just result -> do
+                Just (results, result) -> do
+                    printDebugMessage opts "Writing other results..."
+                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationDeterministic "deterministic") results
                     printDebugMessage opts $ "Result is: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished successfully."
@@ -469,7 +474,9 @@ gOperationDemandness opts (CurryOperation pkg vsn m o) = do
         Just path -> do
             mresult <- analyseDemandness opts path m o
             case mresult of
-                Just result -> do
+                Just (results, result) -> do
+                    printDebugMessage opts "Writing other results..."
+                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationDemandness "demandness") results
                     printDebugMessage opts $ "Result is: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished successfully."
@@ -490,7 +497,9 @@ gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
         Just path -> do
             mresult <- analyseIndeterministic opts path m o
             case mresult of
-                Just result -> do
+                Just (results, result) -> do
+                    printDebugMessage opts "Writing other results..."
+                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationIndeterministic "indeterministic") results
                     printDebugMessage opts $ "Result is: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished successfully."
@@ -511,7 +520,9 @@ gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
         Just path -> do
             mresult <- analyseSolutionCompleteness opts path m o
             case mresult of
-                Just result -> do
+                Just (results, result) -> do
+                    printDebugMessage opts "Writing other results..."
+                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationSolutionCompleteness "solutionCompleteness") results
                     printDebugMessage opts $ "Result is: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished successfully."
@@ -532,7 +543,9 @@ gOperationTermination opts (CurryOperation pkg vsn m o) = do
         Just path -> do
             mresult <- analyseTermination opts path m o
             case mresult of
-                Just result -> do
+                Just (results, result) -> do
+                    printDebugMessage opts "Writing other results..."
+                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationTermination "termination") results
                     printDebugMessage opts $ "Result is: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished successfully."
@@ -553,7 +566,9 @@ gOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
         Just path -> do
             mresult <- analyseTotallyDefined opts path m o
             case mresult of
-                Just result -> do
+                Just (results, result) -> do
+                    printDebugMessage opts "Writing other results..."
+                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationTotallyDefined "totallyDefined") results
                     printDebugMessage opts $ "Result is: " ++ show result
                     let res = result
                     printDetailMessage opts "Generating finished successfully."
@@ -655,3 +670,15 @@ packageREADMEPath opts pkg vsn = do
                     return ""
                 True -> do
                     return readme
+
+addInformation :: Path a => Options -> (String -> a) -> JShower b -> String -> (String, b) -> IO ()
+addInformation opts constructor jshower field (name, result) = do
+    let obj = constructor name
+    initialize obj
+    mfields <- readInformation opts obj
+    case mfields of
+        Nothing -> do
+            return ()
+        Just fields -> do
+            let newInformation = [(field, jshower result)] <+> fields
+            writeInformation obj newInformation

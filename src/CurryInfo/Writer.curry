@@ -6,6 +6,13 @@ import CurryInfo.Paths (Path, getJSONPath)
 import JSON.Pretty (ppJSON)
 import JSON.Data
 
+import Data.List (nubBy)
+
+-- This operator combines two lists and excludes all dublicates. The first list should contain the newer information
+-- to get an updated list.
+(<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
+info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
+
 type Writer a b = a -> [b] -> IO ()
 
 -- This action writes the given information into the respective json file.
