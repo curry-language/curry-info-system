@@ -3,8 +3,6 @@ module CurryInfo.JShow where
 import CurryInfo.Types
 
 import JSON.Data
-import JSON.Pretty (ppJSON)
-import Text.Pretty
 
 -- PACKAGE
 
@@ -122,18 +120,25 @@ jsOperationTotallyDefined = jsBool
 
 -- HELPER
 
+--- This operation converts the given string into a json string.
+jsString :: String -> JValue
+jsString = JString
+
+--- This operation converts the given real number into a json number.
+jsNumber :: Real a => a -> JValue
+jsNumber = JNumber . toFloat
+
+--- This operation converts the given bool into a json bool.
 jsBool :: Bool -> JValue
 jsBool True = JTrue
 jsBool False = JFalse
 
-jsString :: String -> JValue
-jsString = JString
-
+--- This operation transforms the given value with Show instance into a string
+--- and then converts that string into a json string.
 jsShow :: Show a => a -> JValue
 jsShow = JString . show
 
+--- This operation maps the given function over the given list of values
+--- to create a list of json values and converts that list into a json array.
 jsMap :: (a -> JValue) -> [a] -> JValue
 jsMap f = JArray . map f
-
-jsNumber :: Real a => a -> JValue
-jsNumber = JNumber . toFloat

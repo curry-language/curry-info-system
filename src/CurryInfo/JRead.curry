@@ -118,7 +118,14 @@ jrOperationTermination = jrBool
 jrOperationTotallyDefined :: JReader TotallyDefined
 jrOperationTotallyDefined = jrBool
 
-------------------------------------------------------------------------
+-- HELPER
+
+--- This operation converts a string json value into a regular string.
+--- If the given value is not a string, Nothing is returned.
+jrString :: JValue -> Maybe String
+jrString jv = case jv of
+    JString s -> Just s
+    _ -> Nothing
 
 --- This operation converts a number json value into a regular float.
 --- If the given value is not a number, Nothing is returned.
@@ -135,24 +142,17 @@ jrBool jv = case jv of
     JFalse -> Just False
     _ -> Nothing
 
---- This operation converts a string json value into a regular string.
+--- This operation converts a string json value into a value with Read instance.
 --- If the given value is not a string, Nothing is returned.
-jrString :: JValue -> Maybe String
-jrString jv = case jv of
-    JString s -> Just s
-    _ -> Nothing
-
 jrRead :: Read a => JValue -> Maybe a
 jrRead jv = case jv of
     JString s -> Just (read s)
     _ -> Nothing
 
+--- This operation reads a json array  and maps the given function over that.
+--- It the given value is not an array or the result of the function for one element
+--- is Nothing, Nothing is returned.
 jrMap :: (JValue -> Maybe a) -> JValue -> Maybe [a]
 jrMap f jv = case jv of
     JArray arr -> mapM f arr
-    _ -> Nothing
-
-getString :: JValue -> Maybe String
-getString jv = case jv of
-    JString s -> Just s
     _ -> Nothing
