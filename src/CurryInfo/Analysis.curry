@@ -7,6 +7,12 @@ import CurryInfo.Parser
     , parseTotallyDefined
     )
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Paths
+import CurryInfo.Checkout
+import CurryInfo.Writer
+import CurryInfo.Reader
+import CurryInfo.ErrorMessage
+import CurryInfo.JShow
 
 import JSON.Data
 import JSON.Parser (parseJSON)
@@ -19,41 +25,113 @@ import XML
 
 -- This action initiates a call to CASS to compute the given analysis for the given module.
 -- The parser argument is for parsing the result of the analysis.
-analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe ([(String, a)], a))
---analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe a)
-analyseWithCASS opts path analysis m field parser = do
+--analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe ([(String, a)], a))
+--analyseWithCASS opts path analysis m field parser = do
+--        printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
+--        (_, output, _) <- runCmd opts (cmdCASS path analysis m)
+--        printDetailMessage opts "Analysis finished."
+--        printDebugMessage opts "Parsing result..."
+--        let tmp = parseXmlString output
+--        case tmp of
+--            [e] -> do
+--                printDebugMessage opts "Looking for results..."
+--                case getXmlResults e of
+--                    Nothing -> do
+--                        printDebugMessage opts "Could not find analysis results."
+--                        printDetailMessage opts "Analysis failed."
+--                        return Nothing
+--                    Just results -> do
+--                        printDebugMessage opts "Results found. Looking for requested result..."
+--                        case lookup field results of
+--                            Nothing -> do
+--                                printDebugMessage opts $ "Could not find entry with name '" ++ field ++ "'."
+--                                printDetailMessage opts "Analysis failed."
+--                                return Nothing
+--                            Just result -> do
+--                                printDetailMessage opts "Analysis succeeded."
+--                                printDebugMessage opts $ "Result found: " ++ show result
+--                                -- results :: [(String, String)]
+--                                let otherResults = foldr (\(f, sr) xs -> maybe xs (\r -> (f, r):xs) (parser sr)) [] results
+--                                return $ fmap (\r -> (otherResults, r)) (parser result)
+--            _ -> do
+--                printDebugMessage opts "Could not parse output. Expected XML."
+--                printDebugMessage opts "Output:"
+--                printDebugMessage opts output
+--                printDetailMessage opts "Analysis failed."
+--                return Nothing
+--    where
+--        getXmlResults :: XmlExp -> Maybe [(String, String)]
+--        getXmlResults e = case tagOf e of
+--            "results" -> mapM elemToResult (elemsOf e)
+--            _ -> Nothing
+--        
+--        elemToResult :: XmlExp -> Maybe (String, String)
+--        elemToResult e = do
+--            case elemsOf e of
+--                [_, n, r] -> do
+--                    let name = textOf [n]
+--                    let result = textOf [r]
+--                    return (name, result)
+--                _ -> Nothing
+
+addInformation :: (ErrorMessage a, Path a) => Options -> (String -> a) -> JShower b -> (String -> Maybe b) -> String -> (String, String) -> IO ()
+addInformation opts constructor jshower parser field (name, sresult) = do
+    case parser sresult of
+        Nothing -> do
+            printDebugMessage opts $ "Parsing failed for result of '" ++ name ++ "'."
+        Just result -> do
+            let obj = constructor name
+            initialize obj
+            mfields <- readInformation opts obj
+            case mfields of
+                Nothing -> do
+                    printDebugMessage opts $ errorMessage obj
+                Just fields -> do
+                    let newInformation = [(field, jshower result)] <+> fields
+                    writeInformation obj newInformation
+
+--analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe ([(String, a)], a))
+analyseWithCASS :: (ErrorMessage a, Path a) => Options -> Package -> Version -> Module -> String -> String -> String -> (String -> Maybe b) -> (String -> a) -> JShower b -> IO (Maybe b)
+analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = do
         printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
-        (_, output, _) <- runCmd opts (cmdCASS path analysis m)
-        printDetailMessage opts "Analysis finished."
-        printDebugMessage opts "Parsing result..."
-        let tmp = parseXmlString output
-        case tmp of
-            [e] -> do
-                printDebugMessage opts "Looking for results..."
-                case getXmlResults e of
-                    Nothing -> do
-                        printDebugMessage opts "Could not find analysis results."
-                        printDetailMessage opts "Analysis failed."
-                        return Nothing
-                    Just results -> do
-                        printDebugMessage opts "Results found. Looking for requested result..."
-                        case lookup field results of
-                            Nothing -> do
-                                printDebugMessage opts $ "Could not find entry with name '" ++ field ++ "'."
-                                printDetailMessage opts "Analysis failed."
-                                return Nothing
-                            Just result -> do
-                                printDetailMessage opts "Analysis succeeded."
-                                printDebugMessage opts $ "Result found: " ++ show result
-                                -- results :: [(String, String)]
-                                let otherResults = foldr (\(f, sr) xs -> maybe xs (\r -> (f, r):xs) (parser sr)) [] results
-                                return $ fmap (\r -> (otherResults, r)) (parser result)
-            _ -> do
-                printDebugMessage opts "Could not parse output. Expected XML."
-                printDebugMessage opts "Output:"
-                printDebugMessage opts output
+        mpath <- checkoutIfMissing opts pkg vsn
+        case mpath of
+            Nothing -> do
                 printDetailMessage opts "Analysis failed."
                 return Nothing
+            Just path -> do
+                (_, output, _) <- runCmd opts (cmdCASS path analysis m)
+                printDetailMessage opts "Analysis finished."
+                printDebugMessage opts "Parsing anaylsis output..."
+                case parseXmlString output of
+                    [e] -> do
+                        printDebugMessage opts "Looking for results..."
+                        case getXmlResults e of
+                            Nothing -> do
+                                printDebugMessage opts "Could not find analysis results."
+                                printDetailMessage opts "Analysis failed."
+                                return Nothing
+                            Just results -> do
+                                printDebugMessage opts "Results found. Looking for requested result..."
+                                case lookup name results of
+                                    Nothing -> do
+                                        printDebugMessage opts $ "Could not find entry with name '" ++ name ++ "'."
+                                        printDetailMessage opts "Analysis failed."
+                                        return Nothing
+                                    Just result -> do
+                                        printDetailMessage opts "Analysis succeeded."
+                                        printDebugMessage opts $ "Result found: " ++ show result
+
+                                        printDebugMessage opts "Writing all results in files..."
+                                        mapM (addInformation opts constructor jshower parser field) results
+
+                                        return (parser result)
+                    _ -> do
+                        printDebugMessage opts "Could not parse output. Expected XML."
+                        printDebugMessage opts "Output:"
+                        printDebugMessage opts output
+                        printDetailMessage opts "Analysis failed."
+                        return Nothing
     where
         getXmlResults :: XmlExp -> Maybe [(String, String)]
         getXmlResults e = case tagOf e of
@@ -63,50 +141,47 @@ analyseWithCASS opts path analysis m field parser = do
         elemToResult :: XmlExp -> Maybe (String, String)
         elemToResult e = do
             case elemsOf e of
-                [_, n, r] -> do
-                    let name = textOf [n]
-                    let result = textOf [r]
-                    return (name, result)
+                [_, n, r] -> return (textOf [n], textOf [r])
                 _ -> Nothing
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis for the given module in
 -- the given path.
-analyseSafeModule :: Options -> String -> Module -> IO (Maybe ([(String, Safe)], Safe))
-analyseSafeModule opts path m = do
-    analyseWithCASS opts path "UnsafeModule" m m parseSafe
+analyseSafeModule :: Options -> Package -> Version -> Module -> IO (Maybe Safe)
+analyseSafeModule opts pkg vsn m = do
+    analyseWithCASS opts pkg vsn m m "UnsafeModule" "safe" parseSafe (CurryModule pkg vsn) jsModuleSafe
 
 -- This action initiates a call to CASS to compute the 'Deterministic' analysis for the given module in
 -- the given path.
-analyseDeterministic :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Deterministic)], Deterministic))
-analyseDeterministic opts path m op = do
-    analyseWithCASS opts path "Deterministic" m op parseDeterministic
+analyseDeterministic :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Deterministic)
+analyseDeterministic opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Deterministic" "deterministic" parseDeterministic (CurryOperation pkg vsn m) jsOperationDeterministic
 
 -- This action initiates a call to CASS to compute the 'Demand' analysis for the given module in
 -- the given path.
-analyseDemandness :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Demandness)], Demandness))
-analyseDemandness opts path m op = do
-    analyseWithCASS opts path "Demand" m op parseDemandness
+analyseDemandness :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Demandness)
+analyseDemandness opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Demand" "demandness" parseDemandness (CurryOperation pkg vsn m) jsOperationDemandness
 
 -- This action initiates a call to CASS to compute the 'Indeterministic' analysis for the given module in
 -- the given path.
-analyseIndeterministic :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Indeterministic)], Indeterministic))
-analyseIndeterministic opts path m op = do
-    analyseWithCASS opts path "Indeterministic" m op parseIndeterministic
+analyseIndeterministic :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Indeterministic)
+analyseIndeterministic opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Indeterministic" "indeterministic" parseIndeterministic (CurryOperation pkg vsn m) jsOperationIndeterministic
 
 -- This action initiates a call to CASS to compute the 'SolComplete' analysis for the given module in
 -- the given path.
-analyseSolutionCompleteness :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, SolutionCompleteness)], SolutionCompleteness))
-analyseSolutionCompleteness opts path m op = do
-    analyseWithCASS opts path "SolComplete" m op parseSolutionCompleteness
+analyseSolutionCompleteness :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe SolutionCompleteness)
+analyseSolutionCompleteness opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "SolComplete" "solutionCompleteness" parseSolutionCompleteness (CurryOperation pkg vsn m) jsOperationSolutionCompleteness
 
 -- This action initiates a call to CASS to compute the 'Terminating' analysis for the given module in
 -- the given path.
-analyseTermination :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, Termination)], Termination))
-analyseTermination opts path m op = do
-    analyseWithCASS opts path "Terminating" m op parseTermination
+analyseTermination :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Termination)
+analyseTermination opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Terminating" "termination" parseTermination (CurryOperation pkg vsn m) jsOperationTermination
 
 -- This action initiates a call to CASS to compute the 'Total' analysis for the given module in
 -- the given path.
-analyseTotallyDefined :: Options -> String -> Module -> Operation -> IO (Maybe ([(String, TotallyDefined)], TotallyDefined))
-analyseTotallyDefined opts path m op = do
-    analyseWithCASS opts path "Total" m op parseTotallyDefined
+analyseTotallyDefined :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe TotallyDefined)
+analyseTotallyDefined opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Total" "totallyDefined" parseTotallyDefined (CurryOperation pkg vsn m) jsOperationTotallyDefined

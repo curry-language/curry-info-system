@@ -2,7 +2,7 @@ module CurryInfo.Generator where
 
 import CurryInfo.Types
 import CurryInfo.Paths
-import CurryInfo.JRead (getString)
+import CurryInfo.JRead (jrString)
 import CurryInfo.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 import CurryInfo.Interface 
     ( readInterface
@@ -14,14 +14,6 @@ import CurryInfo.Interface
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
 import CurryInfo.Analysis
-    ( analyseSafeModule
-    , analyseDemandness
-    , analyseDeterministic
-    , analyseIndeterministic
-    , analyseSolutionCompleteness
-    , analyseTermination
-    , analyseTotallyDefined
-    )
 import CurryInfo.SourceCode (readSourceCode, readDocumentation)
 import CurryInfo.Parser (parseVersionConstraints)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
@@ -165,21 +157,15 @@ gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
 gModuleSafe :: Generator CurryModule Safe
 gModuleSafe opts (CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseSafeModule opts path m
-            case mresult of
-                Just (_, result) -> do
-                    printDebugMessage opts $ "Analysis result: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished succesfully."
-                    return $ Just res
-                Nothing -> do
-                    printDebugMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseSafeModule opts pkg vsn m
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Analysis result: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished succesfully."
+            return $ Just res
         Nothing -> do
+            printDebugMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
@@ -446,138 +432,90 @@ gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
 gOperationDeterministic :: Generator CurryOperation Deterministic
 gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating deterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseDeterministic opts path m o
-            case mresult of
-                Just (results, result) -> do
-                    printDebugMessage opts "Writing other results..."
-                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationDeterministic "deterministic") results
-                    printDebugMessage opts $ "Result is: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
-                Nothing -> do
-                    printDetailMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseDeterministic opts pkg vsn m o
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Result is: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
         Nothing -> do
+            printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
 gOperationDemandness :: Generator CurryOperation Demandness
 gOperationDemandness opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating demandness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseDemandness opts path m o
-            case mresult of
-                Just (results, result) -> do
-                    printDebugMessage opts "Writing other results..."
-                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationDemandness "demandness") results
-                    printDebugMessage opts $ "Result is: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
-                Nothing -> do
-                    printDetailMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseDemandness opts pkg vsn m o
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Result is: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
         Nothing -> do
+            printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
 gOperationIndeterministic :: Generator CurryOperation Indeterministic
 gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating indeterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseIndeterministic opts path m o
-            case mresult of
-                Just (results, result) -> do
-                    printDebugMessage opts "Writing other results..."
-                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationIndeterministic "indeterministic") results
-                    printDebugMessage opts $ "Result is: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
-                Nothing -> do
-                    printDetailMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseIndeterministic opts pkg vsn m o
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Result is: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
         Nothing -> do
+            printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
 gOperationSolutionCompleteness :: Generator CurryOperation SolutionCompleteness
 gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating solution completeness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseSolutionCompleteness opts path m o
-            case mresult of
-                Just (results, result) -> do
-                    printDebugMessage opts "Writing other results..."
-                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationSolutionCompleteness "solutionCompleteness") results
-                    printDebugMessage opts $ "Result is: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
-                Nothing -> do
-                    printDetailMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseSolutionCompleteness opts pkg vsn m o
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Result is: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
         Nothing -> do
+            printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
 gOperationTermination :: Generator CurryOperation Termination
 gOperationTermination opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating termination analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseTermination opts path m o
-            case mresult of
-                Just (results, result) -> do
-                    printDebugMessage opts "Writing other results..."
-                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationTermination "termination") results
-                    printDebugMessage opts $ "Result is: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
-                Nothing -> do
-                    printDetailMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseTermination opts pkg vsn m o
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Result is: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
         Nothing -> do
+            printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
 gOperationTotallyDefined :: Generator CurryOperation TotallyDefined
 gOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating totally defined analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
-        Just path -> do
-            mresult <- analyseTotallyDefined opts path m o
-            case mresult of
-                Just (results, result) -> do
-                    printDebugMessage opts "Writing other results..."
-                    mapM (addInformation opts (CurryOperation pkg vsn m) jsOperationTotallyDefined "totallyDefined") results
-                    printDebugMessage opts $ "Result is: " ++ show result
-                    let res = result
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
-                Nothing -> do
-                    printDetailMessage opts "Analysis failed."
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
+    mresult <- analyseTotallyDefined opts pkg vsn m o
+    case mresult of
+        Just result -> do
+            printDebugMessage opts $ "Result is: " ++ show result
+            let res = result
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
         Nothing -> do
+            printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
 
@@ -588,7 +526,7 @@ getCategories jvalue = case jvalue of
     JObject fields -> do
         value <- lookup "category" fields
         case value of
-            JArray arr -> sequence $ map getString arr
+            JArray arr -> sequence $ map jrString arr
             _ -> Nothing
     _ -> Nothing
 
@@ -597,7 +535,7 @@ getExportedModules jvalue = case jvalue of
     JObject fields -> do
         value <- lookup "exportedModules" fields
         case value of
-            JArray arr -> sequence $ map getString arr
+            JArray arr -> sequence $ map jrString arr
             _ -> Nothing
     _ -> Nothing
 
@@ -613,7 +551,7 @@ getDependencies jv = case jv of
 
 convertDependency :: JField -> Maybe Dependency
 convertDependency (pkg, jv) = do
-    vcs <- getString jv
+    vcs <- jrString jv
     disj <- parseVersionConstraints vcs
     return (Dependency pkg disj)
 
@@ -670,15 +608,3 @@ packageREADMEPath opts pkg vsn = do
                     return ""
                 True -> do
                     return readme
-
-addInformation :: Path a => Options -> (String -> a) -> JShower b -> String -> (String, b) -> IO ()
-addInformation opts constructor jshower field (name, result) = do
-    let obj = constructor name
-    initialize obj
-    mfields <- readInformation opts obj
-    case mfields of
-        Nothing -> do
-            return ()
-        Just fields -> do
-            let newInformation = [(field, jshower result)] <+> fields
-            writeInformation obj newInformation
