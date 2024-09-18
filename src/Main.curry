@@ -13,8 +13,7 @@ import JSON.Pretty (ppJSON)
 import JSON.Data
 import JSON.Parser (parseJSON)
 
-import Data.Maybe (isJust, fromJust)
-import Data.List (nubBy)
+import Data.Maybe (isJust)
 import Data.Either (partitionEithers)
 
 import System.Environment (getArgs)
@@ -22,7 +21,7 @@ import System.Process (exitWith)
 import System.FilePath ((</>), (<.>))
 import System.Directory (doesDirectoryExist, doesFileExist)
 
-import Control.Monad (unless, zipWithM)
+import Control.Monad (unless, zipWithM, when)
 
 printResult :: Output -> IO ()
 printResult (OutputText txt) = putStrLn txt
@@ -137,7 +136,9 @@ getInfos opts input reqs = do
                             printDetailMessage opts "Extracting/Generating requested information..."
                             results <- mapM (extractOrGenerate conf fields obj) reqs
 
-                            let (_, successfulRequests) = partitionEithers results
+                            let (failedRequests, successfulRequests) = partitionEithers results
+                            let errs = unlines $ map (\(r, m) -> r ++ ": " ++ m) failedRequests
+                            when (not (null failedRequests)) (printStatusMessage opts errs)
                             let newInformation = map (\(r, jv, _) -> (r, jv)) successfulRequests <+> fields
                             printDebugMessage opts "Overwriting with updated information..."
                             writeInformation obj newInformation
@@ -148,13 +149,14 @@ getInfos opts input reqs = do
                             printDetailMessage opts "Output created."
                             return output
         
-        extractOrGenerate :: [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (Either (String, String) (String, JValue, String))-- (String, Either String (JValue, String))
+        extractOrGenerate :: ErrorMessage a => [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (Either (String, String) (String, JValue, String))-- (String, Either String (JValue, String))
         extractOrGenerate conf fields obj req = do
             printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
             case lookupRequest req conf of
                 Nothing -> do
-                    printDetailMessage opts $ "Could not find request '" ++ req ++ "'."
-                    return $ Left (req, "Could not find request.")
+                    let msg = errorRequest obj req
+                    printDetailMessage opts $ msg
+                    return $ Left (req, msg)
                 Just (_, _, extractor, generator) -> do
                     printDetailMessage opts "Found request. Looking at Force option..."
                     case optForce opts of
@@ -194,6 +196,10 @@ getInfos opts input reqs = do
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
                                     return $ Right (req, jv, output)
+                        v -> do
+                            let msg = "INVALID FORCE OPTION: " ++ show v
+                            printDebugMessage opts msg
+                            return (Left (req, msg))
 
         extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))) -> [(String, JValue)] -> IO (Maybe (JValue, String))
         extract extractor fields = do
