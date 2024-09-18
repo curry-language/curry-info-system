@@ -24,9 +24,6 @@ data Options = Options
     }
     deriving Show 
 
-class Field a where
-    fieldName :: a -> String
-
 -- OUTPUT TYPE
 
 data Output
@@ -35,6 +32,21 @@ data Output
     | OutputTerm [(String, String)]
     | OutputError String
     deriving Show
+
+data OutFormat = OutText | OutJSON | OutTerm
+    deriving Eq
+
+instance Show OutFormat where
+    show OutText = "Text"
+    show OutJSON = "JSON"
+    show OutTerm = "CurryTerm"
+
+instance Read OutFormat where
+    readsPrec _ s = case map toLower s of
+        "text"      -> [(OutText, "")]
+        "json"      -> [(OutJSON, "")]
+        "curryterm" -> [(OutTerm, "")]
+        _ -> []
 
 -- INPUT TYPES
 
@@ -49,6 +61,52 @@ data CurryType = CurryType Package Version Module Type
 data CurryTypeclass = CurryTypeclass Package Version Module Typeclass
 
 data CurryOperation = CurryOperation Package Version Module Operation
+
+class ErrorMessage a where
+    errorReading :: a -> String
+    errorRequest :: a -> String -> String
+
+instance ErrorMessage CurryPackage where
+    errorReading (CurryPackage pkg) =
+        "JSON file for package " ++ pkg ++ " could not be read."
+
+    errorRequest (CurryPackage pkg) req =
+        "Request '" ++ req ++ "' could not be found for package '" ++ pkg ++ "'."
+
+instance ErrorMessage CurryVersion where
+    errorReading (CurryVersion pkg vsn) =
+        "JSON file for version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+    errorRequest (CurryVersion pkg vsn) req =
+        "Request '" ++ req ++ "' could not be found for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'."
+
+instance ErrorMessage CurryModule where
+    errorReading (CurryModule pkg vsn m) =
+        "JSON file for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+    errorRequest (CurryModule pkg vsn m) req =
+        "Request '" ++ req ++ "' could not be found for for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+instance ErrorMessage CurryType where
+    errorReading (CurryType pkg vsn m t) =
+        "JSON file for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+    errorRequest (CurryType pkg vsn m t) req =
+        "Request '" ++ req ++ "' could not be found for for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+instance ErrorMessage CurryTypeclass where
+    errorReading (CurryTypeclass pkg vsn m c) =
+        "JSON file for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+    errorRequest (CurryTypeclass pkg vsn m c) req =
+        "Request '" ++ req ++ "' could not be found for for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+instance ErrorMessage CurryOperation where
+    errorReading (CurryOperation pkg vsn m o) =
+        "JSON file for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+    errorRequest (CurryOperation pkg vsn m o) req =
+        "Request '" ++ req ++ "' could not be found for for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
 -- HELPER TYPES
 
@@ -106,10 +164,6 @@ type Termination = Bool
 
 type TotallyDefined = Bool
 
--- JSON
-
-type JField = (String, JValue)
-
 -- Dependency
 
 data VersionConstraint
@@ -138,18 +192,3 @@ type JReader b = JValue -> Maybe b
 type JShower b = b -> JValue
 
 type Printer b = Options -> b -> IO String
-
-data OutFormat = OutText | OutJSON | OutTerm
-    deriving Eq
-
-instance Show OutFormat where
-    show OutText = "Text"
-    show OutJSON = "JSON"
-    show OutTerm = "CurryTerm"
-
-instance Read OutFormat where
-    readsPrec _ s = case map toLower s of
-        "text"      -> [(OutText, "")]
-        "json"      -> [(OutJSON, "")]
-        "curryterm" -> [(OutTerm, "")]
-        _ -> []

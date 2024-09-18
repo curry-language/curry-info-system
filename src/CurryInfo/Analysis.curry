@@ -11,13 +11,10 @@ import CurryInfo.Paths
 import CurryInfo.Checkout
 import CurryInfo.Writer
 import CurryInfo.Reader
-import CurryInfo.ErrorMessage
 import CurryInfo.JShow
 
 import JSON.Data
 import JSON.Parser (parseJSON)
-
-import Data.List (init, find, intercalate)
 
 import XML
 
@@ -25,72 +22,6 @@ import XML
 
 -- This action initiates a call to CASS to compute the given analysis for the given module.
 -- The parser argument is for parsing the result of the analysis.
---analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe ([(String, a)], a))
---analyseWithCASS opts path analysis m field parser = do
---        printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
---        (_, output, _) <- runCmd opts (cmdCASS path analysis m)
---        printDetailMessage opts "Analysis finished."
---        printDebugMessage opts "Parsing result..."
---        let tmp = parseXmlString output
---        case tmp of
---            [e] -> do
---                printDebugMessage opts "Looking for results..."
---                case getXmlResults e of
---                    Nothing -> do
---                        printDebugMessage opts "Could not find analysis results."
---                        printDetailMessage opts "Analysis failed."
---                        return Nothing
---                    Just results -> do
---                        printDebugMessage opts "Results found. Looking for requested result..."
---                        case lookup field results of
---                            Nothing -> do
---                                printDebugMessage opts $ "Could not find entry with name '" ++ field ++ "'."
---                                printDetailMessage opts "Analysis failed."
---                                return Nothing
---                            Just result -> do
---                                printDetailMessage opts "Analysis succeeded."
---                                printDebugMessage opts $ "Result found: " ++ show result
---                                -- results :: [(String, String)]
---                                let otherResults = foldr (\(f, sr) xs -> maybe xs (\r -> (f, r):xs) (parser sr)) [] results
---                                return $ fmap (\r -> (otherResults, r)) (parser result)
---            _ -> do
---                printDebugMessage opts "Could not parse output. Expected XML."
---                printDebugMessage opts "Output:"
---                printDebugMessage opts output
---                printDetailMessage opts "Analysis failed."
---                return Nothing
---    where
---        getXmlResults :: XmlExp -> Maybe [(String, String)]
---        getXmlResults e = case tagOf e of
---            "results" -> mapM elemToResult (elemsOf e)
---            _ -> Nothing
---        
---        elemToResult :: XmlExp -> Maybe (String, String)
---        elemToResult e = do
---            case elemsOf e of
---                [_, n, r] -> do
---                    let name = textOf [n]
---                    let result = textOf [r]
---                    return (name, result)
---                _ -> Nothing
-
-addInformation :: (ErrorMessage a, Path a) => Options -> (String -> a) -> JShower b -> (String -> Maybe b) -> String -> (String, String) -> IO ()
-addInformation opts constructor jshower parser field (name, sresult) = do
-    case parser sresult of
-        Nothing -> do
-            printDebugMessage opts $ "Parsing failed for result of '" ++ name ++ "'."
-        Just result -> do
-            let obj = constructor name
-            initialize obj
-            mfields <- readInformation opts obj
-            case mfields of
-                Nothing -> do
-                    printDebugMessage opts $ errorMessage obj
-                Just fields -> do
-                    let newInformation = [(field, jshower result)] <+> fields
-                    writeInformation obj newInformation
-
---analyseWithCASS :: Options -> String -> String -> Module -> String -> (String -> Maybe a) -> IO (Maybe ([(String, a)], a))
 analyseWithCASS :: (ErrorMessage a, Path a) => Options -> Package -> Version -> Module -> String -> String -> String -> (String -> Maybe b) -> (String -> a) -> JShower b -> IO (Maybe b)
 analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = do
         printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
@@ -123,7 +54,7 @@ analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = 
                                         printDebugMessage opts $ "Result found: " ++ show result
 
                                         printDebugMessage opts "Writing all results in files..."
-                                        mapM (addInformation opts constructor jshower parser field) results
+                                        mapM addInformation results
 
                                         return (parser result)
                     _ -> do
@@ -143,6 +74,22 @@ analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = 
             case elemsOf e of
                 [_, n, r] -> return (textOf [n], textOf [r])
                 _ -> Nothing
+
+        addInformation :: (String, String) -> IO ()
+        addInformation (sname, sresult) = do
+            case parser sresult of
+                Nothing -> do
+                    printDebugMessage opts $ "Parsing failed for result of '" ++ sname ++ "'."
+                Just result -> do
+                    let obj = constructor sname
+                    initialize obj
+                    mfields <- readInformation opts obj
+                    case mfields of
+                        Nothing -> do
+                            printDebugMessage opts $ errorReading obj
+                        Just fields -> do
+                            let newInformation = [(field, jshower result)] <+> fields
+                            writeInformation obj newInformation
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis for the given module in
 -- the given path.

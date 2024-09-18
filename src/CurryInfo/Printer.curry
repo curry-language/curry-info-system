@@ -2,16 +2,11 @@ module CurryInfo.Printer where
 
 import CurryInfo.Types
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Helper (slice)
 
 import System.Directory (doesFileExist)
 
 import JSON.Data
-
-slice :: Int -> Int -> [a] -> [a]
-slice start end l = take (end - start) (drop start l)
-
-failMessage :: String
-failMessage = "FAILED TO PRINT INFORMATION"
 
 printFromReference :: Options -> Reference -> IO String
 printFromReference opts (path, start, end) = do

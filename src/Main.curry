@@ -5,7 +5,6 @@ import CurryInfo.Paths (Path, initialize, index, getJSONPath)
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
-import CurryInfo.ErrorMessage
 import CurryInfo.Options (getObject, processOptions, queryOptions)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Generator (readPackageJSON, getExportedModules, readPackageModules)
@@ -117,7 +116,7 @@ getInfos opts input reqs = do
             case mfields of
                 Nothing -> do
                     printDetailMessage opts "Reading information failed."
-                    return $ OutputError $ errorMessage obj
+                    return $ OutputError $ errorReading obj
                 Just fields -> do
                     printDetailMessage opts "Reading information succeeded."
                     case optShowAll opts of

@@ -549,7 +549,7 @@ getDependencies jv = case jv of
             _ -> Nothing
     _ -> Nothing
 
-convertDependency :: JField -> Maybe Dependency
+convertDependency :: (String, JValue) -> Maybe Dependency
 convertDependency (pkg, jv) = do
     vcs <- jrString jv
     disj <- parseVersionConstraints vcs
@@ -578,21 +578,6 @@ readPackageJSON opts pkg vsn = do
                     return "{}"
                 True -> do
                     readFile packageJSON
-
-readPackageREADME :: Options -> Package -> Version -> IO String
-readPackageREADME opts pkg vsn = do
-    printDetailMessage opts "Reading README..."
-    result <- checkoutIfMissing opts pkg vsn
-    case result of
-        Nothing -> return ""
-        Just dir -> do
-            let readme = dir </> "README.md"
-            b <- doesFileExist readme
-            case b of
-                False -> do
-                    return ""
-                True -> do
-                    readFile readme
 
 packageREADMEPath :: Options -> Package -> Version -> IO String
 packageREADMEPath opts pkg vsn = do

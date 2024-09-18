@@ -91,7 +91,6 @@ instance Path CurryOperation where
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]
 getReducedDirectoryContents path = fmap (filter (\p -> p /= "." && p /= "..")) (getDirectoryContents path)
---getReducedDirectoryContents path = fmap (drop 2) $ getDirectoryContents path
 
 --- This action returns the path to the index of the package manager.
 index :: IO String
@@ -106,6 +105,7 @@ root = do
     home <- getHomeDirectory
     return (home </> "tmp" </> ".curryanalysis")
 
+--- This action returns the path to the packages directory, where the local cache of the tool is.
 packagesPath :: IO String
 packagesPath = do
     path <- root
