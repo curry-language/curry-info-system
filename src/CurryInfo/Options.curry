@@ -2,11 +2,12 @@ module CurryInfo.Options where
 
 import CurryInfo.Types
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, getDirectoryPath, getJSONPath, packagesPath)
+import CurryInfo.Paths (Path, getDirectoryPath, getJSONPath, packagesPath, root)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Checkout (checkouts, getCheckoutPath)
 
 import System.Console.GetOpt
-import System.Process (exitWith)
+import System.Process (exitWith, system)
 import System.Directory (getDirectoryContents, doesFileExist, doesDirectoryExist, removeFile, removeDirectory)
 import System.FilePath ((</>))
 
@@ -75,74 +76,57 @@ getObject opts =
 cleanObject :: Options -> [(String, String)] -> IO ()
 cleanObject opts obj = do
         case obj of
-            [] -> cleanAll
-            [("packages", pkg)] -> let x = CurryPackage pkg in cleanJSON x >> cleanDirectory x
-            [("packages", pkg), ("versions", vsn)] -> let x = CurryVersion pkg vsn in cleanJSON x >> cleanDirectory x
-            [("packages", pkg), ("versions", vsn), ("modules", m)] -> let x = CurryModule pkg vsn m in cleanJSON x >> cleanDirectory x
-            [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] -> let x = CurryType pkg vsn m t in cleanJSON x
-            [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] -> let x = CurryTypeclass pkg vsn m c in cleanJSON x
-            [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] -> let x = CurryOperation pkg vsn m o in cleanJSON x
+            [] -> cleanAll opts
+            [("packages", pkg)] -> let x = CurryPackage pkg in cleanJSON opts x >> cleanDirectory opts x
+            [("packages", pkg), ("versions", vsn)] -> let x = CurryVersion pkg vsn in cleanJSON opts x >> cleanDirectory opts x >> cleanCheckout opts pkg vsn
+            [("packages", pkg), ("versions", vsn), ("modules", m)] -> let x = CurryModule pkg vsn m in cleanJSON opts x >> cleanDirectory opts x >> cleanCheckout opts pkg vsn
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] -> let x = CurryType pkg vsn m t in cleanJSON opts x >> cleanCheckout opts pkg vsn
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] -> let x = CurryTypeclass pkg vsn m c in cleanJSON opts x >> cleanCheckout opts pkg vsn
+            [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] -> let x = CurryOperation pkg vsn m o in cleanJSON opts x >> cleanCheckout opts pkg vsn
             _ -> printDebugMessage opts $ show obj ++ " does not match any pattern"
-    where
-        cleanJSON :: Path a => a -> IO ()
-        cleanJSON obj' = do
-            path <- getJSONPath obj'
-            b <- doesFileExist path
-            case b of
-                False -> do
-                    printDebugMessage opts $ "json file does not exist: " ++ path ++ "\nNot cleaning up json file."
-                    return ()
-                True -> do
-                    printDebugMessage opts $ "json file exists. Cleaning up json file."
-                    removeFile path
+   -- where
+cleanJSON :: Path a => Options -> a -> IO ()
+cleanJSON opts obj' = do
+    getJSONPath obj' >>= deleteFile opts
 
-        cleanDirectory :: Path a => a -> IO ()
-        cleanDirectory obj' = do
-            path <- getDirectoryPath obj'
-            b <- doesDirectoryExist path
-            case b of
-                False -> do
-                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
-                    return ()
-                True -> do
-                    printDebugMessage opts $ "directory exists. Cleaning up directory."
-                    deleteDirectory path
+cleanDirectory :: Path a => Options -> a -> IO ()
+cleanDirectory opts obj' = do
+    getDirectoryPath obj' >>= deleteDirectory opts
 
-        cleanAll :: IO ()
-        cleanAll = do
-            path <- packagesPath
-            b <- doesDirectoryExist path
-            case b of
-                False -> do
-                    printDebugMessage opts $ "directory does not exist: " ++ path ++ "\nNot cleaning up directory."
-                    return ()
-                True -> do
-                    printDebugMessage opts $ "directory exists. Cleaning up directory."
-                    deleteDirectory path
+cleanCheckout :: Options -> Package -> Version -> IO ()
+cleanCheckout opts pkg vsn = do
+    getCheckoutPath pkg vsn >>= deleteDirectory opts
         
-        deleteDirectory :: String -> IO ()
-        deleteDirectory path = do
-            printDebugMessage opts $ "Deleting directory: " ++ path
+quote :: String -> String
+quote s = "\"" ++ s ++ "\""
 
-            contents <- fmap ((map (\p -> path </> p)) . (filter (\p -> p /= "." && p /= ".."))) (getDirectoryContents path)
-            printDebugMessage opts $ "Found contents: " ++ show contents
+cleanAll :: Options -> IO ()
+cleanAll opts = do
+    packagesPath >>= deleteDirectory opts
+    checkouts >>= deleteDirectory opts
+    root >>= deleteDirectory opts
 
-            dirs <- filterM doesDirectoryExist contents
-            printDebugMessage opts $ "Subdirectories found: " ++ show dirs
+delete :: (String -> IO Bool) -> String -> Options -> String -> IO ()
+delete check cmd opts path = do
+    exists <- check path
+    when exists $ do
+        let cmd' = cmd ++ " " ++ quote path
+        exitCode <- system cmd'
+        case exitCode of
+            127 -> do
+                printDetailMessage opts $ "Command '" ++ cmd' ++ "' could not be found."
+            126 -> do
+                printDetailMessage opts $ "Command '" ++ cmd' ++ "' was not an executable."
+            0 -> do
+                printDetailMessage opts $ "Command '" ++ cmd' ++ "' finished successfully."
+            _ -> do
+                printDetailMessage opts $ "Command '" ++ cmd' ++ "' failed with exist code '" ++ show exitCode ++ "'."
 
-            files <- filterM doesFileExist contents
-            printDebugMessage opts $ "Files found: " ++ show files
+deleteDirectory :: Options -> String -> IO ()
+deleteDirectory = delete doesDirectoryExist "rm -rf"
 
-            printDebugMessage opts "Deleting subdirectories..."
-            mapM deleteDirectory dirs
-
-            printDebugMessage opts "Deleting files..."
-            mapM removeFile files
-
-            printDebugMessage opts "Deleting directory..."
-            removeDirectory path
-
-            printDebugMessage opts $ "Finished deleting directory: " ++ path
+deleteFile :: Options -> String -> IO ()
+deleteFile = delete doesFileExist "rm -f"
 
 -- The options description.
 options :: [OptDescr (Options -> Options)]
