@@ -23,11 +23,21 @@ import System.Directory (doesDirectoryExist, doesFileExist)
 
 import Control.Monad (unless, zipWithM, when)
 
+-- CHANGE RESULT OF extractOrGenerate AND HOW OUTPUT IS GENERATED
+
 printResult :: Output -> IO ()
 printResult (OutputText txt) = putStrLn txt
 printResult (OutputJSON jv) = putStrLn $ ppJSON jv
 printResult (OutputTerm ts) = putStrLn $ show ts
 printResult (OutputError err) = putStrLn $ "Error: " ++ err
+
+generateOutputError :: Options -> String -> IO Output
+generateOutputError opts err = do
+    printDetailMessage opts err
+    case optOutput opts of
+        OutText -> return $ OutputText err
+        OutJSON -> return $ OutputJSON (JString err)
+        OutTerm -> return $ OutputTerm []
 
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts input reqs = do
@@ -41,7 +51,7 @@ getInfos opts input reqs = do
                 False -> do
                     let err = "Package '" ++ pkg ++ "' does not exist."
                     printDebugMessage opts err
-                    return $ OutputError err
+                    generateOutputError opts err
                 True -> do
                     printDebugMessage opts "Package exists."
                     getInfos' packageConfiguration obj
@@ -53,7 +63,7 @@ getInfos opts input reqs = do
                 False -> do
                     let err = "Version '" ++ vsn ++ "' of package '" ++ pkg ++ "' does not exists."
                     printDetailMessage opts err
-                    return $ OutputError $ err
+                    generateOutputError opts err
                 True -> do
                     printDetailMessage opts "Checked Version: exists."
                     getInfos' versionConfiguration obj
@@ -65,7 +75,7 @@ getInfos opts input reqs = do
                 False -> do
                     let err = "Module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                     printDetailMessage opts err
-                    return $ OutputError err
+                    generateOutputError opts err
                 True  -> do
                     printDetailMessage opts "Checked Module: exists."
                     getInfos' moduleConfiguration obj
@@ -77,7 +87,7 @@ getInfos opts input reqs = do
                 False -> do
                     let err = "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                     printDetailMessage opts err
-                    return $ OutputError err
+                    generateOutputError opts err
                 True  -> do
                     printDetailMessage opts "Checked Type: exists."
                     getInfos' typeConfiguration obj
@@ -89,7 +99,7 @@ getInfos opts input reqs = do
                 False -> do
                     let err = "Typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                     printDetailMessage opts err
-                    return $ OutputError err
+                    generateOutputError opts err
                 True  -> do
                     printDetailMessage opts "Checked Typeclass: exists."
                     getInfos' typeclassConfiguration obj
@@ -101,7 +111,7 @@ getInfos opts input reqs = do
                 False -> do
                     let err = "Operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
                     printDetailMessage opts err
-                    return $ OutputError err
+                    generateOutputError opts err
                 True  -> do
                     printDetailMessage opts "Checker Operation: exists."
                     getInfos' operationConfiguration obj
@@ -126,37 +136,40 @@ getInfos opts input reqs = do
                                 Nothing -> do
                                     return $ OutputError $ "One of the fields could not be found: " ++ show fieldNames
                                 Just allReqs -> do
-                                    results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames
-                                    let mouts = map (\(req, mres) -> (req, fmap snd mres)) results
-                                    printDebugMessage opts "Creating output..."
-                                    output <- generateOutput (map (\(req, mout) -> (req, maybe "Extracting information failed" id mout)) mouts)
-                                    printDetailMessage opts "Output created."
+                                    results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames :: IO [(String, Maybe (JValue, String))]
+
+                                    let output = createOutput results :: Output
                                     return output
                         False -> do
                             printDetailMessage opts "Extracting/Generating requested information..."
-                            results <- mapM (extractOrGenerate conf fields obj) reqs
+                            results <- mapM (extractOrGenerate conf fields obj) reqs :: IO [(String, Maybe (JValue, String))]
 
-                            let (failedRequests, successfulRequests) = partitionEithers results
-                            let errs = unlines $ map (\(r, m) -> r ++ ": " ++ m) failedRequests
-                            when (not (null failedRequests)) (printStatusMessage opts errs)
-                            let newInformation = map (\(r, jv, _) -> (r, jv)) successfulRequests <+> fields
+                            let newInformation = createNewInformation results
                             printDebugMessage opts "Overwriting with updated information..."
-                            writeInformation obj newInformation
+                            writeInformation obj (newInformation <+> fields)
                             printDetailMessage opts "Overwriting finished."
-                            printDebugMessage opts "Creating output..."
-                            let outs = map (either id (\(r, _, s) -> (r, s))) results
-                            output <- generateOutput outs
-                            printDetailMessage opts "Output created."
+
+                            let output = createOutput results :: Output
                             return output
         
-        extractOrGenerate :: ErrorMessage a => [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (Either (String, String) (String, JValue, String))-- (String, Either String (JValue, String))
+        createNewInformation :: [(String, Maybe (JValue, String))] -> [(String, JValue)]
+        createNewInformation results = foldr (\(r, mres) acc -> maybe acc (flip (:) acc . (,) r . fst) mres) [] results
+
+        createOutput :: [(String, Maybe (JValue, String))] -> Output
+        createOutput results = let outs = map (\(r, mres) -> maybe (r, Nothing) ((,) r . Just . snd) mres) results
+            in case optOutput opts of
+                OutText -> OutputText ((unlines . map (\(r, ms) -> r ++ ": " ++ maybe "?" id ms)) outs)
+                OutJSON -> OutputJSON (JObject (map (\(r, ms) -> (r, maybe JNull JString ms)) outs))
+                OutTerm -> OutputTerm (map (\(r, ms) -> (r, maybe "?" id ms)) outs)
+        
+        extractOrGenerate :: ErrorMessage a => [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
         extractOrGenerate conf fields obj req = do
             printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
             case lookupRequest req conf of
                 Nothing -> do
                     let msg = errorRequest obj req
                     printDetailMessage opts $ msg
-                    return $ Left (req, msg)
+                    return (req, Nothing)
                 Just (_, _, extractor, generator) -> do
                     printDetailMessage opts "Found request. Looking at Force option..."
                     case optForce opts of
@@ -166,10 +179,10 @@ getInfos opts input reqs = do
                             case extractionResult of
                                 Nothing -> do
                                     printDetailMessage opts "Executing request failed"
-                                    return $ Left (req, "Extracting information failed.")
+                                    return (req, Nothing)
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return $ Right (req, jv, output)
+                                    return (req, Just (jv, output))
                         1 -> do
                             printDebugMessage opts "Force option 1: Extraction, then generation if failed"
                             extractionResult <- extract extractor fields
@@ -179,27 +192,27 @@ getInfos opts input reqs = do
                                     case generationResult of
                                         Nothing -> do
                                             printDetailMessage opts "Executing request failed."
-                                            return $ Left (req, "Extracting and Generating information failed.")
+                                            return (req, Nothing)
                                         Just (jv, output) -> do
                                             printDetailMessage opts "Executing request succeeded."
-                                            return $ Right (req, jv, output)
+                                            return (req, Just (jv, output))
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return $ Right (req, jv, output)
+                                    return (req, Just (jv, output))
                         2 -> do
                             printDebugMessage opts "Force option 2: Only generation"
                             generationResult <- generate generator obj
                             case generationResult of
                                 Nothing -> do
                                     printDetailMessage opts "Executing request failed"
-                                    return $ Left (req, "Generating information failed.")
+                                    return (req, Nothing)
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return $ Right (req, jv, output)
+                                    return (req, Just (jv, output))
                         v -> do
                             let msg = "INVALID FORCE OPTION: " ++ show v
                             printDebugMessage opts msg
-                            return (Left (req, msg))
+                            return (req, Nothing)
 
         extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))) -> [(String, JValue)] -> IO (Maybe (JValue, String))
         extract extractor fields = do
@@ -224,18 +237,6 @@ getInfos opts input reqs = do
                 Just (jv, output) -> do
                     printDetailMessage opts "Generation succeeded."
                     return $ Just (jv, output)
-        
-        generateOutput :: [(String, String)] -> IO Output
-        generateOutput outs = do
-            case optOutput opts of
-                OutText -> do
-                    let msgs = map (\(req, out) -> req ++ ": " ++ out) outs
-                    return $ OutputText (unlines msgs)
-                OutJSON -> do
-                    let fields = map (\(req, out) -> (req, JString out)) outs
-                    return $ OutputJSON (JObject fields)
-                OutTerm -> do
-                    return $ OutputTerm outs
         
         checkPackageExists :: CurryPackage -> IO Bool
         checkPackageExists obj@(CurryPackage pkg) = do
