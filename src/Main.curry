@@ -20,3 +20,4 @@ main = do
         unless (isJust (optPackage opts)) (putStrLn "Package name is required" >> exitWith 1)
         res <- getInfos opts obj args2
         printResult res
+        return ()
