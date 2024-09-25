@@ -18,7 +18,7 @@ import Control.Monad (when, unless, filterM)
 import Data.Maybe (catMaybes)
 
 printRequests :: String -> [RegisteredRequest a] -> String
-printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":" ++ description' rreq) conf) ++ "\n\n"
+printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":" ++ description rreq) conf) ++ "\n\n"
 
 defaultOptions :: Options
 defaultOptions =

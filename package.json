@@ -16,7 +16,8 @@
     "curry-interface": " >= 1.0.0,  < 2.0.0",
     "det-parse": " >= 3.0.0,  < 4.0.0",
     "xml": " >= 3.0.0,  < 4.0.0",
-    "filepath": " >= 3.0.0,  < 4.0.0"
+    "filepath": " >= 3.0.0,  < 4.0.0",
+    "socket": " >= 3.0.0,  < 4.0.0"
   },
   "executable": {
     "name": "curry-info",

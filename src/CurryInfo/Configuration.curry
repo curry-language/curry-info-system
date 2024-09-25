@@ -16,6 +16,11 @@ import Data.List (find)
 
 ----------------------------
 
+listRequests :: [RegisteredRequest a] -> [String]
+listRequests = map (\r -> request r ++ ":" ++ description r)
+
+----------------------------
+
 -- PACKAGE
 
 packageConfiguration :: [RegisteredRequest CurryPackage]
@@ -90,7 +95,7 @@ operationConfiguration =
 
 data RegisteredRequest a = RegisteredRequest
     { request :: String
-    , description' :: String
+    , description :: String
     , extraction :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String)))
     , generation :: (Options -> a -> IO (Maybe (JValue, String)))
     }
@@ -98,7 +103,7 @@ data RegisteredRequest a = RegisteredRequest
 lookupRequest :: String -> [RegisteredRequest a] -> Maybe (String, String, (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))), (Options -> a -> IO (Maybe (JValue, String))))
 lookupRequest req conf = do
     rreq <- find (\x -> request x == req) conf
-    return (request rreq, description' rreq, extraction rreq, generation rreq)
+    return (request rreq, description rreq, extraction rreq, generation rreq)
 
 registerRequest :: String -> String -> Generator a b -> JReader b -> JShower b -> Printer b -> RegisteredRequest a
 registerRequest req desc generator jreader jshower printer =
