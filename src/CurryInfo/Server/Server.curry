@@ -17,6 +17,7 @@ type Force = Int
 
 data InfoServerMessage
     = GetRequests (Maybe String)
+    | GetCommands
     | RequestPackageInformation (Maybe OutFormat) (Maybe Force) Package [String]
     | RequestVersionInformation (Maybe OutFormat) (Maybe Force) Package Version [String]
     | RequestModuleInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
@@ -63,6 +64,20 @@ serverLoopOnHandle cconfig socket1 whandles handle = do
                     serverLoopOnHandle cconfig socket1 whandles handle
                 GetRequests mobj -> do
                     sendRequestNamesAndFormats dl handle mobj
+                    serverLoopOnHandle cconfig socket1 whandles handle
+                GetCommands -> do
+                    let msg =
+                            [ "GetRequests | GetRequests <obj>"
+                            , "GetCommands"
+                            , "RequestPackageInformation <outform> <force> <pkg> <reqs>"
+                            , "RequestVersionInformation <outform> <force> <pkg> <vsn> <reqs>"
+                            , "RequestModuleInformation <outform> <force> <pkg> <vsn> <mod>  <reqs>"
+                            , "RequestTypeInformation <outform> <force> <pkg> <vsn> <mod> <t> <reqs>"
+                            , "RequestTypeclassInformation <outform> <force> <pkg> <vsn> <mod> <tc> <reqs>"
+                            , "RequestOperationInformation <outform> <force> <pkg> <vsn> <mod> <op> <reqs>"
+                            , "StopServer"
+                            ]
+                    sendServerResult handle (unlines msg)
                     serverLoopOnHandle cconfig socket1 whandles handle
                 RequestPackageInformation moutform mforce pkg reqs -> 
                     requestInformation moutform mforce [("packages", pkg)] reqs
@@ -154,6 +169,7 @@ parseServerMessage :: String -> InfoServerMessage
 parseServerMessage s = case words s of
     ["GetRequests"] -> GetRequests Nothing
     ["GetRequests", obj] -> GetRequests (Just obj)
+    ["GetCommands"] -> GetCommands
     ["StopServer"] -> StopServer
     "RequestPackageInformation":outform:force:pkg:reqs -> RequestPackageInformation (readOutputFormat outform) (readForce force) pkg reqs
     "RequestVersionInformation":outform:force:pkg:vsn:reqs -> RequestVersionInformation (readOutputFormat outform) (readForce force) pkg vsn reqs

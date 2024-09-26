@@ -5,6 +5,7 @@ import CurryInfo.Configuration
 import CurryInfo.Paths (Path, getDirectoryPath, getJSONPath, packagesPath, root)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Checkout (checkouts, getCheckoutPath)
+import CurryInfo.Helper (safeRead)
 
 import System.Console.GetOpt
 import System.Process (exitWith, system)
@@ -22,7 +23,7 @@ printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":"
 
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False False
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False False False Nothing
 
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
@@ -167,6 +168,12 @@ options =
     , Option "" ["showall"]
              (NoArg (\opts -> opts { optShowAll = True }))
              "show all currently available information (without generating)"
+    , Option "" ["server"]
+             (NoArg (\opts -> opts { optServer = True }))
+             "run the tool in server mode"
+    , Option "" ["port"]
+             (ReqArg (\args opts -> opts { optPort = safeRead args }) "<port>")
+             "the port used in server mode"
     ]
     where
         safeReadNat opttrans s opts = case readNat s of

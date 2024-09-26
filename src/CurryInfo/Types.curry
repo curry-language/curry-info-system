@@ -21,6 +21,8 @@ data Options = Options
     , optOutput     :: OutFormat    -- The output format
     , optClean      :: Bool         -- Clean up information
     , optShowAll    :: Bool         -- Show all currently available information
+    , optServer     :: Bool         -- Run the tool in server mode
+    , optPort       :: Maybe Int    -- The port used in server mode
     }
     deriving Show 
 
