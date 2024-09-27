@@ -27,6 +27,7 @@ data InfoServerMessage
     | StopServer
     | ParseError
 
+-- This action starts the server.
 mainServer :: CConfig -> Maybe Int -> IO ()
 mainServer cconfig mbport = do
     putStrLn "Start Server"
@@ -35,36 +36,38 @@ mainServer cconfig mbport = do
                         mbport
     putStrLn ("Server Port: " ++ show port1)
     storeServerPortNumber port1
-    serverLoop cconfig socket1 []
+    serverLoop cconfig socket1
 
-serverLoop :: CConfig -> Socket -> [Handle] -> IO ()
-serverLoop cconfig socket1 whandles = do
+-- This action is the main server loop.
+serverLoop :: CConfig -> Socket -> IO ()
+serverLoop cconfig socket1 = do
     connection <- waitForSocketAccept socket1 waitTime
     case connection of
-        Just (_, handle) -> serverLoopOnHandle cconfig socket1 whandles handle
+        Just (_, handle) -> serverLoopOnHandle cconfig socket1 handle
         Nothing -> do
             putStrLn "serverLoop: connection error: time out in waitForSocketAccept"
             sleep 1
-            serverLoop cconfig socket1 whandles
+            serverLoop cconfig socket1
 
-serverLoopOnHandle :: CConfig -> Socket -> [Handle] -> Handle -> IO ()
-serverLoopOnHandle cconfig socket1 whandles handle = do
+-- This action is the main loop of handling communication after successfully connecting.
+serverLoopOnHandle :: CConfig -> Socket -> Handle -> IO ()
+serverLoopOnHandle cconfig socket1 handle = do
     eof <- hIsEOF handle
     if eof
         then do
             hClose handle
             debugMessage dl 2 "SERVER connection: eof"
-            serverLoop cconfig socket1 whandles
+            serverLoop cconfig socket1
         else do
             string <- hGetLineUntilEOF handle
             debugMessage dl 2 ("SERVER got message: " ++ string)
             case parseServerMessage string of
                 ParseError -> do
                     sendServerError dl handle ("Illegal message received: " ++ string)
-                    serverLoopOnHandle cconfig socket1 whandles handle
+                    serverLoopOnHandle cconfig socket1 handle
                 GetRequests mobj -> do
                     sendRequestNamesAndFormats dl handle mobj
-                    serverLoopOnHandle cconfig socket1 whandles handle
+                    serverLoopOnHandle cconfig socket1 handle
                 GetCommands -> do
                     let msg =
                             [ "GetRequests | GetRequests <obj>"
@@ -78,7 +81,7 @@ serverLoopOnHandle cconfig socket1 whandles handle = do
                             , "StopServer"
                             ]
                     sendServerResult handle (unlines msg)
-                    serverLoopOnHandle cconfig socket1 whandles handle
+                    serverLoopOnHandle cconfig socket1 handle
                 RequestPackageInformation moutform mforce pkg reqs -> 
                     requestInformation moutform mforce [("packages", pkg)] reqs
                 RequestVersionInformation moutform mforce pkg vsn reqs -> 
@@ -92,7 +95,6 @@ serverLoopOnHandle cconfig socket1 whandles handle = do
                 RequestOperationInformation moutform mforce pkg vsn m o reqs -> 
                     requestInformation moutform mforce [("packages", pkg), ("versions", vsn), ("modules", m), ("operation", o)] reqs
                 StopServer -> do
-                    stopWorkers whandles
                     sendServerResult handle ""
                     hClose handle
                     close socket1
@@ -100,18 +102,18 @@ serverLoopOnHandle cconfig socket1 whandles handle = do
                     removeServerPortNumber
                 _ -> do
                     putStrLn "NOT IMPLEMENTED YET"
-                    serverLoopOnHandle cconfig socket1 whandles handle
+                    serverLoopOnHandle cconfig socket1 handle
     where
         dl = debugLevel cconfig
 
         sendResult resultstring = do
             debugMessage dl 4 ("formatted result:\n" ++ resultstring)
             sendServerResult handle resultstring
-            serverLoopOnHandle cconfig socket1 whandles handle
+            serverLoopOnHandle cconfig socket1 handle
         
         sendRequestError err = do
             sendServerError dl handle ("Error in information server: " ++ show err)
-            serverLoopOnHandle cconfig socket1 whandles handle
+            serverLoopOnHandle cconfig socket1 handle
         
         requestInformation moutform mforce obj reqs = case (moutform, mforce) of
             (Nothing, Nothing) -> sendRequestError "Given output format and given force value do not exist"
@@ -121,6 +123,7 @@ serverLoopOnHandle cconfig socket1 whandles handle = do
                 (getInfos (silentOptions {optForce = force, optOutput = outform}) obj reqs >>= printResult >>= sendResult)
                 sendRequestError
 
+-- This action sends a result string over the given handle.
 sendServerResult :: Handle -> String -> IO ()
 sendServerResult handle resultstring = do
     let resultlines = lines resultstring
@@ -128,12 +131,14 @@ sendServerResult handle resultstring = do
     hPutStrLn handle (unlines resultlines)
     hFlush handle
 
+-- This action sends an error string over the given handle.
 sendServerError :: DLevel -> Handle -> String -> IO ()
 sendServerError dl handle errstring = do
     debugMessage dl 1 errstring
     hPutStrLn handle ("error " ++ errstring)
     hFlush handle
 
+-- This action reads from a handle until it reaches EOF.
 hGetLineUntilEOF  :: Handle -> IO String
 hGetLineUntilEOF h = do
   eof <- hIsEOF h
@@ -144,6 +149,9 @@ hGetLineUntilEOF h = do
                       else do cs <- hGetLineUntilEOF h
                               return (c:cs)
 
+-- This operation sends a results string over the handle with a list of requests.
+-- If Nothing is used, all requests are send.
+-- If Just is used, only the requests of the matching object type are send.
 sendRequestNamesAndFormats :: DLevel -> Handle -> Maybe String -> IO ()
 sendRequestNamesAndFormats dl handle mobj = case mobj of
     Just "package" -> sendServerResult handle (unlines ("PACKAGES":listRequests packageConfiguration))
@@ -162,9 +170,7 @@ sendRequestNamesAndFormats dl handle mobj = case mobj of
         ++ "\nOPERATIONS":listRequests operationConfiguration
         )
 
-stopWorkers :: [Handle] -> IO ()
-stopWorkers _ = return ()
-
+-- This operation parses a string and returns a message for the server to process.
 parseServerMessage :: String -> InfoServerMessage
 parseServerMessage s = case words s of
     ["GetRequests"] -> GetRequests Nothing
@@ -179,8 +185,10 @@ parseServerMessage s = case words s of
     "RequestOperationInformation":outform:force:pkg:vsn:m:o:reqs -> RequestOperationInformation (readOutputFormat outform) (readForce force) pkg vsn m o reqs
     _ -> ParseError
 
+-- This operation tries to read an output format from a string.
 readOutputFormat :: String -> Maybe OutFormat
 readOutputFormat = safeRead
 
+-- This operation tries to read a force value from a string.
 readForce :: String -> Maybe Force
 readForce = safeRead
