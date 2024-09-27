@@ -16,14 +16,9 @@ import Data.List (find)
 
 ----------------------------
 
-listRequests :: [RegisteredRequest a] -> [String]
-listRequests = map (\r -> request r ++ ":" ++ description r)
-
-----------------------------
-
 -- PACKAGE
 
-packageConfiguration :: [RegisteredRequest CurryPackage]
+packageConfiguration :: Configuration CurryPackage
 packageConfiguration =
     [ registerRequest "package"     "\t\t\tThe name of the package"                 gPackageName        jrPackageName       jsPackageName       pPackageName
     , registerRequest "versions"    "\t\t\tThe versions available of the package"   gPackageVersions    jrPackageVersions   jsPackageVersions   pPackageVersions
@@ -31,7 +26,7 @@ packageConfiguration =
 
 -- VERSION
 
-versionConfiguration :: [RegisteredRequest CurryVersion]
+versionConfiguration :: Configuration CurryVersion
 versionConfiguration =
     [ registerRequest "version" "\t\tThe version number of the version"         gVersionVersion         jrVersionVersion        jsVersionVersion        pVersionVersion
     , registerRequest "documentation" "\t\tThe documentation of the version"    gVersionDocumentation   jrVersionDocumentation  jsVersionDocumentation  pVersionDocumentation
@@ -42,7 +37,7 @@ versionConfiguration =
 
 -- MODULE
 
-moduleConfiguration :: [RegisteredRequest CurryModule]
+moduleConfiguration :: Configuration CurryModule
 moduleConfiguration =
     [ registerRequest "module"          "\t\t\tThe name of the module"                              gModuleName             jrModuleName             jsModuleName             pModuleName 
     , registerRequest "documentation"   "\t\tReference to the documentation comment of the module"  gModuleDocumentation    jrModuleDocumentation    jsModuleDocumentation    pModuleDocumentation
@@ -55,7 +50,7 @@ moduleConfiguration =
 
 -- TYPE
 
-typeConfiguration :: [RegisteredRequest CurryType]
+typeConfiguration :: Configuration CurryType
 typeConfiguration =
     [ registerRequest "typeName"        "\t\tThe name of the type"                                  gTypeName           jrTypeName           jsTypeName           pTypeName
     , registerRequest "documentation"   "\t\tReference to the documentation comment of the type"    gTypeDocumentation  jrTypeDocumentation  jsTypeDocumentation  pTypeDocumentation
@@ -65,7 +60,7 @@ typeConfiguration =
 
 -- TYPECLASS
 
-typeclassConfiguration :: [RegisteredRequest CurryTypeclass]
+typeclassConfiguration :: Configuration CurryTypeclass
 typeclassConfiguration =
     [ registerRequest "typeclass"       "\t\tThe name of the typeclass"                                 gTypeclassName          jrTypeclassName          jsTypeclassName          pTypeclassName
     , registerRequest "documentation"   "\t\tReference to the documentation comment of the typeclass"   gTypeclassDocumentation jrTypeclassDocumentation jsTypeclassDocumentation pTypeclassDocumentation
@@ -75,7 +70,7 @@ typeclassConfiguration =
 
 -- OPERATION
 
-operationConfiguration :: [RegisteredRequest CurryOperation]
+operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
     [ registerRequest "operation"               "\t\tThe name of the operation"                                                 gOperationName                  jrOperationName                  jsOperationName                  pOperationName
     , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         jrOperationDocumentation         jsOperationDocumentation         pOperationDocumentation
@@ -93,6 +88,8 @@ operationConfiguration =
 
 ------------------------------------
 
+type Configuration a = [RegisteredRequest a]
+
 data RegisteredRequest a = RegisteredRequest
     { request :: String
     , description :: String
@@ -100,48 +97,54 @@ data RegisteredRequest a = RegisteredRequest
     , generation :: (Options -> a -> IO (Maybe (JValue, String)))
     }
 
-lookupRequest :: String -> [RegisteredRequest a] -> Maybe (String, String, (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))), (Options -> a -> IO (Maybe (JValue, String))))
+-- This operation looks up a request with the given string, returning the parts of the request.
+-- (name, description, extraction, generation)
+lookupRequest :: String -> Configuration a -> Maybe (String, String, (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))), (Options -> a -> IO (Maybe (JValue, String))))
 lookupRequest req conf = do
     rreq <- find (\x -> request x == req) conf
     return (request rreq, description rreq, extraction rreq, generation rreq)
 
+-- This operation takes required parameters to create the necessary operations to use the request.
 registerRequest :: String -> String -> Generator a b -> JReader b -> JShower b -> Printer b -> RegisteredRequest a
 registerRequest req desc generator jreader jshower printer =
-    RegisteredRequest req desc (createExtraction req jreader printer) (createGeneration req generator jshower printer)
-
-createExtraction :: String -> JReader b -> Printer b -> (Options -> [(String, JValue)] -> IO (Maybe (JValue, String)))
-createExtraction req jreader printer opts infos = do
-    printDebugMessage opts $ "Looking for information for request '" ++ req ++ "'..."
-    case lookup req infos of
-        Nothing -> do
-            printDebugMessage opts "Information not found."
-            return Nothing
-        Just jv -> do
-            printDebugMessage opts "Information found."
-            printDebugMessage opts "Reading information..."
-            case jreader jv of
+        RegisteredRequest req desc createExtraction createGeneration
+    where
+        createExtraction opts infos = do
+            printDebugMessage opts $ "Looking for information for request '" ++ req ++ "'..."
+            case lookup req infos of
                 Nothing -> do
-                    printDebugMessage opts "Reading failed."
+                    printDebugMessage opts "Information not found."
+                    return Nothing
+                Just jv -> do
+                    printDebugMessage opts "Information found."
+                    printDebugMessage opts "Reading information..."
+                    case jreader jv of
+                        Nothing -> do
+                            printDebugMessage opts "Reading failed."
+                            return Nothing
+                        Just info -> do
+                            printDebugMessage opts "Reading succeeded."
+                            printDebugMessage opts "Creating output..."
+                            output <- printer opts info
+                            printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+                            return $ Just (jv, output)
+
+        createGeneration opts obj = do
+            printDebugMessage opts $ "Generating information for request '" ++ req ++ "'..."
+            res <- generator opts obj
+            case res of
+                Nothing -> do
+                    printDebugMessage opts "Generating failed."
                     return Nothing
                 Just info -> do
-                    printDebugMessage opts "Reading succeeded."
+                    printDebugMessage opts "Generating succeeded."
+                    let jv = jshower info
                     printDebugMessage opts "Creating output..."
                     output <- printer opts info
                     printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
                     return $ Just (jv, output)
 
-createGeneration :: String -> Generator a b -> JShower b -> Printer b -> (Options -> a -> IO (Maybe (JValue, String)))
-createGeneration req generator jshower printer opts obj = do
-    printDebugMessage opts $ "Generating information for request '" ++ req ++ "'..."
-    res <- generator opts obj
-    case res of
-        Nothing -> do
-            printDebugMessage opts "Generating failed."
-            return Nothing
-        Just info -> do
-            printDebugMessage opts "Generating succeeded."
-            let jv = jshower info
-            printDebugMessage opts "Creating output..."
-            output <- printer opts info
-            printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
-            return $ Just (jv, output)
+-- This operation returns a list of strings, each one being a request of the given
+-- configuration with their descriptions.
+listRequests :: Configuration a -> [String]
+listRequests = map (\r -> request r ++ ":" ++ description r)

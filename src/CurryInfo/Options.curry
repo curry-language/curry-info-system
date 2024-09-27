@@ -18,19 +18,24 @@ import Control.Monad (when, unless, filterM)
 
 import Data.Maybe (catMaybes)
 
-printRequests :: String -> [RegisteredRequest a] -> String
-printRequests s conf = s ++ "\n\n" ++ unlines (map (\rreq -> request rreq ++ ":" ++ description rreq) conf) ++ "\n\n"
+-- This operation returns a string representing the requests of the given configuration
+-- using the given string as prefix.
+printRequests :: String -> Configuration a -> String
+printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 
+-- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions =
     Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False False False Nothing
 
+-- Options, with that nothing is printed by the tool.
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
 
 testOptions :: Options
 testOptions = defaultOptions { optVerb = 4 }
 
+-- Options, that are used internally when querying specific information.
 queryOptions :: Options
 queryOptions = silentOptions { optOutput = OutTerm }
 
@@ -61,6 +66,7 @@ usageText =
     printRequests "Typeclass" typeclassConfiguration ++
     printRequests "Operation" operationConfiguration
 
+-- This operation returns the requested object from the given options.
 getObject :: Options -> [(String, String)]
 getObject opts =
         let pkg = extractOpt "packages"     (optPackage opts)
@@ -74,6 +80,7 @@ getObject opts =
         extractOpt :: String -> Maybe String -> Maybe (String, String)
         extractOpt tag = fmap (\x -> (tag, x))
 
+-- This action deletes the locally stored information of the given object, including subdirectories.
 cleanObject :: Options -> [(String, String)] -> IO ()
 cleanObject opts obj = do
         case obj of
@@ -85,28 +92,32 @@ cleanObject opts obj = do
             [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] -> let x = CurryTypeclass pkg vsn m c in cleanJSON opts x >> cleanCheckout opts pkg vsn
             [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] -> let x = CurryOperation pkg vsn m o in cleanJSON opts x >> cleanCheckout opts pkg vsn
             _ -> printDebugMessage opts $ show obj ++ " does not match any pattern"
-   -- where
+
+-- This action deletes the json file containing the stored information of the given object.
 cleanJSON :: Path a => Options -> a -> IO ()
 cleanJSON opts obj' = do
     getJSONPath obj' >>= deleteFile opts
 
+-- This action deletes the directory, in which the information of the given object art stored.
 cleanDirectory :: Path a => Options -> a -> IO ()
 cleanDirectory opts obj' = do
     getDirectoryPath obj' >>= deleteDirectory opts
 
+-- This action deletes the checkout directory of the given package and version.
 cleanCheckout :: Options -> Package -> Version -> IO ()
 cleanCheckout opts pkg vsn = do
     getCheckoutPath pkg vsn >>= deleteDirectory opts
-        
+
+-- This operation puts quotation marks around the given string.
 quote :: String -> String
 quote s = "\"" ++ s ++ "\""
 
+-- This action deletes the entire directory used by this tool to store information locally.
 cleanAll :: Options -> IO ()
-cleanAll opts = do
-    packagesPath >>= deleteDirectory opts
-    checkouts >>= deleteDirectory opts
-    root >>= deleteDirectory opts
+cleanAll opts = root >>= deleteDirectory opts
 
+-- This action deletes the given file using a boolean function to determine it
+-- being the correct kind of file.
 delete :: (String -> IO Bool) -> String -> Options -> String -> IO ()
 delete check cmd opts path = do
     exists <- check path
@@ -123,9 +134,11 @@ delete check cmd opts path = do
             _ -> do
                 printDetailMessage opts $ "Command '" ++ cmd' ++ "' failed with exist code '" ++ show exitCode ++ "'."
 
+-- This action deletes the given directory, including all its contents.
 deleteDirectory :: Options -> String -> IO ()
 deleteDirectory = delete doesDirectoryExist "rm -rf"
 
+-- This action deletes the given file.
 deleteFile :: Options -> String -> IO ()
 deleteFile = delete doesFileExist "rm -f"
 

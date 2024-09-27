@@ -187,6 +187,8 @@ data Dependency = Dependency Package Disjunction
 
 --------------------------
 
+-- Request Types
+
 type Generator a b = Options -> a -> IO (Maybe b)
 
 type JReader b = JValue -> Maybe b

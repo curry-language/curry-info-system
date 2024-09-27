@@ -7,18 +7,23 @@ import Data.List (init, find, intercalate, intersperse)
 import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar, char, check, (<$>), (<*>), many, (<*), (<!>))
 import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
 
+-- This operation parses the version constraints of a package.
 parseVersionConstraints :: String -> Maybe Disjunction
 parseVersionConstraints = parse disjunction
 
+-- This parser parses a list of conjunctions.
 disjunction :: Parser Disjunction
 disjunction = parseList (word " || ") conjunction
 
+-- This parser parses a list of version constraints.
 conjunction :: Parser Conjunction
 conjunction = parseList (word ", ") versionConstraint
 
+-- This parser parses a version constraint.
 versionConstraint :: Parser VersionConstraint
 versionConstraint = comparator <*> (ws *> version)
 
+-- This parser parses a comparator of a version constraint.
 comparator :: Parser (Version -> VersionConstraint)
 comparator =
     (word "<" *> yield VLt) <|>
@@ -29,9 +34,11 @@ comparator =
     (word "~" *> yield VMinCompatible) <|>
     (word "^" *> yield VMajCompatible)
 
+-- This parser parses a version number with an optional prerelease string following it.
 version :: Parser Version
 version = (++) <$> versionNumber <*> (prerelease <!> yield [])
 
+-- This parser parses a prerelease string used in a version.
 prerelease :: Parser String
 prerelease = (:) <$> (char '-' *> yield '-') <*> (some (check (\c -> c == '-' || isAlphaNum c) anyChar))
 

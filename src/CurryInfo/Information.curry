@@ -159,7 +159,7 @@ getInfos opts input reqs = do
                 OutJSON -> OutputJSON (JObject (map (\(r, ms) -> (r, maybe JNull JString ms)) outs))
                 OutTerm -> OutputTerm (map (\(r, ms) -> (r, maybe "?" id ms)) outs)
         
-        extractOrGenerate :: ErrorMessage a => [RegisteredRequest a] -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
+        extractOrGenerate :: ErrorMessage a => Configuration a -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
         extractOrGenerate conf fields obj req = do
             printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
             case lookupRequest req conf of

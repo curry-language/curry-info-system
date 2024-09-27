@@ -8,19 +8,6 @@ import System.Directory (doesFileExist)
 
 import JSON.Data
 
-printFromReference :: Options -> Reference -> IO String
-printFromReference opts (path, start, end) = do
-    b <- doesFileExist path
-    case b of
-        False -> do
-            printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
-            return "FAILED DUE TO FILE NOT EXISTING"
-        True -> do
-            printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-            content <- readFile path
-            let ls = lines content
-            return (unlines (slice start end ls))
-
 -- PACKAGE
 
 pPackageName :: Printer String
@@ -143,3 +130,19 @@ pOperationTermination _ t = return (show t)
 
 pOperationTotallyDefined :: Printer TotallyDefined
 pOperationTotallyDefined _ t = return (show t)
+
+-- HELPER
+
+-- This action returns the content of the file the given reference points to.
+printFromReference :: Options -> Reference -> IO String
+printFromReference opts (path, start, end) = do
+    b <- doesFileExist path
+    case b of
+        False -> do
+            printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
+            return "FAILED DUE TO FILE NOT EXISTING"
+        True -> do
+            printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
+            content <- readFile path
+            let ls = lines content
+            return (unlines (slice start end ls))
