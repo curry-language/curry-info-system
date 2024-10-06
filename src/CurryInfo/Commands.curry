@@ -42,7 +42,7 @@ cmdCheckout path pkg vsn =
 cmdCYPMInstall :: String -> (String, IO (Int, String, String))
 cmdCYPMInstall path = 
     let
-        x@(cmd:args) = ["cypm", "exec", "cypm", "install"]
+        x@(cmd:args) = ["cypm", "install"]
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
@@ -69,7 +69,7 @@ cmdCYPMUpdate path =
 cmdCurryLoad :: String -> Module -> (String, IO (Int, String, String))
 cmdCurryLoad path m =
     let
-        x@(cmd:args) = ["cypm", "exec", "curry", ":l", m, ":q"]
+        x@(cmd:args) = ["cypm", "curry", ":l", m, ":q"]
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
