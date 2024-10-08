@@ -33,7 +33,7 @@ analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = 
             Just path -> do
                 (_, output, _) <- runCmd opts (cmdCASS path analysis m)
                 printDetailMessage opts "Analysis finished."
-                printDebugMessage opts "Parsing anaylsis output..."
+                printDebugMessage opts "Parsing analysis output..."
                 case parseXmlString output of
                     [e] -> do
                         printDebugMessage opts "Looking for results..."
@@ -43,6 +43,9 @@ analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = 
                                 printDetailMessage opts "Analysis failed."
                                 return Nothing
                             Just results -> do
+                                printDebugMessage opts "Writing all results in files..."
+                                mapM addInformation results
+
                                 printDebugMessage opts "Results found. Looking for requested result..."
                                 case lookup name results of
                                     Nothing -> do
@@ -52,9 +55,6 @@ analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = 
                                     Just result -> do
                                         printDetailMessage opts "Analysis succeeded."
                                         printDebugMessage opts $ "Result found: " ++ show result
-
-                                        printDebugMessage opts "Writing all results in files..."
-                                        mapM addInformation results
 
                                         return (parser result)
                     _ -> do
