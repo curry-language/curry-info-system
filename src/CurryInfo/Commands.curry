@@ -82,12 +82,14 @@ cmdCurryLoad path m =
 -- This action calls CASS to compute the given analysis for the given module in the given path.
 cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
 cmdCASS path analysis m =
-    let
-        x@(cmd:args) = ["cypm", "exec", "cass", "-f", "xml", analysis, m]
-        action = do
-            current <- getCurrentDirectory
-            setCurrentDirectory path
-            (exitCode, output, err) <- evalCmd cmd args ""
-            setCurrentDirectory current
-            return (exitCode, output, err)
-    in (unwords x, action)
+  let
+      x@(cmd:args) = if analysis == "FailFree"
+                       then ["cypm", "exec", "curry-calltypes", "--format=xml", m]
+                       else ["cypm", "exec", "cass", "-f", "xml", analysis, m]
+      action = do
+          current <- getCurrentDirectory
+          setCurrentDirectory path
+          (exitCode, output, err) <- evalCmd cmd args ""
+          setCurrentDirectory current
+          return (exitCode, output, err)
+  in (unwords x, action)

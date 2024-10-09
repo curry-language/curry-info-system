@@ -118,6 +118,9 @@ jrOperationTermination = jrBool
 jrOperationTotallyDefined :: JReader TotallyDefined
 jrOperationTotallyDefined = jrBool
 
+jrOperationFailFree :: JReader String
+jrOperationFailFree = jrString
+
 -- HELPER
 
 --- This operation converts a string json value into a regular string.

@@ -505,15 +505,30 @@ gOperationTermination opts (CurryOperation pkg vsn m o) = do
             return Nothing
 
 gOperationTotallyDefined :: Generator CurryOperation TotallyDefined
-gOperationTotallyDefined opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating totally defined analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseTotallyDefined opts pkg vsn m o
+gOperationTotallyDefined =
+  createInfoGeneratorWith "totally defined analysis" analyseTotallyDefined
+
+gOperationFailFree :: Generator CurryOperation String
+gOperationFailFree =
+  createInfoGeneratorWith "fail-free analysis" analyseFailFree
+
+--- Generator function to create an information generator for operations.
+--- The first argument is a description of the generated information
+--- and the second argument is the actual operation which generates
+--- the information.
+createInfoGeneratorWith :: Show a => String
+  -> (Options -> Package -> Version -> Module -> Operation -> IO (Maybe a))
+  -> Generator CurryOperation a
+createInfoGeneratorWith anadescr anafun opts (CurryOperation pkg vsn m o) = do
+    printDetailMessage opts $ "Generating " ++ anadescr ++ " of operation '" ++
+        o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
+        "' of package '" ++ pkg ++ "'..."
+    mresult <- anafun opts pkg vsn m o
     case mresult of
         Just result -> do
-            printDebugMessage opts $ "Result is: " ++ show result
-            let res = result
+            printDebugMessage opts $ "Result: " ++ show result
             printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+            return $ Just result
         Nothing -> do
             printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
