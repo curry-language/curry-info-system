@@ -73,7 +73,7 @@ cmdCurryLoad path m =
         action = do
             current <- getCurrentDirectory
             setCurrentDirectory path
-            getCurrentDirectory >>= print
+            --getCurrentDirectory >>= print
             (exitCode, output, err) <- evalCmd cmd args ""
             setCurrentDirectory current
             return (exitCode, output, err)
