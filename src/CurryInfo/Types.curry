@@ -9,20 +9,21 @@ import Data.Char (toLower)
 -- Options Type
 
 data Options = Options
-    { optVerb       :: Int          -- The verbosity
-    , optHelp       :: Bool         -- Usage info
-    , optForce      :: Int          -- Only Extract - Generate if necessary - Generate always
-    , optPackage    :: Maybe String -- The requested package
-    , optVersion    :: Maybe String -- The requested version
-    , optModule     :: Maybe String -- The requested module
-    , optType       :: Maybe String -- The requested type
-    , optTypeclass  :: Maybe String -- The requested type class
-    , optOperation  :: Maybe String -- The requested operation
-    , optOutput     :: OutFormat    -- The output format
-    , optClean      :: Bool         -- Clean up information
-    , optShowAll    :: Bool         -- Show all currently available information
-    , optServer     :: Bool         -- Run the tool in server mode
-    , optPort       :: Maybe Int    -- The port used in server mode
+    { optVerb           :: Int          -- The verbosity
+    , optHelp           :: Bool         -- Usage info
+    , optForce          :: Int          -- Only Extract - Generate if necessary - Generate always
+    , optPackage        :: Maybe String -- The requested package
+    , optVersion        :: Maybe String -- The requested version
+    , optModule         :: Maybe String -- The requested module
+    , optType           :: Maybe String -- The requested type
+    , optTypeclass      :: Maybe String -- The requested type class
+    , optOperation      :: Maybe String -- The requested operation
+    , optOutput         :: OutFormat    -- The output format
+    , optClean          :: Bool         -- Clean up information
+    , optShowAll        :: Bool         -- Show all currently available information
+    , optServer         :: Bool         -- Run the tool in server mode
+    , optPort           :: Maybe Int    -- The port used in server mode
+    , optAllOperations  :: Bool         -- Process requests for all operations in given module
     }
     deriving Show 
 
