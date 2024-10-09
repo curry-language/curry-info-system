@@ -28,6 +28,15 @@ printResult (OutputJSON jv) = let txt = ppJSON jv in putStrLn txt >> return txt
 printResult (OutputTerm ts) = let txt = show ts in putStrLn txt >> return txt
 printResult (OutputError err) = let txt = "Error: " ++ err in putStrLn txt >> return txt
 
+fromOutputText :: Output -> String
+fromOutputText (OutputText txt) = txt
+
+fromOutputJSON :: Output -> JValue
+fromOutputJSON (OutputJSON jv) = jv
+
+fromOutputTerm :: Output -> [(String, String)]
+fromOutputTerm (OutputTerm ts) = ts
+
 generateOutputError :: Options -> String -> IO Output
 generateOutputError opts err = do
     printDetailMessage opts err
@@ -75,7 +84,18 @@ getInfos opts input reqs = do
                     generateOutputError opts err
                 True  -> do
                     printDetailMessage opts "Checked Module: exists."
-                    getInfos' moduleConfiguration obj
+                    -- Check whether all operations are to be processed
+                    case optAllOperations opts of
+                        False -> getInfos' moduleConfiguration obj
+                        True -> do
+                            mos <- getAllOperations opts pkg vsn m
+                            case mos of
+                                Nothing -> do
+                                    generateOutputError opts "Could not find operations."
+                                Just os -> do
+                                    outs <- mapM (getInfos' operationConfiguration) (map (CurryOperation pkg vsn m) os)
+                                    let out = combineOutput opts outs
+                                    return out
         [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> do
             printStatusMessage opts "Structure matches Type"
             let obj = CurryType pkg vsn m t
@@ -149,6 +169,37 @@ getInfos opts input reqs = do
                             let output = createOutput results :: Output
                             return output
         
+        getAllOperations :: Options -> Package -> Version -> Module -> IO (Maybe [Operation])
+        getAllOperations opts pkg vsn m = do
+            res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["operations"]
+            case res of
+                OutputTerm terms -> case lookup "operations" terms of
+                    Nothing -> return Nothing
+                    Just os -> return (Just (read os))
+                _ -> return Nothing
+        
+        combineOutput :: Options -> [Output] -> Output
+        combineOutput opts outs = case optOutput opts of
+            OutText -> OutputText (show (map fromOutputText outs))
+            OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
+            --OutTerm -> OutputTerm ((map fromOutputTerm outs))
+
+
+        --checkOperationExists :: CurryOperation -> IO Bool
+        --checkOperationExists obj@(CurryOperation pkg vsn m o) = do
+        --    jpath <- getJSONPath obj
+        --    b1 <- doesFileExist jpath
+        --    case b1 of
+        --        True -> return True
+        --        False -> do
+        --            res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["operations"]
+        --            case res of
+        --                OutputTerm terms -> case lookup "operations" terms of
+        --                    Nothing -> return False
+        --                    Just os -> do
+        --                        return $ elem o (read os)
+        --                _ -> return False
+
         createNewInformation :: [(String, Maybe (JValue, String))] -> [(String, JValue)]
         createNewInformation results = foldr (\(r, mres) acc -> maybe acc (flip (:) acc . (,) r . fst) mres) [] results
 
