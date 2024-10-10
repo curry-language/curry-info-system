@@ -154,10 +154,10 @@ gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
             printDetailMessage opts "Generating finished succesfully."
             return $ Just res
 
-gModuleSafe :: Generator CurryModule Safe
-gModuleSafe opts (CurryModule pkg vsn m) = do
+gModuleUnsafeModule :: Generator CurryModule Unsafe
+gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseSafeModule opts pkg vsn m
+    mresult <- analyseUnsafeModuleWithCASS opts pkg vsn m
     case mresult of
         Just result -> do
             printDebugMessage opts $ "Analysis result: " ++ show result
@@ -429,10 +429,10 @@ gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Generating finished successfully."
             return $ Just res
 
-gOperationDeterministic :: Generator CurryOperation Deterministic
-gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
+gOperationCASSDeterministic :: Generator CurryOperation Deterministic
+gOperationCASSDeterministic opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating deterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseDeterministic opts pkg vsn m o
+    mresult <- analyseDeterministicWithCASS opts pkg vsn m o
     case mresult of
         Just result -> do
             printDebugMessage opts $ "Result is: " ++ show result
@@ -444,10 +444,10 @@ gOperationDeterministic opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Generating failed."
             return Nothing
 
-gOperationDemandness :: Generator CurryOperation Demandness
-gOperationDemandness opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating demandness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseDemandness opts pkg vsn m o
+gOperationCASSDemand :: Generator CurryOperation Demand
+gOperationCASSDemand opts (CurryOperation pkg vsn m o) = do
+    printDetailMessage opts $ "Generating demand analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    mresult <- analyseDemandWithCASS opts pkg vsn m o
     case mresult of
         Just result -> do
             printDebugMessage opts $ "Result is: " ++ show result
@@ -459,10 +459,10 @@ gOperationDemandness opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Generating failed."
             return Nothing
 
-gOperationIndeterministic :: Generator CurryOperation Indeterministic
-gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
+gOperationCASSIndeterministic :: Generator CurryOperation Indeterministic
+gOperationCASSIndeterministic opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating indeterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseIndeterministic opts pkg vsn m o
+    mresult <- analyseIndeterministicWithCASS opts pkg vsn m o
     case mresult of
         Just result -> do
             printDebugMessage opts $ "Result is: " ++ show result
@@ -474,10 +474,10 @@ gOperationIndeterministic opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Generating failed."
             return Nothing
 
-gOperationSolutionCompleteness :: Generator CurryOperation SolutionCompleteness
-gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
+gOperationCASSSolComplete :: Generator CurryOperation SolComplete
+gOperationCASSSolComplete opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating solution completeness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseSolutionCompleteness opts pkg vsn m o
+    mresult <- analyseSolCompleteWithCASS opts pkg vsn m o
     case mresult of
         Just result -> do
             printDebugMessage opts $ "Result is: " ++ show result
@@ -489,10 +489,10 @@ gOperationSolutionCompleteness opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Generating failed."
             return Nothing
 
-gOperationTermination :: Generator CurryOperation Termination
-gOperationTermination opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating termination analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseTermination opts pkg vsn m o
+gOperationCASSTerminating :: Generator CurryOperation Terminating
+gOperationCASSTerminating opts (CurryOperation pkg vsn m o) = do
+    printDetailMessage opts $ "Generating terminating analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    mresult <- analyseTerminatingWithCASS opts pkg vsn m o
     case mresult of
         Just result -> do
             printDebugMessage opts $ "Result is: " ++ show result
@@ -504,9 +504,9 @@ gOperationTermination opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Generating failed."
             return Nothing
 
-gOperationTotallyDefined :: Generator CurryOperation TotallyDefined
-gOperationTotallyDefined =
-  createInfoGeneratorWith "totally defined analysis" analyseTotallyDefined
+gOperationCASSTotal :: Generator CurryOperation Total
+gOperationCASSTotal =
+  createInfoGeneratorWith "totally defined analysis" analyseTotalWithCASS
 
 gOperationFailFree :: Generator CurryOperation String
 gOperationFailFree =

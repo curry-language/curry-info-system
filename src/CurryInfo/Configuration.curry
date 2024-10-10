@@ -39,13 +39,13 @@ versionConfiguration =
 
 moduleConfiguration :: Configuration CurryModule
 moduleConfiguration =
-    [ registerRequest "module"          "\t\t\tThe name of the module"                              gModuleName             jrModuleName             jsModuleName             pModuleName 
-    , registerRequest "documentation"   "\t\tReference to the documentation comment of the module"  gModuleDocumentation    jrModuleDocumentation    jsModuleDocumentation    pModuleDocumentation
-    , registerRequest "sourceCode"      "\t\tReference to the source code of the module"            gModuleSourceCode       jrModuleSourceCode       jsModuleSourceCode       pModuleSourceCode
-    , registerRequest "safe"            "\t\t\tAnalysis result whether the module is safe"          gModuleSafe             jrModuleSafe             jsModuleSafe             pModuleSafe
-    , registerRequest "typeclasses"     "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      jrModuleTypeclasses      jsModuleTypeclasses      pModuleTypeclasses
-    , registerRequest "types"           "\t\t\tThe exported types of the module"                    gModuleTypes            jrModuleTypes            jsModuleTypes            pModuleTypes
-    , registerRequest "operations"      "\t\tThe exported operations of the module"                 gModuleOperations       jrModuleOperations       jsModuleOperations       pModuleOperations
+    [ registerRequest "module"              "\t\t\tThe name of the module"                              gModuleName             jrModuleName             jsModuleName             pModuleName 
+    , registerRequest "documentation"       "\t\tReference to the documentation comment of the module"  gModuleDocumentation    jrModuleDocumentation    jsModuleDocumentation    pModuleDocumentation
+    , registerRequest "sourceCode"          "\t\tReference to the source code of the module"            gModuleSourceCode       jrModuleSourceCode       jsModuleSourceCode       pModuleSourceCode
+    , registerRequest "cass-unsafemodule"   "\t\t\tAnalysis result whether the module is safe"          gModuleUnsafeModule     jrModuleUnsafeModule     jsModuleUnsafeModule     pModuleUnsafeModule
+    , registerRequest "typeclasses"         "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      jrModuleTypeclasses      jsModuleTypeclasses      pModuleTypeclasses
+    , registerRequest "types"               "\t\t\tThe exported types of the module"                    gModuleTypes            jrModuleTypes            jsModuleTypes            pModuleTypes
+    , registerRequest "operations"          "\t\tThe exported operations of the module"                 gModuleOperations       jrModuleOperations       jsModuleOperations       pModuleOperations
     ]
 
 -- TYPE
@@ -72,19 +72,19 @@ typeclassConfiguration =
 
 operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
-    [ registerRequest "operation"               "\t\tThe name of the operation"                                                 gOperationName                  jrOperationName                  jsOperationName                  pOperationName
-    , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         jrOperationDocumentation         jsOperationDocumentation         pOperationDocumentation
-    , registerRequest "definition"              "\t\tReference to the definition of the operation"                              gOperationSourceCode            jrOperationSourceCode            jsOperationSourceCode            pOperationSourceCode
-    , registerRequest "signature"               "\t\tThe signature of the operation"                                            gOperationSignature             jrOperationSignature             jsOperationSignature             pOperationSignature
-    , registerRequest "infix"                   "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)"  gOperationInfix                 jrOperationInfix                 jsOperationInfix                 pOperationInfix
-    , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"                               gOperationPrecedence            jrOperationPrecedence            jsOperationPrecedence            pOperationPrecedence
-    , registerRequest "deterministic"           "\t\tAnalysis result whether the operation is deterministic"                    gOperationDeterministic         jrOperationDeterministic         jsOperationDeterministic         pOperationDeterministic
-    , registerRequest "demandness"              "\t\tAnalysis result what arguments are demanded"                               gOperationDemandness            jrOperationDemandness            jsOperationDemandness            pOperationDemandness
-    , registerRequest "indeterministic"         "\tAnalysis result whether the operation is indeterministic"                    gOperationIndeterministic       jrOperationIndeterministic       jsOperationIndeterministic       pOperationIndeterministic
-    , registerRequest "solutionCompleteness"    "\tAnalysis result whether the operation is solution complete"                  gOperationSolutionCompleteness  jrOperationSolutionCompleteness  jsOperationSolutionCompleteness  pOperationSolutionCompleteness
-    , registerRequest "termination"             "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationTermination           jrOperationTermination           jsOperationTermination           pOperationTermination
-    , registerRequest "totallyDefined"          "\t\tAnalysis result whether the operation is totally defined"                  gOperationTotallyDefined        jrOperationTotallyDefined        jsOperationTotallyDefined        pOperationTotallyDefined
-    , registerRequest "failfree"                "\t\tVerification resul about the failing behavior of the operation"            gOperationFailFree              jrOperationFailFree              jsOperationFailFree              pOperationFailFree
+    [ registerRequest "operation"               "\t\tThe name of the operation"                                                 gOperationName                  jrOperationName                 jsOperationName                 pOperationName
+    , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         jrOperationDocumentation        jsOperationDocumentation        pOperationDocumentation
+    , registerRequest "definition"              "\t\tReference to the definition of the operation"                              gOperationSourceCode            jrOperationSourceCode           jsOperationSourceCode           pOperationSourceCode
+    , registerRequest "signature"               "\t\tThe signature of the operation"                                            gOperationSignature             jrOperationSignature            jsOperationSignature            pOperationSignature
+    , registerRequest "infix"                   "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)"  gOperationInfix                 jrOperationInfix                jsOperationInfix                pOperationInfix
+    , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"                               gOperationPrecedence            jrOperationPrecedence           jsOperationPrecedence           pOperationPrecedence
+    , registerRequest "cass-deterministic"      "\t\tAnalysis result whether the operation is deterministic"                    gOperationCASSDeterministic     jrOperationCASSDeterministic    jsOperationCASSDeterministic    pOperationCASSDeterministic
+    , registerRequest "cass-demand"             "\t\tAnalysis result what arguments are demanded"                               gOperationCASSDemand            jrOperationCASSDemand           jsOperationCASSDemand           pOperationCASSDemand
+    , registerRequest "cass-indeterministic"    "\tAnalysis result whether the operation is indeterministic"                    gOperationCASSIndeterministic   jrOperationCASSIndeterministic  jsOperationCASSIndeterministic  pOperationCASSIndeterministic
+    , registerRequest "cass-solcomplete"        "\tAnalysis result whether the operation is solution complete"                  gOperationCASSSolComplete       jrOperationCASSSolComplete      jsOperationCASSSolComplete      pOperationCASSSolComplete
+    , registerRequest "cass-terminating"        "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationCASSTerminating       jrOperationCASSTerminating      jsOperationCASSTerminating      pOperationCASSTerminating
+    , registerRequest "cass-total"              "\t\tAnalysis result whether the operation is totally defined"                  gOperationCASSTotal             jrOperationCASSTotal            jsOperationCASSTotal            pOperationCASSTotal
+    , registerRequest "failfree"                "\t\tVerification resul about the failing behavior of the operation"            gOperationFailFree              jrOperationFailFree             jsOperationFailFree             pOperationFailFree
     ]
 
 ------------------------------------

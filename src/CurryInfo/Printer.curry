@@ -53,8 +53,8 @@ pModuleDocumentation opts ref = printFromReference opts ref
 pModuleSourceCode :: Printer Reference
 pModuleSourceCode opts ref = printFromReference opts ref
 
-pModuleSafe :: Printer Safe
-pModuleSafe _ safe = return (show safe)
+pModuleUnsafeModule :: Printer Unsafe
+pModuleUnsafeModule _ safe = return (show safe)
 
 pModuleTypeclasses :: Printer [String]
 pModuleTypeclasses _ cs = return (show cs)
@@ -113,23 +113,23 @@ pOperationInfix _ inf = return (show inf)
 pOperationPrecedence :: Printer (Maybe Precedence)
 pOperationPrecedence _ p = return (show p)
 
-pOperationDeterministic :: Printer Deterministic
-pOperationDeterministic _ det = return (show det)
+pOperationCASSDeterministic :: Printer Deterministic
+pOperationCASSDeterministic _ det = return (show det)
 
-pOperationDemandness :: Printer Demandness
-pOperationDemandness _ dem = return (show dem)
+pOperationCASSDemand :: Printer Demand
+pOperationCASSDemand _ dem = return (show dem)
 
-pOperationIndeterministic :: Printer Indeterministic
-pOperationIndeterministic _ ind = return (show ind)
+pOperationCASSIndeterministic :: Printer Indeterministic
+pOperationCASSIndeterministic _ ind = return (show ind)
 
-pOperationSolutionCompleteness :: Printer SolutionCompleteness
-pOperationSolutionCompleteness _ sol = return (show sol)
+pOperationCASSSolComplete :: Printer SolComplete
+pOperationCASSSolComplete _ sol = return (show sol)
 
-pOperationTermination :: Printer Termination
-pOperationTermination _ t = return (show t)
+pOperationCASSTerminating :: Printer Terminating
+pOperationCASSTerminating _ t = return (show t)
 
-pOperationTotallyDefined :: Printer TotallyDefined
-pOperationTotallyDefined _ t = return (show t)
+pOperationCASSTotal :: Printer Total
+pOperationCASSTotal _ t = return (show t)
 
 pOperationFailFree :: Printer String
 pOperationFailFree _ t = return t

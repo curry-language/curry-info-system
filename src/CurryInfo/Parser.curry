@@ -43,8 +43,8 @@ prerelease :: Parser String
 prerelease = (:) <$> (char '-' *> yield '-') <*> (some (check (\c -> c == '-' || isAlphaNum c) anyChar))
 
 -- This operation parses the result of the 'UnsafeModule' analysis of CASS.
-parseSafe :: String -> Maybe Safe
-parseSafe = parse (
+parseUnsafe :: String -> Maybe Unsafe
+parseUnsafe = parse (
         (word "safe" *> yield Safe) <|>
         (word "unsafe" *> (
             (space *> word "(due to module" *> (
@@ -63,8 +63,8 @@ parseDeterministic = parse (
     )
 
 -- This operation parses the result of the 'Demand' analysis of CASS.
-parseDemandness :: String -> Maybe Demandness
-parseDemandness = parse (
+parseDemand :: String -> Maybe Demand
+parseDemand = parse (
         (word "no demanded arguments" *> yield []) <|>
         (word "demanded arguments: " *> parseList comma parseNumber)
     )
@@ -77,22 +77,22 @@ parseIndeterministic = parse (
     )
 
 -- This operation parses the result of the 'SolComplete' analysis of CASS.
-parseSolutionCompleteness :: String -> Maybe SolutionCompleteness
-parseSolutionCompleteness = parse (
+parseSolComplete :: String -> Maybe SolComplete
+parseSolComplete = parse (
         (word "solution complete" *> yield True) <|>
         (word "maybe suspend" *> yield False)
     )
 
 -- This operation parses the result of the 'Terminating' analysis of CASS.
-parseTermination :: String -> Maybe Termination
-parseTermination = parse (
+parseTerminating :: String -> Maybe Terminating
+parseTerminating = parse (
         (word "terminating" *> yield True) <|>
         (word "possibly non-terminating" *> yield False)
     )
 
 -- This operation parses the result of the 'Total' analysis of CASS.
-parseTotallyDefined :: String -> Maybe TotallyDefined
-parseTotallyDefined = parse (
+parseTotal :: String -> Maybe Total
+parseTotal = parse (
         (word "totally defined" *> yield True) <|>
         (word "partially defined" *> yield False)
     )

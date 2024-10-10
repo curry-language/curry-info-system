@@ -3,8 +3,8 @@ module CurryInfo.Analysis where
 import CurryInfo.Types
 import CurryInfo.Commands
 import CurryInfo.Parser
-    ( parseSafe, parseDeterministic, parseDemandness, parseIndeterministic, parseSolutionCompleteness, parseTermination
-    , parseTotallyDefined
+    ( parseUnsafe, parseDeterministic, parseDemand, parseIndeterministic, parseSolComplete, parseTerminating
+    , parseTotal
     )
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Paths
@@ -93,45 +93,45 @@ analyseWithCASS opts pkg vsn m name analysis field parser constructor jshower = 
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis for the given module in
 -- the given path.
-analyseSafeModule :: Options -> Package -> Version -> Module -> IO (Maybe Safe)
-analyseSafeModule opts pkg vsn m = do
-    analyseWithCASS opts pkg vsn m m "UnsafeModule" "safe" parseSafe (CurryModule pkg vsn) jsModuleSafe
+analyseUnsafeModuleWithCASS :: Options -> Package -> Version -> Module -> IO (Maybe Unsafe)
+analyseUnsafeModuleWithCASS opts pkg vsn m = do
+    analyseWithCASS opts pkg vsn m m "UnsafeModule" "cass-unsafemodule" parseUnsafe (CurryModule pkg vsn) jsModuleUnsafeModule
 
 -- This action initiates a call to CASS to compute the 'Deterministic' analysis for the given module in
 -- the given path.
-analyseDeterministic :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Deterministic)
-analyseDeterministic opts pkg vsn m o = do
-    analyseWithCASS opts pkg vsn m o "Deterministic" "deterministic" parseDeterministic (CurryOperation pkg vsn m) jsOperationDeterministic
+analyseDeterministicWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Deterministic)
+analyseDeterministicWithCASS opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Deterministic" "cass-deterministic" parseDeterministic (CurryOperation pkg vsn m) jsOperationCASSDeterministic
 
 -- This action initiates a call to CASS to compute the 'Demand' analysis for the given module in
 -- the given path.
-analyseDemandness :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Demandness)
-analyseDemandness opts pkg vsn m o = do
-    analyseWithCASS opts pkg vsn m o "Demand" "demandness" parseDemandness (CurryOperation pkg vsn m) jsOperationDemandness
+analyseDemandWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Demand)
+analyseDemandWithCASS opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Demand" "cass-demand" parseDemand (CurryOperation pkg vsn m) jsOperationCASSDemand
 
 -- This action initiates a call to CASS to compute the 'Indeterministic' analysis for the given module in
 -- the given path.
-analyseIndeterministic :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Indeterministic)
-analyseIndeterministic opts pkg vsn m o = do
-    analyseWithCASS opts pkg vsn m o "Indeterministic" "indeterministic" parseIndeterministic (CurryOperation pkg vsn m) jsOperationIndeterministic
+analyseIndeterministicWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Indeterministic)
+analyseIndeterministicWithCASS opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Indeterministic" "cass-indeterministic" parseIndeterministic (CurryOperation pkg vsn m) jsOperationCASSIndeterministic
 
 -- This action initiates a call to CASS to compute the 'SolComplete' analysis for the given module in
 -- the given path.
-analyseSolutionCompleteness :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe SolutionCompleteness)
-analyseSolutionCompleteness opts pkg vsn m o = do
-    analyseWithCASS opts pkg vsn m o "SolComplete" "solutionCompleteness" parseSolutionCompleteness (CurryOperation pkg vsn m) jsOperationSolutionCompleteness
+analyseSolCompleteWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe SolComplete)
+analyseSolCompleteWithCASS opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "SolComplete" "cass-solcomplete" parseSolComplete (CurryOperation pkg vsn m) jsOperationCASSSolComplete
 
 -- This action initiates a call to CASS to compute the 'Terminating' analysis for the given module in
 -- the given path.
-analyseTermination :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Termination)
-analyseTermination opts pkg vsn m o = do
-    analyseWithCASS opts pkg vsn m o "Terminating" "termination" parseTermination (CurryOperation pkg vsn m) jsOperationTermination
+analyseTerminatingWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Terminating)
+analyseTerminatingWithCASS opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Terminating" "cass-terminating" parseTerminating (CurryOperation pkg vsn m) jsOperationCASSTerminating
 
 -- This action initiates a call to CASS to compute the 'Total' analysis for the given module in
 -- the given path.
-analyseTotallyDefined :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe TotallyDefined)
-analyseTotallyDefined opts pkg vsn m o = do
-    analyseWithCASS opts pkg vsn m o "Total" "totallyDefined" parseTotallyDefined (CurryOperation pkg vsn m) jsOperationTotallyDefined
+analyseTotalWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe Total)
+analyseTotalWithCASS opts pkg vsn m o = do
+    analyseWithCASS opts pkg vsn m o "Total" "cass-total" parseTotal (CurryOperation pkg vsn m) jsOperationCASSTotal
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.

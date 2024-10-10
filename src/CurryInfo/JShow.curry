@@ -40,8 +40,8 @@ jsModuleDocumentation = jsShow
 jsModuleSourceCode :: JShower Reference
 jsModuleSourceCode = jsShow
 
-jsModuleSafe :: JShower Safe
-jsModuleSafe = jsShow
+jsModuleUnsafeModule :: JShower Unsafe
+jsModuleUnsafeModule = jsShow
 
 jsModuleTypeclasses :: JShower [String]
 jsModuleTypeclasses = jsMap jsString
@@ -100,23 +100,23 @@ jsOperationInfix = jsShow
 jsOperationPrecedence :: JShower (Maybe Precedence)
 jsOperationPrecedence = jsShow
 
-jsOperationDeterministic :: JShower Deterministic
-jsOperationDeterministic = jsShow
+jsOperationCASSDeterministic :: JShower Deterministic
+jsOperationCASSDeterministic = jsShow
 
-jsOperationDemandness :: JShower Demandness
-jsOperationDemandness = jsMap jsNumber
+jsOperationCASSDemand :: JShower Demand
+jsOperationCASSDemand = jsMap jsNumber
 
-jsOperationIndeterministic :: JShower Indeterministic
-jsOperationIndeterministic = jsBool
+jsOperationCASSIndeterministic :: JShower Indeterministic
+jsOperationCASSIndeterministic = jsBool
 
-jsOperationSolutionCompleteness :: JShower SolutionCompleteness
-jsOperationSolutionCompleteness = jsBool
+jsOperationCASSSolComplete :: JShower SolComplete
+jsOperationCASSSolComplete = jsBool
 
-jsOperationTermination :: JShower Termination
-jsOperationTermination = jsBool
+jsOperationCASSTerminating :: JShower Terminating
+jsOperationCASSTerminating = jsBool
 
-jsOperationTotallyDefined :: JShower TotallyDefined
-jsOperationTotallyDefined = jsBool
+jsOperationCASSTotal :: JShower Total
+jsOperationCASSTotal = jsBool
 
 jsOperationFailFree :: JShower String
 jsOperationFailFree = jsString

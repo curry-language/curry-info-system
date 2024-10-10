@@ -40,8 +40,8 @@ jrModuleDocumentation = jrRead
 jrModuleSourceCode :: JReader Reference
 jrModuleSourceCode = jrRead
 
-jrModuleSafe :: JReader Safe
-jrModuleSafe = jrRead
+jrModuleUnsafeModule :: JReader Unsafe
+jrModuleUnsafeModule = jrRead
 
 jrModuleTypeclasses :: JReader [String]
 jrModuleTypeclasses = jrMap jrString
@@ -100,23 +100,23 @@ jrOperationInfix = jrRead
 jrOperationPrecedence :: JReader (Maybe Precedence)
 jrOperationPrecedence = jrRead
 
-jrOperationDeterministic :: JReader Deterministic
-jrOperationDeterministic = jrRead
+jrOperationCASSDeterministic :: JReader Deterministic
+jrOperationCASSDeterministic = jrRead
 
-jrOperationDemandness :: JReader Demandness
-jrOperationDemandness = jrMap (fmap round . jrNumber)
+jrOperationCASSDemand :: JReader Demand
+jrOperationCASSDemand = jrMap (fmap round . jrNumber)
 
-jrOperationIndeterministic :: JReader Indeterministic
-jrOperationIndeterministic = jrBool
+jrOperationCASSIndeterministic :: JReader Indeterministic
+jrOperationCASSIndeterministic = jrBool
 
-jrOperationSolutionCompleteness :: JReader SolutionCompleteness
-jrOperationSolutionCompleteness = jrBool
+jrOperationCASSSolComplete :: JReader SolComplete
+jrOperationCASSSolComplete = jrBool
 
-jrOperationTermination :: JReader Termination
-jrOperationTermination = jrBool
+jrOperationCASSTerminating :: JReader Terminating
+jrOperationCASSTerminating = jrBool
 
-jrOperationTotallyDefined :: JReader TotallyDefined
-jrOperationTotallyDefined = jrBool
+jrOperationCASSTotal :: JReader Total
+jrOperationCASSTotal = jrBool
 
 jrOperationFailFree :: JReader String
 jrOperationFailFree = jrString

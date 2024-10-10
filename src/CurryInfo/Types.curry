@@ -153,7 +153,7 @@ type Reference = (String, Int, Int)
 
 -- Result Types
 
-data Safe
+data Unsafe
     = Safe
     | Unsafe
     | UnsafeDue [Module]
@@ -164,15 +164,15 @@ data Deterministic
     | NDet
     deriving (Show, Read)
 
-type Demandness = [Int]
+type Demand = [Int]
 
 type Indeterministic = Bool
 
-type SolutionCompleteness = Bool
+type SolComplete = Bool
 
-type Termination = Bool
+type Terminating = Bool
 
-type TotallyDefined = Bool
+type Total = Bool
 
 -- Dependency
 
