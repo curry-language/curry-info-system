@@ -132,3 +132,11 @@ analyseTermination opts pkg vsn m o = do
 analyseTotallyDefined :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe TotallyDefined)
 analyseTotallyDefined opts pkg vsn m o = do
     analyseWithCASS opts pkg vsn m o "Total" "totallyDefined" parseTotallyDefined (CurryOperation pkg vsn m) jsOperationTotallyDefined
+
+-- This action initiates a call to the non-fail verification tool to compute
+-- the call types and non-fail conditions for the given module.
+analyseFailFree :: Options -> Package -> Version -> Module -> Operation
+                -> IO (Maybe String)
+analyseFailFree opts pkg vsn m o = do
+  analyseWithCASS opts pkg vsn m o "FailFree" "failfree" Just
+                  (CurryOperation pkg vsn m) jsOperationFailFree

@@ -84,6 +84,7 @@ operationConfiguration =
     , registerRequest "solutionCompleteness"    "\tAnalysis result whether the operation is solution complete"                  gOperationSolutionCompleteness  jrOperationSolutionCompleteness  jsOperationSolutionCompleteness  pOperationSolutionCompleteness
     , registerRequest "termination"             "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationTermination           jrOperationTermination           jsOperationTermination           pOperationTermination
     , registerRequest "totallyDefined"          "\t\tAnalysis result whether the operation is totally defined"                  gOperationTotallyDefined        jrOperationTotallyDefined        jsOperationTotallyDefined        pOperationTotallyDefined
+    , registerRequest "failfree"                "\t\tVerification resul about the failing behavior of the operation"            gOperationFailFree              jrOperationFailFree              jsOperationFailFree              pOperationFailFree
     ]
 
 ------------------------------------

@@ -118,6 +118,9 @@ jsOperationTermination = jsBool
 jsOperationTotallyDefined :: JShower TotallyDefined
 jsOperationTotallyDefined = jsBool
 
+jsOperationFailFree :: JShower String
+jsOperationFailFree = jsString
+
 -- HELPER
 
 --- This operation converts the given string into a json string.

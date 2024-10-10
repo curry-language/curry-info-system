@@ -131,6 +131,9 @@ pOperationTermination _ t = return (show t)
 pOperationTotallyDefined :: Printer TotallyDefined
 pOperationTotallyDefined _ t = return (show t)
 
+pOperationFailFree :: Printer String
+pOperationFailFree _ t = return t
+
 -- HELPER
 
 -- This action returns the content of the file the given reference points to.
