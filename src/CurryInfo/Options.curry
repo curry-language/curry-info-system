@@ -26,7 +26,7 @@ printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 -- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions =
-    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False False False Nothing False
+    Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText False False False Nothing False False False
 
 -- Options, with that nothing is printed by the tool.
 silentOptions :: Options
@@ -187,6 +187,12 @@ options =
     , Option "" ["port"]
              (ReqArg (\args opts -> opts { optPort = safeRead args }) "<port>")
              "the port used in server mode"
+    , Option "" ["alltypes"]
+             (NoArg (\opts -> opts { optAllTypes = True }))
+             "process requests for all types in given module"
+    , Option "" ["alltypeclasses"]
+             (NoArg (\opts -> opts { optAllTypeclasses = True }))
+             "process requests for all typeclasses in given module"
     , Option "" ["alloperations"]
              (NoArg (\opts -> opts { optAllOperations = True }))
              "process requests for all operations in given module"

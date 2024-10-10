@@ -23,6 +23,8 @@ data Options = Options
     , optShowAll        :: Bool         -- Show all currently available information
     , optServer         :: Bool         -- Run the tool in server mode
     , optPort           :: Maybe Int    -- The port used in server mode
+    , optAllTypes       :: Bool         -- Process requests for all types in given module
+    , optAllTypeclasses :: Bool         -- Process requests for all typeclasses in given module
     , optAllOperations  :: Bool         -- Process requests for all operations in given module
     }
     deriving Show 
@@ -95,21 +97,21 @@ instance ErrorMessage CurryModule where
         "JSON file for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
     errorRequest (CurryModule pkg vsn m) req =
-        "Request '" ++ req ++ "' could not be found for for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+        "Request '" ++ req ++ "' could not be found for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
 instance ErrorMessage CurryType where
     errorReading (CurryType pkg vsn m t) =
         "JSON file for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
     errorRequest (CurryType pkg vsn m t) req =
-        "Request '" ++ req ++ "' could not be found for for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+        "Request '" ++ req ++ "' could not be found for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
 instance ErrorMessage CurryTypeclass where
     errorReading (CurryTypeclass pkg vsn m c) =
         "JSON file for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
     errorRequest (CurryTypeclass pkg vsn m c) req =
-        "Request '" ++ req ++ "' could not be found for for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+        "Request '" ++ req ++ "' could not be found for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
 
 instance ErrorMessage CurryOperation where
     errorReading (CurryOperation pkg vsn m o) =

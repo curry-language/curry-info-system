@@ -88,11 +88,27 @@ getInfos opts input reqs = do
                     generateOutputError opts err
                 True  -> do
                     printDetailMessage opts "Checked Module: exists."
-                    -- Check whether all operations are to be processed
-                    case optAllOperations opts of
-                        False -> getInfos' moduleConfiguration obj
-                        True -> do
-                            mos <- getAllOperations opts pkg vsn m
+                    case (optAllTypes opts, optAllTypeclasses opts, optAllOperations opts) of
+                        (True, _, _) -> do
+                            mts <- queryAllTypes pkg vsn m
+                            case mts of
+                                Nothing -> do
+                                    generateOutputError opts "Could not find types"
+                                Just ts -> do
+                                    outs <- mapM (getInfos' typeConfiguration) (map (CurryType pkg vsn m) ts)
+                                    let out = combineOutput opts outs
+                                    return out
+                        (_, True, _) -> do
+                            mcs <- queryAllTypeclasses pkg vsn m
+                            case mcs of
+                                Nothing -> do
+                                    generateOutputError opts "Could not find typeclasses"
+                                Just cs -> do
+                                    outs <- mapM (getInfos' typeclassConfiguration) (map (CurryTypeclass pkg vsn m) cs)
+                                    let out = combineOutput opts outs
+                                    return out
+                        (_, _, True) -> do
+                            mos <- queryAllOperations pkg vsn m
                             case mos of
                                 Nothing -> do
                                     generateOutputError opts "Could not find operations."
@@ -100,6 +116,8 @@ getInfos opts input reqs = do
                                     outs <- mapM (getInfos' operationConfiguration) (map (CurryOperation pkg vsn m) os)
                                     let out = combineOutput opts outs
                                     return out
+                        (False, False, False) -> do
+                            getInfos' moduleConfiguration obj
         [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> do
             printStatusMessage opts "Structure matches Type"
             let obj = CurryType pkg vsn m t
@@ -173,15 +191,14 @@ getInfos opts input reqs = do
                             let output = createOutput obj results :: Output
                             return output
         
-        getAllOperations :: Options -> Package -> Version -> Module -> IO (Maybe [Operation])
-        getAllOperations opts pkg vsn m = do
-            --res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["operations"]
-            --case res of
-            --    OutputTerm terms -> case lookup "operations" terms of
-            --        Nothing -> return Nothing
-            --        Just os -> return (Just (read os))
-            --    _ -> return Nothing
-            query [("packages", pkg), ("versions", vsn), ("modules", m)] "operations"
+        queryAllTypes :: Package -> Version -> Module -> IO (Maybe [Type])
+        queryAllTypes pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "types"
+
+        queryAllTypeclasses :: Package -> Version -> Module -> IO (Maybe [Typeclass])
+        queryAllTypeclasses pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "typeclasses"
+
+        queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
+        queryAllOperations pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "operations"
         
         combineOutput :: Options -> [Output] -> Output
         combineOutput opts outs = case optOutput opts of
