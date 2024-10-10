@@ -33,6 +33,7 @@ data Output
     = OutputText String
     | OutputJSON JValue
     | OutputTerm [(String, String)]
+    | OutputList [(String, Output)]
     | OutputError String
     deriving Show
 
@@ -54,16 +55,22 @@ instance Read OutFormat where
 -- INPUT TYPES
 
 data CurryPackage = CurryPackage Package
+    deriving (Eq, Show, Read)
 
 data CurryVersion = CurryVersion Package Version
+    deriving (Eq, Show, Read)
 
 data CurryModule = CurryModule Package Version Module
+    deriving (Eq, Show, Read)
 
 data CurryType = CurryType Package Version Module Type
+    deriving (Eq, Show, Read)
 
 data CurryTypeclass = CurryTypeclass Package Version Module Typeclass
+    deriving (Eq, Show, Read)
 
 data CurryOperation = CurryOperation Package Version Module Operation
+    deriving (Eq, Show, Read)
 
 class ErrorMessage a where
     errorReading :: a -> String
