@@ -14,7 +14,7 @@ import CurryInfo.Interface
     , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
     )
 import CurryInfo.Analysis
-import CurryInfo.SourceCode (readSourceCode, readDocumentation)
+import CurryInfo.SourceCode (SourceCode, readSourceCode, readDocumentation)
 import CurryInfo.Parser (parseVersionConstraints)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Reader (readInformation)
@@ -36,6 +36,8 @@ import Data.Maybe (catMaybes)
 import Control.Monad (when)
 
 import DetParse (parse)
+
+import CurryInterface.Types (Interface)
 
 -- PACKAGE
 
@@ -80,41 +82,19 @@ gVersionDocumentation opts (CurryVersion pkg vsn) = do
     return $ Just res
 
 gVersionCategories :: Generator CurryVersion [String]
-gVersionCategories opts (CurryVersion pkg vsn) = do
-    printDetailMessage opts $ "Generating categories for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    packageJSON <- readPackageJSON opts pkg vsn
-    printDetailMessage opts "Looking for categories..."
-    let cats = maybe [] id (parseJSON packageJSON >>= getCategories)
-    printDebugMessage opts $ "Categories found: " ++ show cats
-    let res = cats
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+gVersionCategories =
+    generateFromPackageJSON "categories" (\jv -> maybe [] id (getCategories jv))
 
 gVersionModules :: Generator CurryVersion [String]
-gVersionModules opts (CurryVersion pkg vsn) = do
-    printDetailMessage opts $ "Generating modules for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    allMods <- readPackageModules opts pkg vsn
-
-    packageJSON <- readPackageJSON opts pkg vsn
-    let exportedMods = maybe allMods id (parseJSON packageJSON >>= getExportedModules)
-
-    let intersection = intersect allMods exportedMods
-    printDebugMessage opts $ "Exported modules: " ++ show intersection
-
-    let res = intersection
-    printDetailMessage opts "Generating finished succesfully."
-    return $ Just res
+gVersionModules opts x@(CurryVersion pkg vsn) = do
+        allMods <- readPackageModules opts pkg vsn
+        generateFromPackageJSON "modules" (modulesSelector allMods) opts x
+    where
+        modulesSelector allMods jv = maybe allMods (intersect allMods) (getExportedModules jv)
 
 gVersionDependencies :: Generator CurryVersion [Dependency]
-gVersionDependencies opts (CurryVersion pkg vsn) = do
-    printDetailMessage opts $ "Generating dependencies for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    packageJSON <- readPackageJSON opts pkg vsn
-    printDetailMessage opts "Looking for dependencies..."
-    let deps = maybe [] id (parseJSON packageJSON >>= getDependencies)
-    printDebugMessage opts $ "Dependencies found: " ++ show deps
-    let res = deps
-    printDetailMessage opts "Generating finished succesfully."
-    return $ Just res
+gVersionDependencies =
+    generateFromPackageJSON "dependencies" (\jv -> maybe [] id (getDependencies jv))
 
 -- MODULE
 
@@ -129,30 +109,12 @@ gModuleName opts (CurryModule pkg vsn m) = do
 gModuleDocumentation :: Generator CurryModule Reference
 gModuleDocumentation opts x@(CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating documentation for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mdocs <- readDocumentation opts x
-    case mdocs of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = docs
-            printDetailMessage opts "Generating finished succesfully."
-            return $ Just res
+    generateDocumentation opts x
 
 gModuleSourceCode :: Generator CurryModule Reference
 gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating source code for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    msource <- readSourceCode opts x
-    case msource of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just source -> do
-            printDebugMessage opts $ "Source code is: " ++ show source
-            let res = source
-            printDetailMessage opts "Generating finished succesfully."
-            return $ Just res
+    generateSourceCode opts x
 
 gModuleUnsafeModule :: Generator CurryModule Unsafe
 gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
@@ -171,55 +133,28 @@ gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
 
 gModuleTypeclasses :: Generator CurryModule [String]
 gModuleTypeclasses opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported typeclasses for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed"
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading typeclasses from interface..."
-            let allClasses = catMaybes $ map getClassName $ getAllClasses $ getDeclarations interface
-            let hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
-            let exportedClasses = allClasses \\ hiddenClasses
-            printDebugMessage opts $ "Typeclasses found: " ++ show exportedClasses
-            let res = exportedClasses
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+        printDetailMessage opts $ "Generating exported typeclasses for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "typeclasses" typeclassesSelector opts
+    where
+        typeclassesSelector interface = let allClasses = catMaybes $ map getClassName $ getAllClasses $ getDeclarations interface
+                                            hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
+                                        in Just (allClasses \\ hiddenClasses)
 
 gModuleTypes :: Generator CurryModule [String]
 gModuleTypes opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported types for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed"
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading types from interface..."
-            let allTypes = catMaybes $ map getTypeName $ getAllTypes $ getDeclarations interface
-            let hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes $ getDeclarations interface
-            let exportedTypes = allTypes \\ hiddenTypes
-            printDebugMessage opts $ "Types found: " ++ show exportedTypes
-            let res = exportedTypes
-            printDetailMessage opts "Generating finished succesfully"
-            return $ Just res
+        printDetailMessage opts $ "Generating exported types for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "types" typesSelector opts
+    where
+        typesSelector interface = let allTypes = catMaybes $ map getTypeName $ getAllTypes $ getDeclarations interface
+                                      hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes $ getDeclarations interface
+                                  in Just (allTypes \\ hiddenTypes)
 
 gModuleOperations :: Generator CurryModule [String]
 gModuleOperations opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported operations for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed"
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading operations from interface..."
-            let operations = catMaybes $ map getOperationName $ getOperations $ getDeclarations interface
-            printDebugMessage opts $ "Operations found: " ++ show operations
-            let res = operations
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+        printDetailMessage opts $ "Generating exported operations for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "operations" operationsSelector opts
+    where
+        operationsSelector interface = Just (catMaybes $ map getOperationName $ getOperations $ getDeclarations interface)
 
 -- TYPE
 
@@ -234,51 +169,19 @@ gTypeName opts (CurryType pkg vsn m t) = do
 gTypeDocumentation :: Generator CurryType Reference
 gTypeDocumentation opts x@(CurryType pkg vsn m t) = do
     printDetailMessage opts $ "Generating documentation for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
-    mdocs <- readDocumentation opts x
-    case mdocs of
-        Nothing -> do
-            printDetailMessage opts "Generating failed"
-            return Nothing
-        Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = docs
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+    generateDocumentation opts x
 
 gTypeConstructors :: Generator CurryType [String]
 gTypeConstructors opts (CurryType pkg vsn m t) = do
-    printDetailMessage opts $ "Generating constructors for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading constructors from interface..."
-            let mconstructors = getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors
-            case mconstructors of
-                Nothing -> do
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
-                Just constructors -> do
-                    printDebugMessage opts $ "Constructors found: " ++ show constructors
-                    let res = constructors
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
+        printDetailMessage opts $ "Generating constructors for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "constructors" constructorsSelector opts
+    where
+        constructorsSelector interface = getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors
 
 gTypeDefinition :: Generator CurryType Reference
 gTypeDefinition opts x@(CurryType pkg vsn m t) = do
     printDetailMessage opts $ "Generating definition for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
-    msource <- readSourceCode opts x
-    case msource of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just source -> do
-            printDebugMessage opts $ "Definition is: " ++ show source
-            let res =  source
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+    generateSourceCode opts x
 
 -- TYPECLASS
 
@@ -293,50 +196,19 @@ gTypeclassName opts (CurryTypeclass pkg vsn m c) = do
 gTypeclassDocumentation :: Generator CurryTypeclass Reference
 gTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
     printDetailMessage opts $ "Generating documentation of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mdocs <- readDocumentation opts x
-    case mdocs of
-        Nothing -> do
-            printDetailMessage opts "Generating failed"
-            return Nothing
-        Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = docs
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+    generateDocumentation opts x
 
 gTypeclassMethods :: Generator CurryTypeclass [String]
 gTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
-    printDetailMessage opts $ "Generating methods of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading methods from interface..."
-            let mmethods = getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods
-            case mmethods of
-                Nothing -> do
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
-                Just methods -> do
-                    let res = methods
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
+        printDetailMessage opts $ "Generating methods of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "methods" methodsSelector opts
+    where
+        methodsSelector interface = getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods
 
 gTypeclassDefinition :: Generator CurryTypeclass Reference
 gTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
     printDetailMessage opts $ "Generating definition of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    msource <- readSourceCode opts x
-    case msource of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just source -> do
-            printDebugMessage opts $ "Definition is: " ++ show source
-            let res = source
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+    generateSourceCode opts x
 
 -- OPERATION
 
@@ -351,166 +223,105 @@ gOperationName opts (CurryOperation pkg vsn m o) = do
 gOperationDocumentation :: Generator CurryOperation Reference
 gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating documentation of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mdocs <- readDocumentation opts x
-    case mdocs of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just docs -> do
-            printDebugMessage opts $ "Documentation is: " ++ show docs
-            let res = docs
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+    generateDocumentation opts x
 
 gOperationSourceCode :: Generator CurryOperation Reference
 gOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating source code of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    msource <- readSourceCode opts x
-    case msource of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just source -> do
-            printDebugMessage opts $ "Source code is: " ++ show source
-            let res = source
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+    generateSourceCode opts x
 
 gOperationSignature :: Generator CurryOperation Signature
 gOperationSignature opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating signature of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading signature from interface..."
-            let msignature = getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
-            case msignature of
-                Nothing -> do
-                    printDetailMessage opts "Generating failed."
-                    return Nothing
-                Just signature -> do
-                    printDebugMessage opts $ "Signature is: " ++ show signature
-                    let res = signature
-                    printDetailMessage opts "Generating finished successfully."
-                    return $ Just res
+        printDetailMessage opts $ "Generating signature of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "signature" signatureSelector opts
+    where
+        signatureSelector :: Interface -> Maybe Signature
+        signatureSelector interface = getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
 
 gOperationInfix :: Generator CurryOperation (Maybe Infix)
 gOperationInfix opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating infix of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading infix from interface..."
-            let inf = getInfixDecl o (getDeclarations interface) >>= getOperationInfix
-            printDebugMessage opts $ "Infix is: " ++ show inf
-            let res = inf
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+        printDetailMessage opts $ "Generating infix of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "infix" infixSelector opts
+    where
+        infixSelector interface = Just (getInfixDecl o (getDeclarations interface) >>= getOperationInfix)
 
 gOperationPrecedence :: Generator CurryOperation (Maybe Precedence)
 gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating precedence of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    minterface <- readInterface opts pkg vsn m
-    case minterface of
-        Nothing -> do
-            printDetailMessage opts "Generating failed."
-            return Nothing
-        Just interface -> do
-            printDetailMessage opts "Reading precedence from interface..."
-            let precedence = getInfixDecl o (getDeclarations interface) >>= getOperationPrecedence
-            printDebugMessage opts $ "Precedence is: " ++ show precedence
-            let res = precedence
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
+        printDetailMessage opts $ "Generating precedence of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+        generateFromInterface pkg vsn m "precedence" precedenceSelector opts
+    where
+        precedenceSelector interface = Just (getInfixDecl o (getDeclarations interface) >>= getOperationPrecedence :: Maybe Precedence)
 
 gOperationCASSDeterministic :: Generator CurryOperation Deterministic
-gOperationCASSDeterministic opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating deterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseDeterministicWithCASS opts pkg vsn m o
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Result is: " ++ show result
-            let res = result
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+gOperationCASSDeterministic =
+    generateOperationAnalysisWithCASS "deterministic" analyseDeterministicWithCASS
 
 gOperationCASSDemand :: Generator CurryOperation Demand
-gOperationCASSDemand opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating demand analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseDemandWithCASS opts pkg vsn m o
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Result is: " ++ show result
-            let res = result
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+gOperationCASSDemand =
+    generateOperationAnalysisWithCASS "demand" analyseDemandWithCASS
 
 gOperationCASSIndeterministic :: Generator CurryOperation Indeterministic
-gOperationCASSIndeterministic opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating indeterministic analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseIndeterministicWithCASS opts pkg vsn m o
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Result is: " ++ show result
-            let res = result
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+gOperationCASSIndeterministic =
+    generateOperationAnalysisWithCASS "indeterministic" analyseIndeterministicWithCASS
 
 gOperationCASSSolComplete :: Generator CurryOperation SolComplete
-gOperationCASSSolComplete opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating solution completeness analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseSolCompleteWithCASS opts pkg vsn m o
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Result is: " ++ show result
-            let res = result
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+gOperationCASSSolComplete =
+    generateOperationAnalysisWithCASS "solution completeness" analyseSolCompleteWithCASS
 
 gOperationCASSTerminating :: Generator CurryOperation Terminating
-gOperationCASSTerminating opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating terminating analysis of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseTerminatingWithCASS opts pkg vsn m o
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Result is: " ++ show result
-            let res = result
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+gOperationCASSTerminating =
+    generateOperationAnalysisWithCASS "terminating" analyseTerminatingWithCASS
 
 gOperationCASSTotal :: Generator CurryOperation Total
 gOperationCASSTotal =
-  createInfoGeneratorWith "totally defined analysis" analyseTotalWithCASS
+    generateOperationAnalysisWithCASS "totally defined" analyseTotalWithCASS
 
 gOperationFailFree :: Generator CurryOperation String
 gOperationFailFree =
   createInfoGeneratorWith "fail-free analysis" analyseFailFree
+
+--------------------------------------------------------------------------
+
+--- Generator function to create an information generator for versions.
+--- The first argument is a description of the generated information
+--- and the second argument is the operation, that looks for the information in the package json file.
+generateFromPackageJSON :: Show b => String -> (JValue -> b) -> Generator CurryVersion b
+generateFromPackageJSON desc selector opts (CurryVersion pkg vsn) = do
+    printDetailMessage opts $ "Generating " ++ desc ++ " for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    packageJSON <- readPackageJSON opts pkg vsn
+    case parseJSON packageJSON of
+        Nothing -> do
+            printDetailMessage opts "Failed to parse package.json."
+            return Nothing
+        Just jv -> do
+            let res = selector jv
+            printDebugMessage opts $ "Result: " ++ show res
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
+
+--- Generator function to get information from an interface.
+--- The first three arguments are the package, the version and the module.
+--- The fourth argument is a description of the generated information.
+--- The fifth argument is the operation, that looks for the information in the interface of the module.
+generateFromInterface :: Show b => Package -> Version -> Module -> String -> (Interface -> Maybe b) -> Options -> IO (Maybe b)
+generateFromInterface pkg vsn m desc selector opts = do
+    minterface <- readInterface opts pkg vsn m
+    case minterface of
+        Nothing -> do
+            printDetailMessage opts "Failed to read interface."
+            printDetailMessage opts "Generating failed."
+            return Nothing
+        Just interface -> do
+            printDetailMessage opts $ "Reading " ++ desc ++ " from interface..."
+            case selector interface of
+                Nothing -> do
+                    printDetailMessage opts "Failed to find information in interface."
+                    printDetailMessage opts "Generating failed."
+                    return Nothing
+                Just res -> do
+                    printDebugMessage opts $ "Result: " ++ show res
+                    printDetailMessage opts "Generating finished successfully."
+                    return $ Just res
 
 --- Generator function to create an information generator for operations.
 --- The first argument is a description of the generated information
@@ -533,6 +344,47 @@ createInfoGeneratorWith anadescr anafun opts (CurryOperation pkg vsn m o) = do
             printDetailMessage opts "Analysis failed."
             printDetailMessage opts "Generating failed."
             return Nothing
+
+--- Generator function to get a reference information.
+--- The first argument is the operation, that generates the reference.
+generateReference :: SourceCode a => (Options -> a -> IO (Maybe Reference)) -> Generator a Reference
+generateReference fun opts obj = do
+    mres <- fun opts obj
+    case mres of
+        Nothing -> do
+            printDetailMessage opts "Generating failed."
+            return Nothing
+        Just res -> do
+            printDebugMessage opts $ "Result is: " ++ show res
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
+
+--- Generator function to get a reference to the documentation.
+generateDocumentation :: SourceCode a => Generator a Reference
+generateDocumentation = generateReference readDocumentation
+
+--- Generator function to get a reference to the source code.
+generateSourceCode :: SourceCode a => Generator a Reference
+generateSourceCode = generateReference readSourceCode
+
+--- Generator function to create an information generator using CASS for analysis.
+--- The first argument is a description of the analysis
+--- and the second argument is the name of the analysis given to CASS as an argument.
+generateOperationAnalysisWithCASS :: Show b => String -> (Options -> Package -> Version -> Module -> Operation -> IO (Maybe b)) -> Generator CurryOperation b
+generateOperationAnalysisWithCASS desc analysis opts (CurryOperation pkg vsn m o) = do
+    printDetailMessage opts $ "Generating " ++ desc ++ " analysis of operation '" ++
+        o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
+        "' of package '" ++ pkg ++ "'..."
+    mres <- analysis opts pkg vsn m o
+    case mres of
+        Just res -> do
+            printDebugMessage opts $ "Result is: " ++ show res
+            printDetailMessage opts "Generating finished successfully."
+            return $ Just res
+        Nothing -> do
+            printDetailMessage opts "Analysis failed."
+            printDetailMessage opts "Generating failed."
+            return Nothing 
 
 -- HELPER
 
