@@ -84,8 +84,8 @@ cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
 cmdCASS path analysis m =
   let
       x@(cmd:args) = if analysis == "FailFree"
-                       then ["cypm", "exec", "curry-calltypes", "--format=xml", m]
-                       else ["cypm", "exec", "cass", "-f", "xml", analysis, m]
+                       then ["cypm", "exec", "curry-calltypes", "--format=json", m]
+                       else ["cypm", "exec", "cass", "-f", "JSONTerm", analysis, m]
       action = do
           current <- getCurrentDirectory
           setCurrentDirectory path

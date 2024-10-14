@@ -116,7 +116,7 @@ gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating source code for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     generateSourceCode opts x
 
-gModuleUnsafeModule :: Generator CurryModule Unsafe
+gModuleUnsafeModule :: Generator CurryModule String
 gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     mresult <- analyseUnsafeModuleWithCASS opts pkg vsn m
@@ -252,27 +252,27 @@ gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
     where
         precedenceSelector interface = Just (getInfixDecl o (getDeclarations interface) >>= getOperationPrecedence :: Maybe Precedence)
 
-gOperationCASSDeterministic :: Generator CurryOperation Deterministic
+gOperationCASSDeterministic :: Generator CurryOperation String
 gOperationCASSDeterministic =
     generateOperationAnalysisWithCASS "deterministic" analyseDeterministicWithCASS
 
-gOperationCASSDemand :: Generator CurryOperation Demand
+gOperationCASSDemand :: Generator CurryOperation String
 gOperationCASSDemand =
     generateOperationAnalysisWithCASS "demand" analyseDemandWithCASS
 
-gOperationCASSIndeterministic :: Generator CurryOperation Indeterministic
+gOperationCASSIndeterministic :: Generator CurryOperation String
 gOperationCASSIndeterministic =
     generateOperationAnalysisWithCASS "indeterministic" analyseIndeterministicWithCASS
 
-gOperationCASSSolComplete :: Generator CurryOperation SolComplete
+gOperationCASSSolComplete :: Generator CurryOperation String
 gOperationCASSSolComplete =
     generateOperationAnalysisWithCASS "solution completeness" analyseSolCompleteWithCASS
 
-gOperationCASSTerminating :: Generator CurryOperation Terminating
+gOperationCASSTerminating :: Generator CurryOperation String
 gOperationCASSTerminating =
     generateOperationAnalysisWithCASS "terminating" analyseTerminatingWithCASS
 
-gOperationCASSTotal :: Generator CurryOperation Total
+gOperationCASSTotal :: Generator CurryOperation String
 gOperationCASSTotal =
     generateOperationAnalysisWithCASS "totally defined" analyseTotalWithCASS
 
