@@ -5,12 +5,14 @@ import CurryInfo.Generator
 import CurryInfo.Printer
 import CurryInfo.JRead
 import CurryInfo.JShow
+import CurryInfo.JConvert
 import CurryInfo.Verbosity
 import CurryInfo.Reader
 import CurryInfo.Paths
 
 import JSON.Data
 import JSON.Pretty (ppJSON)
+import JSON.Convert
 
 import Data.List (find)
 
@@ -20,71 +22,71 @@ import Data.List (find)
 
 packageConfiguration :: Configuration CurryPackage
 packageConfiguration =
-    [ registerRequest "package"     "\t\t\tThe name of the package"                 gPackageName        jrPackageName       jsPackageName       pPackageName
-    , registerRequest "versions"    "\t\t\tThe versions available of the package"   gPackageVersions    jrPackageVersions   jsPackageVersions   pPackageVersions
+    [ registerRequest "package"     "\t\t\tThe name of the package"                 gPackageName        pPackageName
+    , registerRequest "versions"    "\t\t\tThe versions available of the package"   gPackageVersions    pPackageVersions
     ]
 
 -- VERSION
 
 versionConfiguration :: Configuration CurryVersion
 versionConfiguration =
-    [ registerRequest "version" "\t\tThe version number of the version"         gVersionVersion         jrVersionVersion        jsVersionVersion        pVersionVersion
-    , registerRequest "documentation" "\t\tThe documentation of the version"    gVersionDocumentation   jrVersionDocumentation  jsVersionDocumentation  pVersionDocumentation
-    , registerRequest "categories" "\t\tThe categories of the version"          gVersionCategories      jrVersionCategories     jsVersionCategories     pVersionCategories
-    , registerRequest "modules" "\t\tThe exported modules of the version"       gVersionModules         jrVersionModules        jsVersionModules        pVersionModules
-    , registerRequest "dependencies" "\t\tThe dependencies of the version"      gVersionDependencies    jrVersionDependencies   jsVersionDependencies   pVersionDependencies
+    [ registerRequest "version" "\t\tThe version number of the version"         gVersionVersion         pVersionVersion
+    , registerRequest "documentation" "\t\tThe documentation of the version"    gVersionDocumentation   pVersionDocumentation
+    , registerRequest "categories" "\t\tThe categories of the version"          gVersionCategories      pVersionCategories
+    , registerRequest "modules" "\t\tThe exported modules of the version"       gVersionModules         pVersionModules
+    , registerRequest "dependencies" "\t\tThe dependencies of the version"      gVersionDependencies    pVersionDependencies
     ]
 
 -- MODULE
 
 moduleConfiguration :: Configuration CurryModule
 moduleConfiguration =
-    [ registerRequest "module"              "\t\t\tThe name of the module"                              gModuleName             jrModuleName             jsModuleName             pModuleName 
-    , registerRequest "documentation"       "\t\tReference to the documentation comment of the module"  gModuleDocumentation    jrModuleDocumentation    jsModuleDocumentation    pModuleDocumentation
-    , registerRequest "sourceCode"          "\t\tReference to the source code of the module"            gModuleSourceCode       jrModuleSourceCode       jsModuleSourceCode       pModuleSourceCode
-    , registerRequest "cass-unsafemodule"   "\t\t\tAnalysis result whether the module is safe"          gModuleUnsafeModule     jrModuleUnsafeModule     jsModuleUnsafeModule     pModuleUnsafeModule
-    , registerRequest "typeclasses"         "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      jrModuleTypeclasses      jsModuleTypeclasses      pModuleTypeclasses
-    , registerRequest "types"               "\t\t\tThe exported types of the module"                    gModuleTypes            jrModuleTypes            jsModuleTypes            pModuleTypes
-    , registerRequest "operations"          "\t\tThe exported operations of the module"                 gModuleOperations       jrModuleOperations       jsModuleOperations       pModuleOperations
+    [ registerRequest "module"              "\t\t\tThe name of the module"                              gModuleName             pModuleName 
+    , registerRequest "documentation"       "\t\tReference to the documentation comment of the module"  gModuleDocumentation    pModuleDocumentation
+    , registerRequest "sourceCode"          "\t\tReference to the source code of the module"            gModuleSourceCode       pModuleSourceCode
+    , registerRequest "cass-unsafemodule"   "\t\t\tAnalysis result whether the module is safe"          gModuleUnsafeModule     pModuleUnsafeModule
+    , registerRequest "typeclasses"         "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      pModuleTypeclasses
+    , registerRequest "types"               "\t\t\tThe exported types of the module"                    gModuleTypes            pModuleTypes
+    , registerRequest "operations"          "\t\tThe exported operations of the module"                 gModuleOperations       pModuleOperations
     ]
 
 -- TYPE
 
 typeConfiguration :: Configuration CurryType
 typeConfiguration =
-    [ registerRequest "typeName"        "\t\tThe name of the type"                                  gTypeName           jrTypeName           jsTypeName           pTypeName
-    , registerRequest "documentation"   "\t\tReference to the documentation comment of the type"    gTypeDocumentation  jrTypeDocumentation  jsTypeDocumentation  pTypeDocumentation
-    , registerRequest "constructors"    "\t\tThe list of the constructors of the type"              gTypeConstructors   jrTypeConstructors   jsTypeConstructors   pTypeConstructors
-    , registerRequest "definition"      "\t\tReference to the definition of the type"               gTypeDefinition     jrTypeDefinition     jsTypeDefinition     pTypeDefinition
+    [ registerRequest "typeName"        "\t\tThe name of the type"                                  gTypeName           pTypeName
+    , registerRequest "documentation"   "\t\tReference to the documentation comment of the type"    gTypeDocumentation  pTypeDocumentation
+    , registerRequest "constructors"    "\t\tThe list of the constructors of the type"              gTypeConstructors   pTypeConstructors
+    , registerRequest "definition"      "\t\tReference to the definition of the type"               gTypeDefinition     pTypeDefinition
     ]
 
 -- TYPECLASS
 
 typeclassConfiguration :: Configuration CurryTypeclass
 typeclassConfiguration =
-    [ registerRequest "typeclass"       "\t\tThe name of the typeclass"                                 gTypeclassName          jrTypeclassName          jsTypeclassName          pTypeclassName
-    , registerRequest "documentation"   "\t\tReference to the documentation comment of the typeclass"   gTypeclassDocumentation jrTypeclassDocumentation jsTypeclassDocumentation pTypeclassDocumentation
-    , registerRequest "methods"         "\t\tThe list of the methods of the typeclass"                  gTypeclassMethods       jrTypeclassMethods       jsTypeclassMethods       pTypeclassMethods
-    , registerRequest "definition"      "\t\tReference to the definition of the typeclass"              gTypeclassDefinition    jrTypeclassDefinition    jsTypeclassDefinition    pTypeclassDefinition
+    [ registerRequest "typeclass"       "\t\tThe name of the typeclass"                                 gTypeclassName          pTypeclassName
+    , registerRequest "documentation"   "\t\tReference to the documentation comment of the typeclass"   gTypeclassDocumentation pTypeclassDocumentation
+    , registerRequest "methods"         "\t\tThe list of the methods of the typeclass"                  gTypeclassMethods       pTypeclassMethods
+    , registerRequest "definition"      "\t\tReference to the definition of the typeclass"              gTypeclassDefinition    pTypeclassDefinition
     ]
 
 -- OPERATION
 
 operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
-    [ registerRequest "operation"               "\t\tThe name of the operation"                                                 gOperationName                  jrOperationName                 jsOperationName                 pOperationName
-    , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         jrOperationDocumentation        jsOperationDocumentation        pOperationDocumentation
-    , registerRequest "definition"              "\t\tReference to the definition of the operation"                              gOperationSourceCode            jrOperationSourceCode           jsOperationSourceCode           pOperationSourceCode
-    , registerRequest "signature"               "\t\tThe signature of the operation"                                            gOperationSignature             jrOperationSignature            jsOperationSignature            pOperationSignature
-    , registerRequest "infix"                   "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)"  gOperationInfix                 jrOperationInfix                jsOperationInfix                pOperationInfix
-    , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"                               gOperationPrecedence            jrOperationPrecedence           jsOperationPrecedence           pOperationPrecedence
-    , registerRequest "cass-deterministic"      "\t\tAnalysis result whether the operation is deterministic"                    gOperationCASSDeterministic     jrOperationCASSDeterministic    jsOperationCASSDeterministic    pOperationCASSDeterministic
-    , registerRequest "cass-demand"             "\t\tAnalysis result what arguments are demanded"                               gOperationCASSDemand            jrOperationCASSDemand           jsOperationCASSDemand           pOperationCASSDemand
-    , registerRequest "cass-indeterministic"    "\tAnalysis result whether the operation is indeterministic"                    gOperationCASSIndeterministic   jrOperationCASSIndeterministic  jsOperationCASSIndeterministic  pOperationCASSIndeterministic
-    , registerRequest "cass-solcomplete"        "\tAnalysis result whether the operation is solution complete"                  gOperationCASSSolComplete       jrOperationCASSSolComplete      jsOperationCASSSolComplete      pOperationCASSSolComplete
-    , registerRequest "cass-terminating"        "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationCASSTerminating       jrOperationCASSTerminating      jsOperationCASSTerminating      pOperationCASSTerminating
-    , registerRequest "cass-total"              "\t\tAnalysis result whether the operation is totally defined"                  gOperationCASSTotal             jrOperationCASSTotal            jsOperationCASSTotal            pOperationCASSTotal
-    , registerRequest "failfree"                "\t\tVerification resul about the failing behavior of the operation"            gOperationFailFree              jrOperationFailFree             jsOperationFailFree             pOperationFailFree
+    [ registerRequest "operation"               "\t\tThe name of the operation"                                                 gOperationName                  pOperationName
+    , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         pOperationDocumentation
+    , registerRequest "definition"              "\t\tReference to the definition of the operation"                              gOperationSourceCode            pOperationSourceCode
+    , registerRequest "signature"               "\t\tThe signature of the operation"                                            gOperationSignature             pOperationSignature
+    , registerRequest "infix"                   "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)"  gOperationInfix                 pOperationInfix
+    , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"                               gOperationPrecedence            pOperationPrecedence
+    , registerRequest "cass-deterministic"      "\t\tAnalysis result whether the operation is deterministic"                    gOperationCASSDeterministic     pOperationCASSDeterministic
+    , registerRequest "cass-demand"             "\t\tAnalysis result what arguments are demanded"                               gOperationCASSDemand            pOperationCASSDemand
+    , registerRequest "cass-indeterministic"    "\tAnalysis result whether the operation is indeterministic"                    gOperationCASSIndeterministic   pOperationCASSIndeterministic
+    , registerRequest "cass-solcomplete"        "\tAnalysis result whether the operation is solution complete"                  gOperationCASSSolComplete       pOperationCASSSolComplete
+    , registerRequest "cass-terminating"        "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationCASSTerminating       pOperationCASSTerminating
+    , registerRequest "cass-total"              "\t\tAnalysis result whether the operation is totally defined"                  gOperationCASSTotal             pOperationCASSTotal
+    , registerRequest "failfree"                "\t\tVerification resul about the failing behavior of the operation"            gOperationFailFree              pOperationFailFree
     ]
 
 ------------------------------------
@@ -106,8 +108,46 @@ lookupRequest req conf = do
     return (request rreq, description rreq, extraction rreq, generation rreq)
 
 -- This operation takes required parameters to create the necessary operations to use the request.
-registerRequest :: String -> String -> Generator a b -> JReader b -> JShower b -> Printer b -> RegisteredRequest a
-registerRequest req desc generator jreader jshower printer =
+--registerRequest :: String -> String -> Generator a b -> JReader b -> JShower b -> Printer b -> RegisteredRequest a
+--registerRequest req desc generator jreader jshower printer =
+--        RegisteredRequest req desc createExtraction createGeneration
+--    where
+--        createExtraction opts infos = do
+--            printDebugMessage opts $ "Looking for information for request '" ++ req ++ "'..."
+--            case lookup req infos of
+--                Nothing -> do
+--                    printDebugMessage opts "Information not found."
+--                    return Nothing
+--                Just jv -> do
+--                    printDebugMessage opts "Information found."
+--                    printDebugMessage opts "Reading information..."
+--                    case jreader jv of
+--                        Nothing -> do
+--                            printDebugMessage opts "Reading failed."
+--                            return Nothing
+--                        Just info -> do
+--                            printDebugMessage opts "Reading succeeded."
+--                            printDebugMessage opts "Creating output..."
+--                            output <- printer opts info
+--                            printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+--                            return $ Just (jv, output)
+--
+--        createGeneration opts obj = do
+--            printDebugMessage opts $ "Generating information for request '" ++ req ++ "'..."
+--            res <- generator opts obj
+--            case res of
+--                Nothing -> do
+--                    printDebugMessage opts "Generating failed."
+--                    return Nothing
+--                Just info -> do
+--                    printDebugMessage opts "Generating succeeded."
+--                    let jv = jshower info
+--                    printDebugMessage opts "Creating output..."
+--                    output <- printer opts info
+--                    printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+--                    return $ Just (jv, output)
+registerRequest :: ConvertJSON b => String -> String -> Generator a b -> Printer b -> RegisteredRequest a
+registerRequest req desc generator printer =
         RegisteredRequest req desc createExtraction createGeneration
     where
         createExtraction opts infos = do
@@ -119,7 +159,7 @@ registerRequest req desc generator jreader jshower printer =
                 Just jv -> do
                     printDebugMessage opts "Information found."
                     printDebugMessage opts "Reading information..."
-                    case jreader jv of
+                    case fromJSON jv of
                         Nothing -> do
                             printDebugMessage opts "Reading failed."
                             return Nothing
@@ -139,7 +179,7 @@ registerRequest req desc generator jreader jshower printer =
                     return Nothing
                 Just info -> do
                     printDebugMessage opts "Generating succeeded."
-                    let jv = jshower info
+                    let jv = toJSON info
                     printDebugMessage opts "Creating output..."
                     output <- printer opts info
                     printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."

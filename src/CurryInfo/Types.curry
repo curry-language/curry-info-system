@@ -151,7 +151,8 @@ type Package = String
 
 type Method = String
 
-type Reference = (String, Int, Int)
+data Reference = Reference String Int Int
+    deriving (Show, Read)
 
 -- Result Types
 

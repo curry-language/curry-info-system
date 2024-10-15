@@ -96,7 +96,7 @@ getInfos opts input reqs = do
                                     generateOutputError opts "Could not find types"
                                 Just ts -> do
                                     outs <- mapM (getInfos' typeConfiguration) (map (CurryType pkg vsn m) ts)
-                                    let out = combineOutput opts outs
+                                    let out = combineOutput outs
                                     return out
                         (_, True, _) -> do
                             mcs <- queryAllTypeclasses pkg vsn m
@@ -105,7 +105,7 @@ getInfos opts input reqs = do
                                     generateOutputError opts "Could not find typeclasses"
                                 Just cs -> do
                                     outs <- mapM (getInfos' typeclassConfiguration) (map (CurryTypeclass pkg vsn m) cs)
-                                    let out = combineOutput opts outs
+                                    let out = combineOutput outs
                                     return out
                         (_, _, True) -> do
                             mos <- queryAllOperations pkg vsn m
@@ -114,7 +114,7 @@ getInfos opts input reqs = do
                                     generateOutputError opts "Could not find operations."
                                 Just os -> do
                                     outs <- mapM (getInfos' operationConfiguration) (map (CurryOperation pkg vsn m) os)
-                                    let out = combineOutput opts outs
+                                    let out = combineOutput outs
                                     return out
                         (False, False, False) -> do
                             getInfos' moduleConfiguration obj
@@ -200,8 +200,8 @@ getInfos opts input reqs = do
         queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
         queryAllOperations pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "operations"
         
-        combineOutput :: Options -> [Output] -> Output
-        combineOutput opts outs = case optOutput opts of
+        combineOutput :: [Output] -> Output
+        combineOutput outs = case optOutput opts of
             OutText -> OutputText (unlines (map fromOutputText outs))
             OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
             OutTerm -> OutputTerm (concatMap fromOutputTerm outs)

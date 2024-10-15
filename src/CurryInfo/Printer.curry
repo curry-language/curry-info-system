@@ -138,7 +138,7 @@ pOperationFailFree _ t = return t
 
 -- This action returns the content of the file the given reference points to.
 printFromReference :: Options -> Reference -> IO String
-printFromReference opts (path, start, end) = do
+printFromReference opts (Reference path start end) = do
     b <- doesFileExist path
     case b of
         False -> do

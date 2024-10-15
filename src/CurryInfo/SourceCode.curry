@@ -60,7 +60,7 @@ takeSourceCode opts check belong path content = do
                     return Nothing
                 (x:xs) -> do
                     let source = x : takeWhile belong xs
-                    return (Just (path, i, i + length source))
+                    return (Just (Reference path i (i + length source)))
 
 -- This operation looks for the documentation that corresponds to the given checker and returns a reference to that part.
 takeDocumentation :: Options -> Checker -> String -> String -> IO (Maybe Reference)
@@ -77,7 +77,7 @@ takeDocumentation opts check path content = do
                     printDebugMessage opts "Could not find documentation."
                     return Nothing
                 gs -> do
-                    return (Just (path, i - length gs, i))
+                    return (Just (Reference path (i - length gs) i))
 
 class SourceCode a where
     readSourceCode :: Options -> a -> IO (Maybe Reference)
@@ -92,7 +92,7 @@ instance SourceCode CurryModule where
             Just (path, content) -> do
                 let ls = lines content
                 let (tmp, _) = span (isPrefixOf "--") ls
-                return (Just (path, length tmp, length ls))
+                return (Just (Reference path (length tmp) (length ls)))
     
     readDocumentation opts (CurryModule pkg vsn m) = do
         mresult <- readSourceFile opts pkg vsn m
@@ -102,7 +102,7 @@ instance SourceCode CurryModule where
             Just (path, content) -> do
                 let ls = lines content
                 let (doc, _) = span (isPrefixOf "--") ls
-                return (Just (path, 0, length doc))
+                return (Just (Reference path 0 (length doc)))
 
 -- This operation returns a checker that look for the definition of the given type.
 checkType :: Type -> Checker
