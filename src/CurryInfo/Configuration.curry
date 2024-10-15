@@ -3,8 +3,6 @@ module CurryInfo.Configuration where
 import CurryInfo.Types
 import CurryInfo.Generator
 import CurryInfo.Printer
-import CurryInfo.JRead
-import CurryInfo.JShow
 import CurryInfo.JConvert
 import CurryInfo.Verbosity
 import CurryInfo.Reader
@@ -107,45 +105,6 @@ lookupRequest req conf = do
     rreq <- find (\x -> request x == req) conf
     return (request rreq, description rreq, extraction rreq, generation rreq)
 
--- This operation takes required parameters to create the necessary operations to use the request.
---registerRequest :: String -> String -> Generator a b -> JReader b -> JShower b -> Printer b -> RegisteredRequest a
---registerRequest req desc generator jreader jshower printer =
---        RegisteredRequest req desc createExtraction createGeneration
---    where
---        createExtraction opts infos = do
---            printDebugMessage opts $ "Looking for information for request '" ++ req ++ "'..."
---            case lookup req infos of
---                Nothing -> do
---                    printDebugMessage opts "Information not found."
---                    return Nothing
---                Just jv -> do
---                    printDebugMessage opts "Information found."
---                    printDebugMessage opts "Reading information..."
---                    case jreader jv of
---                        Nothing -> do
---                            printDebugMessage opts "Reading failed."
---                            return Nothing
---                        Just info -> do
---                            printDebugMessage opts "Reading succeeded."
---                            printDebugMessage opts "Creating output..."
---                            output <- printer opts info
---                            printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
---                            return $ Just (jv, output)
---
---        createGeneration opts obj = do
---            printDebugMessage opts $ "Generating information for request '" ++ req ++ "'..."
---            res <- generator opts obj
---            case res of
---                Nothing -> do
---                    printDebugMessage opts "Generating failed."
---                    return Nothing
---                Just info -> do
---                    printDebugMessage opts "Generating succeeded."
---                    let jv = jshower info
---                    printDebugMessage opts "Creating output..."
---                    output <- printer opts info
---                    printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
---                    return $ Just (jv, output)
 registerRequest :: ConvertJSON b => String -> String -> Generator a b -> Printer b -> RegisteredRequest a
 registerRequest req desc generator printer =
         RegisteredRequest req desc createExtraction createGeneration

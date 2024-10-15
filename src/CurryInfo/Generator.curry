@@ -2,7 +2,7 @@ module CurryInfo.Generator where
 
 import CurryInfo.Types
 import CurryInfo.Paths
-import CurryInfo.JRead (jrString)
+import CurryInfo.JConvert
 import CurryInfo.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
 import CurryInfo.Interface 
     ( readInterface
@@ -19,11 +19,13 @@ import CurryInfo.Parser (parseVersionConstraints)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Reader (readInformation)
 import CurryInfo.Writer (writeInformation, (<+>))
-import CurryInfo.JShow
 
 import Text.Pretty (text)
+
 import JSON.Data
 import JSON.Parser (parseJSON)
+import JSON.Convert
+import JSON.Pretty
 
 import System.IOExts (evalCmd)
 import System.Directory (doesDirectoryExist, doesFileExist)
@@ -294,6 +296,7 @@ generateFromPackageJSON desc selector opts (CurryVersion pkg vsn) = do
             printDetailMessage opts "Failed to parse package.json."
             return Nothing
         Just jv -> do
+            printDebugMessage opts $ "json:\n" ++ ppJSON jv
             let res = selector jv
             printDebugMessage opts $ "Result: " ++ show res
             printDetailMessage opts "Generating finished successfully."
@@ -388,23 +391,16 @@ generateOperationAnalysisWithCASS desc analysis opts (CurryOperation pkg vsn m o
 
 -- HELPER
 
-getCategories :: JValue -> Maybe [String]
-getCategories jvalue = case jvalue of
-    JObject fields -> do
-        value <- lookup "category" fields
-        case value of
-            JArray arr -> sequence $ map jrString arr
-            _ -> Nothing
+lookupField :: String -> JValue -> Maybe JValue
+lookupField s jv = case jv of
+    JObject fields -> lookup s fields
     _ -> Nothing
 
+getCategories :: JValue -> Maybe [String]
+getCategories jv = lookupField "category" jv >>= fromJSONList
+
 getExportedModules :: JValue -> Maybe [String]
-getExportedModules jvalue = case jvalue of
-    JObject fields -> do
-        value <- lookup "exportedModules" fields
-        case value of
-            JArray arr -> sequence $ map jrString arr
-            _ -> Nothing
-    _ -> Nothing
+getExportedModules jv = lookupField "exportedModules" jv >>= fromJSONList
 
 getDependencies :: JValue -> Maybe [Dependency]
 getDependencies jv = case jv of
@@ -418,7 +414,7 @@ getDependencies jv = case jv of
 
 convertDependency :: (String, JValue) -> Maybe Dependency
 convertDependency (pkg, jv) = do
-    vcs <- jrString jv
+    vcs <- fromJSON jv
     disj <- parseVersionConstraints vcs
     return (Dependency pkg disj)
 

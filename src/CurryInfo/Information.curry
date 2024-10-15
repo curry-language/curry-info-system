@@ -27,10 +27,6 @@ printResult (OutputText txt) = putStrLn txt >> return txt
 printResult (OutputJSON jv) = let txt = ppJSON jv in putStrLn txt >> return txt
 printResult (OutputTerm ts) = let txt = show ts in putStrLn txt >> return txt
 printResult (OutputError err) = let txt = "Error: " ++ err in putStrLn txt >> return txt
---printResult opts (OutputList outs) = case optOutput opts of
---    OutText ->
---    OutJSON -> let txt = ppJSON (JArray (map (\(obj, out) -> JObject [(obj, fromOutputJSON out)]) outs)) in putStrLn txt >> return txt
---    OutTerm -> let txt = show (map (\(obj, out) -> (obj, fromOutputTerm out)) outs) in putStrLn txt >> return txt
 
 fromOutputText :: Output -> String
 fromOutputText (OutputText txt) = txt
@@ -206,21 +202,6 @@ getInfos opts input reqs = do
             OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
             OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
 
-        --checkOperationExists :: CurryOperation -> IO Bool
-        --checkOperationExists obj@(CurryOperation pkg vsn m o) = do
-        --    jpath <- getJSONPath obj
-        --    b1 <- doesFileExist jpath
-        --    case b1 of
-        --        True -> return True
-        --        False -> do
-        --            res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["operations"]
-        --            case res of
-        --                OutputTerm terms -> case lookup "operations" terms of
-        --                    Nothing -> return False
-        --                    Just os -> do
-        --                        return $ elem o (read os)
-        --                _ -> return False
-
         createNewInformation :: [(String, Maybe (JValue, String))] -> [(String, JValue)]
         createNewInformation results = foldr (\(r, mres) acc -> maybe acc (flip (:) acc . (,) r . fst) mres) [] results
 
@@ -230,13 +211,6 @@ getInfos opts input reqs = do
                 OutText -> OutputText (unlines (show obj : map (\(r, ms) -> r ++ ": " ++ maybe "?" id ms) outs))
                 OutJSON -> OutputJSON (JObject [("object", (JString . show) obj), ("results", JObject (map (\(r, ms) -> (r, maybe JNull JString ms)) outs))])
                 OutTerm -> OutputTerm [(show obj, show (map (\(r, ms) -> (r, maybe "?" id ms)) outs))]
-
-        --createOutput :: [(String, Maybe (JValue, String))] -> Output
-        --createOutput results = let outs = map (\(r, mres) -> maybe (r, Nothing) ((,) r . Just . snd) mres) results
-        --    in case optOutput opts of
-        --        OutText -> OutputText ((unlines . map (\(r, ms) -> r ++ ": " ++ maybe "?" id ms)) outs)
-        --        OutJSON -> OutputJSON (JObject (map (\(r, ms) -> (r, maybe JNull JString ms)) outs))
-        --        OutTerm -> OutputTerm (map (\(r, ms) -> (r, maybe "?" id ms)) outs)
         
         extractOrGenerate :: ErrorMessage a => Configuration a -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
         extractOrGenerate conf fields obj req = do
@@ -359,13 +333,6 @@ getInfos opts input reqs = do
             case b1 of
                 True -> return True
                 False -> do
-                    --res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["types"]
-                    --case res of
-                    --    OutputTerm terms -> case lookup "types" terms of
-                    --        Nothing -> return False
-                    --        Just ts -> do
-                    --            return $ elem t (read ts)
-                    --    _ -> return False
                     res <- query [("packages", pkg), ("versions", vsn), ("modules", m)] "types"
                     case res of
                         Nothing -> return False
@@ -378,13 +345,6 @@ getInfos opts input reqs = do
             case b1 of
                 True -> return True
                 False -> do
-                    --res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["typeclasses"]
-                    --case res of
-                    --    OutputTerm terms -> case lookup "typeclasses" terms of
-                    --        Nothing -> return False
-                    --        Just cs -> do
-                    --            return $ elem c (read cs)
-                    --    _ -> return False
                     res <- query [("packages", pkg), ("versions", vsn), ("modules", m)] "typeclasses"
                     case res of
                         Nothing -> return False
@@ -397,13 +357,6 @@ getInfos opts input reqs = do
             case b1 of
                 True -> return True
                 False -> do
-                --    res <- getInfos queryOptions [("packages", pkg), ("versions", vsn), ("modules", m)] ["operations"]
-                --    case res of
-                --        OutputTerm terms -> case lookup "operations" terms of
-                --            Nothing -> return False
-                --            Just os -> do
-                --                return $ elem o (read os)
-                --        _ -> return False
                     res <- query [("packages", pkg), ("versions", vsn), ("modules", m)] "operations"
                     case res of
                         Nothing -> return False

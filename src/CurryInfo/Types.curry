@@ -127,8 +127,6 @@ data Infix = Infix | InfixL | InfixR
 
 type Precedence = Int
 
-type External = ()
-
 type Constructor = String
 
 type Operation = String
@@ -136,8 +134,6 @@ type Operation = String
 type Type = String
 
 type Typeclass = String
-
-type Export = String
 
 type Signature = String
 
@@ -153,29 +149,6 @@ type Method = String
 
 data Reference = Reference String Int Int
     deriving (Show, Read)
-
--- Result Types
-
-data Unsafe
-    = Safe
-    | Unsafe
-    | UnsafeDue [Module]
-    deriving (Show, Read)
-
-data Deterministic
-    = Det
-    | NDet
-    deriving (Show, Read)
-
-type Demand = [Int]
-
-type Indeterministic = Bool
-
-type SolComplete = Bool
-
-type Terminating = Bool
-
-type Total = Bool
 
 -- Dependency
 
