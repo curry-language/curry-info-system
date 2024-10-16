@@ -8,6 +8,7 @@ import CurryInfo.Writer
 import CurryInfo.Options (getObject, queryOptions)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Generator (readPackageJSON, getExportedModules, readPackageModules)
+import CurryInfo.Helper (InformationResult(..), information)
 
 import JSON.Pretty (ppJSON)
 import JSON.Data
@@ -172,12 +173,12 @@ getInfos opts input reqs = do
                                     return $ OutputError $ "One of the fields could not be found: " ++ show fieldNames
                                 Just allReqs -> do
                                     results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames :: IO [(String, Maybe (JValue, String))]
-
-                                    let output = createOutput obj results :: Output
+                                    let results' = map (\(r, mr) -> (r, maybe InformationExtractionFailed (uncurry InformationResult) mr)) results
+                                    let output = createOutput obj results' :: Output
                                     return output
                         False -> do
                             printDetailMessage opts "Extracting/Generating requested information..."
-                            results <- mapM (extractOrGenerate conf fields obj) reqs :: IO [(String, Maybe (JValue, String))]
+                            results <- mapM (extractOrGenerate conf fields obj) reqs :: IO [(String, InformationResult)]
 
                             let newInformation = createNewInformation results
                             printDebugMessage opts "Overwriting with updated information..."
@@ -202,24 +203,23 @@ getInfos opts input reqs = do
             OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
             OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
 
-        createNewInformation :: [(String, Maybe (JValue, String))] -> [(String, JValue)]
-        createNewInformation results = foldr (\(r, mres) acc -> maybe acc (flip (:) acc . (,) r . fst) mres) [] results
+        createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
+        createNewInformation = foldr (\(r, ir) acc -> information acc (const acc) (\jv _ -> (r, jv):acc) ir) []
 
-        createOutput :: Show a => a -> [(String, Maybe (JValue, String))] -> Output
-        createOutput obj results = let outs = map (\(r, mres) -> maybe (r, Nothing) ((,) r . Just . snd) mres) results
-            in case optOutput opts of
-                OutText -> OutputText (unlines (show obj : map (\(r, ms) -> r ++ ": " ++ maybe "?" id ms) outs))
-                OutJSON -> OutputJSON (JObject [("object", (JString . show) obj), ("results", JObject (map (\(r, ms) -> (r, maybe JNull JString ms)) outs))])
-                OutTerm -> OutputTerm [(show obj, show (map (\(r, ms) -> (r, maybe "?" id ms)) outs))]
-        
-        extractOrGenerate :: ErrorMessage a => Configuration a -> [(String, JValue)] -> a -> String -> IO (String, Maybe (JValue, String))
+        createOutput :: Show a => a -> [(String, InformationResult)] -> Output
+        createOutput obj results = case optOutput opts of
+            OutText -> OutputText (unlines (show obj : map (\(r, ir) -> r ++ ": " ++ information "?" id (flip const) ir) results))
+            OutJSON -> OutputJSON (JObject [("object", (JString . show) obj), ("results", JObject (map (\(r, ir) -> (r, information JNull JString (\_ s -> JString s) ir)) results))])
+            OutTerm -> OutputTerm [(show obj, show (map (\(r, ir) -> (r, information "?" id (flip const) ir)) results))]
+
+        extractOrGenerate :: ErrorMessage a => Configuration a -> [(String, JValue)] -> a -> String -> IO (String, InformationResult)
         extractOrGenerate conf fields obj req = do
             printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
             case lookupRequest req conf of
                 Nothing -> do
                     let msg = errorRequest obj req
                     printDetailMessage opts $ msg
-                    return (req, Nothing)
+                    return (req, InformationError "REQUEST NOT FOUND")
                 Just (_, _, extractor, generator) -> do
                     printDetailMessage opts "Found request. Looking at Force option..."
                     case optForce opts of
@@ -229,10 +229,10 @@ getInfos opts input reqs = do
                             case extractionResult of
                                 Nothing -> do
                                     printDetailMessage opts "Executing request failed"
-                                    return (req, Nothing)
+                                    return (req, InformationExtractionFailed)
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return (req, Just (jv, output))
+                                    return (req, InformationResult jv output)
                         1 -> do
                             printDebugMessage opts "Force option 1: Extraction, then generation if failed"
                             extractionResult <- extract extractor fields
@@ -242,27 +242,27 @@ getInfos opts input reqs = do
                                     case generationResult of
                                         Nothing -> do
                                             printDetailMessage opts "Executing request failed."
-                                            return (req, Nothing)
+                                            return (req, InformationError "EXTRACTING AND GENERATING FAILED")
                                         Just (jv, output) -> do
                                             printDetailMessage opts "Executing request succeeded."
-                                            return (req, Just (jv, output))
+                                            return (req, InformationResult jv output)
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return (req, Just (jv, output))
+                                    return (req, InformationResult jv output)
                         2 -> do
                             printDebugMessage opts "Force option 2: Only generation"
                             generationResult <- generate generator obj
                             case generationResult of
                                 Nothing -> do
                                     printDetailMessage opts "Executing request failed"
-                                    return (req, Nothing)
+                                    return (req, InformationError "GENERATING FAILED")
                                 Just (jv, output) -> do
                                     printDetailMessage opts "Executing request succeeded."
-                                    return (req, Just (jv, output))
+                                    return (req, InformationResult jv output)
                         v -> do
                             let msg = "INVALID FORCE OPTION: " ++ show v
                             printDebugMessage opts msg
-                            return (req, Nothing)
+                            return (req, InformationError msg)
 
         extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))) -> [(String, JValue)] -> IO (Maybe (JValue, String))
         extract extractor fields = do
