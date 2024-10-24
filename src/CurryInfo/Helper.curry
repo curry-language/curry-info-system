@@ -21,3 +21,6 @@ information :: a -> (String -> a) -> (JValue -> String -> a) -> InformationResul
 information ext _ _ InformationExtractionFailed = ext
 information _ err _ (InformationError s) = err s
 information _ _ res (InformationResult jv s) = res jv s
+
+parenthesize :: String -> String
+parenthesize s = "(" ++ s ++ ")"
