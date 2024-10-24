@@ -16,6 +16,7 @@ import JSON.Parser (parseJSON)
 
 import Data.Maybe (isJust)
 import Data.Either (partitionEithers)
+import Data.Char (toLower)
 
 import System.Environment (getArgs)
 import System.FilePath ((</>), (<.>))
@@ -178,7 +179,7 @@ getInfos opts input reqs = do
                                     return output
                         False -> do
                             printDetailMessage opts "Extracting/Generating requested information..."
-                            results <- mapM (extractOrGenerate conf fields obj) reqs :: IO [(String, InformationResult)]
+                            results <- mapM (extractOrGenerate conf fields obj) (map (map toLower) reqs) :: IO [(String, InformationResult)]
 
                             let newInformation = createNewInformation results
                             printDebugMessage opts "Overwriting with updated information..."
@@ -206,11 +207,11 @@ getInfos opts input reqs = do
         createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
         createNewInformation = foldr (\(r, ir) acc -> information acc (const acc) (\jv _ -> (r, jv):acc) ir) []
 
-        createOutput :: Show a => a -> [(String, InformationResult)] -> Output
+        createOutput :: ToString a => a -> [(String, InformationResult)] -> Output
         createOutput obj results = case optOutput opts of
-            OutText -> OutputText (unlines (show obj : map (\(r, ir) -> r ++ ": " ++ information "?" id (flip const) ir) results))
-            OutJSON -> OutputJSON (JObject [("object", (JString . show) obj), ("results", JObject (map (\(r, ir) -> (r, information JNull JString (\_ s -> JString s) ir)) results))])
-            OutTerm -> OutputTerm [(show obj, show (map (\(r, ir) -> (r, information "?" id (flip const) ir)) results))]
+            OutText -> OutputText (unlines (toString obj : map (\(r, ir) -> r ++ ": " ++ information "?" id (flip const) ir) results))
+            OutJSON -> OutputJSON (JObject [("object", (JString . toString) obj), ("results", JObject (map (\(r, ir) -> (r, information JNull JString (\_ s -> JString s) ir)) results))])
+            OutTerm -> OutputTerm [(toString obj, show (map (\(r, ir) -> (r, information "?" id (flip const) ir)) results))]
 
         extractOrGenerate :: ErrorMessage a => Configuration a -> [(String, JValue)] -> a -> String -> IO (String, InformationResult)
         extractOrGenerate conf fields obj req = do

@@ -1,10 +1,13 @@
 module CurryInfo.Types where
 
+import CurryInfo.Helper (parenthesize)
+
 import Text.Pretty (Doc)
 
 import JSON.Data (JValue)
 
 import Data.Char (toLower)
+import Data.List (intercalate)
 
 -- Options Type
 
@@ -119,6 +122,27 @@ instance ErrorMessage CurryOperation where
 
     errorRequest (CurryOperation pkg vsn m o) req =
         "Request '" ++ req ++ "' could not be found for for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+
+class ToString a where
+    toString :: a -> String
+
+instance ToString CurryPackage where
+    toString (CurryPackage pkg) = show pkg
+
+instance ToString CurryVersion where
+    toString (CurryVersion pkg vsn) = parenthesize (intercalate ", " [show pkg, show vsn])
+
+instance ToString CurryModule where
+    toString (CurryModule pkg vsn m) = parenthesize (intercalate ", " [show pkg, show vsn, show m])
+
+instance ToString CurryType where
+    toString (CurryType pkg vsn m t) = parenthesize (intercalate ", " [show pkg, show vsn, show m, show t])
+
+instance ToString CurryTypeclass where
+    toString (CurryTypeclass pkg vsn m c) = parenthesize (intercalate ", " [show pkg, show vsn, show m, show c])
+
+instance ToString CurryOperation where
+    toString (CurryOperation pkg vsn m o) = parenthesize (intercalate ", " [show pkg, show vsn, show m, show o])
 
 -- HELPER TYPES
 
