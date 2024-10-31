@@ -13,6 +13,10 @@
 * RequestAllOperationsInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
 * StopServer
 
+Output formats are: text for plain text, json for a json value and CurryTerm for a list of curry terms.
+
+Force options are: 0 for only lookup, 1 for lookup and generating if necessary, 2 for always generating.
+
 ## GetRequests *obj?*
 
 When you send this message to the server, it responds with lists of all available requests you can do for each kind of object. Alternatively you can also name a specific kind of object to only get the list of possible requests for that. The kinds of objects are Package, Version, Module, Type, Typeclass and Operation.
