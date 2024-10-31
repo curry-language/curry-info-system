@@ -47,9 +47,7 @@ gPackageName :: Generator CurryPackage String
 gPackageName opts (CurryPackage pkg) = do
     printDetailMessage opts $ "Generating name for package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ pkg
-    let res = pkg
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+    finishResult opts pkg
 
 gPackageVersions :: Generator CurryPackage [String]
 gPackageVersions opts (CurryPackage pkg) = do
@@ -71,9 +69,7 @@ gVersionVersion :: Generator CurryVersion String
 gVersionVersion opts (CurryVersion pkg vsn) = do
     printDetailMessage opts $ "Generating version number for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Version number is: " ++ vsn
-    let res = vsn
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+    finishResult opts vsn
 
 gVersionDocumentation :: Generator CurryVersion String
 gVersionDocumentation opts (CurryVersion pkg vsn) = do
@@ -104,9 +100,7 @@ gModuleName :: Generator CurryModule String
 gModuleName opts (CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating name for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ m
-    let res = m
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+    finishResult opts m
 
 gModuleDocumentation :: Generator CurryModule Reference
 gModuleDocumentation opts x@(CurryModule pkg vsn m) = do
@@ -121,17 +115,8 @@ gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
 gModuleUnsafeModule :: Generator CurryModule String
 gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
     printDetailMessage opts $ "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    mresult <- analyseUnsafeModuleWithCASS opts pkg vsn m
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Analysis result: " ++ show result
-            let res = result
-            printDetailMessage opts "Generating finished succesfully."
-            return $ Just res
-        Nothing -> do
-            printDebugMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+    mres <- analyseUnsafeModuleWithCASS opts pkg vsn m
+    processAnalysisResult opts mres
 
 gModuleTypeclasses :: Generator CurryModule [String]
 gModuleTypeclasses opts (CurryModule pkg vsn m) = do
@@ -164,9 +149,7 @@ gTypeName :: Generator CurryType String
 gTypeName opts (CurryType pkg vsn m t) = do
     printDetailMessage opts $ "Generating name for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ t
-    let res = t
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+    finishResult opts t
 
 gTypeDocumentation :: Generator CurryType Reference
 gTypeDocumentation opts x@(CurryType pkg vsn m t) = do
@@ -191,9 +174,7 @@ gTypeclassName :: Generator CurryTypeclass String
 gTypeclassName opts (CurryTypeclass pkg vsn m c) = do
     printDetailMessage opts $ "Generating name of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ c
-    let res = c
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+    finishResult opts c
 
 gTypeclassDocumentation :: Generator CurryTypeclass Reference
 gTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
@@ -218,9 +199,7 @@ gOperationName :: Generator CurryOperation String
 gOperationName opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating name of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     printDebugMessage opts $ "Name is: " ++ o
-    let res = o
-    printDetailMessage opts "Generating finished successfully."
-    return $ Just res
+    finishResult opts o
 
 gOperationDocumentation :: Generator CurryOperation Reference
 gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
@@ -337,16 +316,8 @@ createInfoGeneratorWith anadescr anafun opts (CurryOperation pkg vsn m o) = do
     printDetailMessage opts $ "Generating " ++ anadescr ++ " of operation '" ++
         o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
         "' of package '" ++ pkg ++ "'..."
-    mresult <- anafun opts pkg vsn m o
-    case mresult of
-        Just result -> do
-            printDebugMessage opts $ "Result: " ++ show result
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just result
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing
+    mres <- anafun opts pkg vsn m o
+    processAnalysisResult opts mres
 
 --- Generator function to get a reference information.
 --- The first argument is the operation, that generates the reference.
@@ -379,15 +350,29 @@ generateOperationAnalysisWithCASS desc analysis opts (CurryOperation pkg vsn m o
         o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
         "' of package '" ++ pkg ++ "'..."
     mres <- analysis opts pkg vsn m o
-    case mres of
-        Just res -> do
-            printDebugMessage opts $ "Result is: " ++ show res
-            printDetailMessage opts "Generating finished successfully."
-            return $ Just res
-        Nothing -> do
-            printDetailMessage opts "Analysis failed."
-            printDetailMessage opts "Generating failed."
-            return Nothing 
+    processAnalysisResult opts mres
+
+--- This action prints messages about the result depending on the current options.
+--- It returns the result as a Maybe value.
+finishResult :: Options -> String -> IO (Maybe String)
+finishResult opts res = do
+    printDebugMessage opts $ "Result is: " ++ res
+    printDetailMessage opts "Generating finished successfully."
+    return $ Just res
+
+--- This action prints messages about the result depending on the current options and
+--- whether a result even exists.
+--- The result is returned unchanged.
+processAnalysisResult :: Show b => Options -> Maybe b -> IO (Maybe b)
+processAnalysisResult opts mres = case mres of
+    Just res -> do
+        printDebugMessage opts $ "Result is: " ++ show res
+        printDetailMessage opts "Generating finished successfully."
+        return $ Just res
+    Nothing -> do
+        printDetailMessage opts "Analysis failed."
+        printDetailMessage opts "Generating failed."
+        return Nothing
 
 -- HELPER
 
