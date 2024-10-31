@@ -76,7 +76,7 @@ operationConfiguration =
     , registerRequest "documentation"           "\t\tReference to the documentation comment of the operation"                   gOperationDocumentation         pOperationDocumentation
     , registerRequest "definition"              "\t\tReference to the definition of the operation"                              gOperationSourceCode            pOperationSourceCode
     , registerRequest "signature"               "\t\tThe signature of the operation"                                            gOperationSignature             pOperationSignature
-    , registerRequest "infix"                   "\t\t\tWhether the operation is infix and in what way (Infix, InfixL, InfixR)"  gOperationInfix                 pOperationInfix
+    , registerRequest "infix"                   "\t\t\tWhether the operation is associative and in what way (Infix for associative, InfixL for left-associative and InfixR for right-associative)"  gOperationInfix                 pOperationInfix
     , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"                               gOperationPrecedence            pOperationPrecedence
     , registerRequest "cass-deterministic"      "\t\tAnalysis result whether the operation is deterministic"                    gOperationCASSDeterministic     pOperationCASSDeterministic
     , registerRequest "cass-demand"             "\t\tAnalysis result what arguments are demanded"                               gOperationCASSDemand            pOperationCASSDemand
