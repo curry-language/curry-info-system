@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to start analysis using outside tools like CASS.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Analysis where
 
 import CurryInfo.Types

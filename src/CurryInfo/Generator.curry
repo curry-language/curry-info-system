@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to generate information for the requests.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Generator where
 
 import CurryInfo.Types

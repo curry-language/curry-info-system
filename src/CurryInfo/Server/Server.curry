@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to run the tool in server mode.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Server.Server where
 
 import CurryInfo.Types

@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to extract information from Curry interfaces.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Interface where
 
 import CurryInfo.Checkout (getCheckoutPath, checkoutIfMissing)

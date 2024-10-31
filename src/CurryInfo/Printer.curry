@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to create output for the requests.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Printer where
 
 import CurryInfo.Types

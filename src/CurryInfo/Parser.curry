@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to parse data from strings.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Parser where
 
 import CurryInfo.Types
@@ -52,10 +56,6 @@ optional p = Just <$> p <!> yield Nothing
 parseList :: Parser a -> Parser b -> Parser [b]
 parseList sep entry = ((:) <$> entry <*> many (sep *> entry)) <|> yield []
 
--- This parser parses the name of a package.
-packageName :: Parser Package
-packageName = many (check isAlpha anyChar)
-
 -- This parser parses a version number.
 versionNumber :: Parser String
 versionNumber = concat <$> (intersperse "." <$> (map show <$> parseList dot parseNumber))
@@ -63,10 +63,6 @@ versionNumber = concat <$> (intersperse "." <$> (map show <$> parseList dot pars
 -- This parser parses an integer number.
 parseNumber :: (Read a, Num a) => Parser a
 parseNumber = read <$> some (check isDigit anyChar)
-
--- This parser parses a module name.
-parseModule :: Parser Module
-parseModule = intercalate "." <$> parseList dot ident
 
 -- This parser parses some amount of whitespace. It parses at least one character.
 ws :: Parser ()

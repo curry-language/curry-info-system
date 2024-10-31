@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines configurations for the different objects and their requests.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Configuration where
 
 import CurryInfo.Types

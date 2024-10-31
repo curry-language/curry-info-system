@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines two-way conversions between types and json values.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.JConvert where
 
 import CurryInfo.Types

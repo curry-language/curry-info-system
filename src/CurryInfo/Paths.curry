@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to get paths to files in the local cache and to initialize it.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Paths where
 
 import CurryInfo.Types

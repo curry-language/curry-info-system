@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to invoke commands on the command-line.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Commands where
 
 import CurryInfo.Types

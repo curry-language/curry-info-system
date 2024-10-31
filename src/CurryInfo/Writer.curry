@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to write information into the local cache.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Writer where
 
 import CurryInfo.Types
@@ -12,8 +16,6 @@ import Data.List (nubBy)
 -- to get an updated list.
 (<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
 info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
-
-type Writer a b = a -> [b] -> IO ()
 
 -- This action writes the given information into the respective json file.
 writeInformation :: Path a => a -> [(String, JValue)] -> IO ()

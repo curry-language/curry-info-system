@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to find specific sections from source code files.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.SourceCode where
 
 import CurryInfo.Types

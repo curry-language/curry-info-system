@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines sets of options and operations to process them.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Options where
 
 import CurryInfo.Types

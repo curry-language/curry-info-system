@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to create outputs and process requests to get information about objects.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Information where
 
 import CurryInfo.Configuration
@@ -24,21 +28,14 @@ import System.Directory (doesDirectoryExist, doesFileExist)
 
 import Control.Monad (unless, zipWithM, when)
 
+--- This action prints the given output to stdout and also returns the string as result.
 printResult :: Output -> IO String
 printResult (OutputText txt) = putStrLn txt >> return txt
 printResult (OutputJSON jv) = let txt = ppJSON jv in putStrLn txt >> return txt
 printResult (OutputTerm ts) = let txt = show ts in putStrLn txt >> return txt
 printResult (OutputError err) = let txt = "Error: " ++ err in putStrLn txt >> return txt
 
-fromOutputText :: Output -> String
-fromOutputText (OutputText txt) = txt
-
-fromOutputJSON :: Output -> JValue
-fromOutputJSON (OutputJSON jv) = jv
-
-fromOutputTerm :: Output -> [(String, String)]
-fromOutputTerm (OutputTerm ts) = ts
-
+--- This action returns a failed output with the given error message.
 generateOutputError :: Options -> String -> IO Output
 generateOutputError opts err = do
     printDetailMessage opts err
@@ -47,6 +44,7 @@ generateOutputError opts err = do
         OutJSON -> return $ OutputJSON (JString err)
         OutTerm -> return $ OutputTerm []
 
+--- This actions process the given requests for the given object and returns the output.
 getInfos :: Options -> [(String, String)] -> [String] -> IO Output
 getInfos opts input reqs = do
     printStatusMessage opts "Checking structure of the request..."
@@ -203,6 +201,15 @@ getInfos opts input reqs = do
             OutText -> OutputText (unlines (map fromOutputText outs))
             OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
             OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
+        
+        fromOutputText :: Output -> String
+        fromOutputText (OutputText txt) = txt
+
+        fromOutputJSON :: Output -> JValue
+        fromOutputJSON (OutputJSON jv) = jv
+
+        fromOutputTerm :: Output -> [(String, String)]
+        fromOutputTerm (OutputTerm ts) = ts
 
         createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
         createNewInformation = foldr (\(r, ir) acc -> information acc (const acc) (\jv _ -> (r, jv):acc) ir) []

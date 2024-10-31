@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations around checking out packages (checkout to local cache, paths of checkouts).
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Checkout where
 
 import CurryInfo.Types

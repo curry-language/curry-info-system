@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines the types used by the rest.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Types where
 
 import CurryInfo.Helper (parenthesize)
@@ -38,7 +42,6 @@ data Output
     = OutputText String
     | OutputJSON JValue
     | OutputTerm [(String, String)]
-    | OutputList [(String, Output)]
     | OutputError String
     deriving Show
 
@@ -198,9 +201,5 @@ data Dependency = Dependency Package Disjunction
 -- Request Types
 
 type Generator a b = Options -> a -> IO (Maybe b)
-
-type JReader b = JValue -> Maybe b
-
-type JShower b = b -> JValue
 
 type Printer b = Options -> b -> IO String

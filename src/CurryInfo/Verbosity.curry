@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines operations to print messages to stderr when certain verbosity options are used.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Verbosity where
 
 import CurryInfo.Types

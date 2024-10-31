@@ -1,3 +1,7 @@
+-----------------------------------------------------------------------------------------
+--- This modules defines an operation to read already generated information from the local cache.
+-----------------------------------------------------------------------------------------
+
 module CurryInfo.Reader where
 
 import CurryInfo.Types
@@ -8,8 +12,6 @@ import JSON.Parser (parseJSON)
 import JSON.Data
 
 import System.Directory (doesFileExist)
-
-type Reader a b = Options -> a -> IO (Maybe [b])
 
 -- This action reads the current information for the input that exist at the moment.
 readInformation :: Path a => Options -> a -> IO (Maybe [(String, JValue)])
