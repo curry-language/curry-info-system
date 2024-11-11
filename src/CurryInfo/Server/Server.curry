@@ -101,11 +101,11 @@ serverLoopOnHandle cconfig socket1 handle = do
                 RequestModuleInformation moutform mforce pkg vsn m reqs -> 
                     requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m)] reqs
                 RequestTypeInformation moutform mforce pkg vsn m t reqs -> 
-                    requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("type", t)] reqs
+                    requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] reqs
                 RequestTypeclassInformation moutform mforce pkg vsn m c reqs -> 
-                    requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclass", c)] reqs
+                    requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] reqs
                 RequestOperationInformation moutform mforce pkg vsn m o reqs -> 
-                    requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("operation", o)] reqs
+                    requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] reqs
                 RequestAllTypesInformation moutform mforce pkg vsn m reqs ->
                     requestInformation moutform mforce AllTypes [("packages", pkg), ("versions", vsn), ("modules", m)] reqs
                 RequestAllTypeclassesInformation moutform mforce pkg vsn m reqs ->
