@@ -130,22 +130,22 @@ class ToString a where
     toString :: a -> String
 
 instance ToString CurryPackage where
-    toString (CurryPackage pkg) = show pkg
+    toString (CurryPackage pkg) = pkg
 
 instance ToString CurryVersion where
-    toString (CurryVersion pkg vsn) = parenthesize (intercalate ", " [show pkg, show vsn])
+    toString (CurryVersion pkg vsn) = pkg ++ "-" ++ vsn
 
 instance ToString CurryModule where
-    toString (CurryModule pkg vsn m) = parenthesize (intercalate ", " [show pkg, show vsn, show m])
+    toString (CurryModule pkg vsn m) = pkg ++ "-" ++ vsn ++ ": " ++ m
 
 instance ToString CurryType where
-    toString (CurryType pkg vsn m t) = parenthesize (intercalate ", " [show pkg, show vsn, show m, show t])
+    toString (CurryType pkg vsn m t) = pkg ++ "-" ++ vsn ++ ": " ++ m ++ "." ++ t
 
 instance ToString CurryTypeclass where
-    toString (CurryTypeclass pkg vsn m c) = parenthesize (intercalate ", " [show pkg, show vsn, show m, show c])
+    toString (CurryTypeclass pkg vsn m c) = pkg ++ "-" ++ vsn ++ ": " ++ m ++ "." ++ c
 
 instance ToString CurryOperation where
-    toString (CurryOperation pkg vsn m o) = parenthesize (intercalate ", " [show pkg, show vsn, show m, show o])
+    toString (CurryOperation pkg vsn m o) = pkg ++ "-" ++ vsn ++ ": " ++ m ++ "." ++ o
 
 -- HELPER TYPES
 
