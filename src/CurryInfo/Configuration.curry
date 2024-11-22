@@ -88,7 +88,7 @@ operationConfiguration =
     , registerRequest "cass-solcomplete"        "\tAnalysis result whether the operation is solution complete"                  gOperationCASSSolComplete       pOperationCASSSolComplete
     , registerRequest "cass-terminating"        "\t\tAnalysis result whether the operation is guaranteed to always terminate"   gOperationCASSTerminating       pOperationCASSTerminating
     , registerRequest "cass-total"              "\t\tAnalysis result whether the operation is totally defined"                  gOperationCASSTotal             pOperationCASSTotal
-    , registerRequest "failfree"                "\t\tVerification resul about the failing behavior of the operation"            gOperationFailFree              pOperationFailFree
+    , registerRequest "failfree"                "\t\tVerification result about the failing behavior of the operation"           gOperationFailFree              pOperationFailFree
     ]
 
 ------------------------------------
