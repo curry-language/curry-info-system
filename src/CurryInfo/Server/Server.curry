@@ -118,9 +118,8 @@ serverLoopOnHandle cconfig socket1 handle = do
           close socket1
           putStrLn "Stop Server"
           removeServerPortNumber
-        _ -> do
-          putStrLn "NOT IMPLEMENTED YET"
-          serverLoopOnHandle cconfig socket1 handle
+        -- _ -> do putStrLn "NOT IMPLEMENTED YET"
+        --         serverLoopOnHandle cconfig socket1 handle
   where
     dl = debugLevel cconfig
 
