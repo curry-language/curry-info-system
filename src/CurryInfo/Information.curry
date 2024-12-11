@@ -6,14 +6,16 @@
 module CurryInfo.Information where
 
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, initialize, index, getJSONPath)
+import CurryInfo.Paths     ( Path, initialize, index, getJSONPath )
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
-import CurryInfo.Options (getObject, queryOptions)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
-import CurryInfo.Generator (readPackageJSON, getExportedModules, readPackageModules)
-import CurryInfo.Helper (InformationResult(..), information)
+import CurryInfo.Options   ( queryOptions )
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage)
+import CurryInfo.Generator ( readPackageJSON, getExportedModules
+                           , readPackageModules)
+import CurryInfo.Helper    ( InformationResult(..), information )
 
 import JSON.Pretty (ppJSON)
 import JSON.Data
@@ -29,28 +31,31 @@ import System.Directory (doesDirectoryExist, doesFileExist)
 
 import Control.Monad (unless, zipWithM, when)
 
---- This action prints the given output to stdout and also returns the string as result.
+--- This action prints the given output to stdout and also returns
+--- the string as result.
 printResult :: Output -> IO String
-printResult (OutputText txt) = putStrLn txt >> return txt
-printResult (OutputJSON jv) = let txt = ppJSON jv in putStrLn txt >> return txt
-printResult (OutputTerm ts) = let txt = show ts in putStrLn txt >> return txt
-printResult (OutputError err) = let txt = "Error: " ++ err in putStrLn txt >> return txt
+printResult (OutputText txt)  = printAndReturn txt
+printResult (OutputJSON jv)   = printAndReturn (ppJSON jv)
+printResult (OutputTerm ts)   = printAndReturn (show ts)
+printResult (OutputError err) = printAndReturn ("Error: " ++ err)
+
+printAndReturn :: String -> IO String
+printAndReturn s = putStrLn s >> return s
 
 --- This action returns a failed output with the given error message.
 generateOutputError :: Options -> String -> IO Output
 generateOutputError opts err = do
   printDetailMessage opts err
-  case optOutput opts of
-    OutText -> return $ OutputText err
-    OutJSON -> return $ OutputJSON (JString err)
-    OutTerm -> return $ OutputTerm []
+  return $ case optOutput opts of OutText -> OutputText err
+                                  OutJSON -> OutputJSON (JString err)
+                                  OutTerm -> OutputTerm []
 
 --- This actions process the given requests for the given object and returns the output.
-getInfos :: Options -> [(String, String)] -> [String] -> IO Output
+getInfos :: Options -> QueryObject -> [String] -> IO Output
 getInfos opts input reqs = do
   printStatusMessage opts "Checking structure of the request..."
   case input of
-    [("packages", pkg)] -> do
+    PackageObject pkg -> do
       printStatusMessage opts "Structure matches Package."
       let obj = CurryPackage pkg
       result <- checkPackageExists obj
@@ -62,7 +67,7 @@ getInfos opts input reqs = do
         True -> do
           printDebugMessage opts "Package exists."
           getInfos' packageConfiguration obj
-    [("packages", pkg), ("versions", vsn)]                                      -> do
+    VersionObject pkg vsn -> do
       printStatusMessage opts "Structure matches Version."
       let obj = CurryVersion pkg vsn
       result <- checkVersionExists obj
@@ -74,7 +79,7 @@ getInfos opts input reqs = do
         True -> do
           printDetailMessage opts "Checked Version: exists."
           getInfos' versionConfiguration obj
-    [("packages", pkg), ("versions", vsn), ("modules", m)]                      -> do
+    ModuleObject pkg vsn m -> do
       printStatusMessage opts "Structure matches Module."
       let obj = CurryModule pkg vsn m
       result <- checkModuleExists obj
@@ -115,7 +120,7 @@ getInfos opts input reqs = do
                   return out
             (False, False, False) -> do
               getInfos' moduleConfiguration obj
-    [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)]        -> do
+    TypeObject pkg vsn m t -> do
       printStatusMessage opts "Structure matches Type"
       let obj = CurryType pkg vsn m t
       result <- checkTypeExists obj
@@ -127,7 +132,7 @@ getInfos opts input reqs = do
         True  -> do
           printDetailMessage opts "Checked Type: exists."
           getInfos' typeConfiguration obj
-    [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)]  -> do
+    TypeClassObject pkg vsn m c -> do
       printStatusMessage opts "Structure matches Typeclass"
       let obj = CurryTypeclass pkg vsn m c
       result <- checkTypeclassExists obj
@@ -139,7 +144,7 @@ getInfos opts input reqs = do
         True  -> do
           printDetailMessage opts "Checked Typeclass: exists."
           getInfos' typeclassConfiguration obj
-    [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)]   -> do
+    OperationObject pkg vsn m o -> do
       printStatusMessage opts "Structure matches Operation."
       let obj = CurryOperation pkg vsn m o
       result <- checkOperationExists obj
@@ -151,7 +156,6 @@ getInfos opts input reqs = do
         True  -> do
           printDetailMessage opts "Checker Operation: exists."
           getInfos' operationConfiguration obj
-    _ -> return $ OutputError $ show input ++ " does not match any pattern"
   where
     getInfos' conf obj = do
       printStatusMessage opts "Initializing Input..."
@@ -189,13 +193,13 @@ getInfos opts input reqs = do
               return output
     
     queryAllTypes :: Package -> Version -> Module -> IO (Maybe [Type])
-    queryAllTypes pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "types"
+    queryAllTypes pkg vsn m = query (ModuleObject pkg vsn m) "types"
 
     queryAllTypeclasses :: Package -> Version -> Module -> IO (Maybe [Typeclass])
-    queryAllTypeclasses pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "typeclasses"
+    queryAllTypeclasses pkg vsn m = query (ModuleObject pkg vsn m) "typeclasses"
 
     queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
-    queryAllOperations pkg vsn m = query [("packages", pkg), ("versions", vsn), ("modules", m)] "operations"
+    queryAllOperations pkg vsn m = query (ModuleObject pkg vsn m) "operations"
     
     combineOutput :: [Output] -> Output
     combineOutput outs = case optOutput opts of
@@ -364,7 +368,7 @@ getInfos opts input reqs = do
       case b1 of
         True -> return True
         False -> do
-          res <- query [("packages", pkg), ("versions", vsn), ("modules", m)] "types"
+          res <- query (ModuleObject pkg vsn m) "types"
           case res of
             Nothing -> return False
             Just ts -> return $ elem t ts
@@ -376,7 +380,7 @@ getInfos opts input reqs = do
       case b1 of
         True -> return True
         False -> do
-          res <- query [("packages", pkg), ("versions", vsn), ("modules", m)] "typeclasses"
+          res <- query (ModuleObject pkg vsn m) "typeclasses"
           case res of
             Nothing -> return False
             Just cs -> return $ elem c cs
@@ -388,12 +392,12 @@ getInfos opts input reqs = do
       case b1 of
         True -> return True
         False -> do
-          res <- query [("packages", pkg), ("versions", vsn), ("modules", m)] "operations"
+          res <- query (ModuleObject pkg vsn m) "operations"
           case res of
             Nothing -> return False
             Just os -> return $ elem o os
 
-    query :: Read a => [(String, String)] -> String -> IO (Maybe a)
+    query :: Read a => QueryObject -> String -> IO (Maybe a)
     query obj req = do
       res <- getInfos queryOptions obj [req] :: IO Output
       case res of

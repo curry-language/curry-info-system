@@ -95,23 +95,23 @@ serverLoopOnHandle cconfig socket1 handle = do
           sendServerResult handle (unlines msg)
           serverLoopOnHandle cconfig socket1 handle
         RequestPackageInformation moutform mforce pkg reqs -> 
-          requestInformation moutform mforce Single [("packages", pkg)] reqs
+          requestInformation moutform mforce Single (PackageObject pkg) reqs
         RequestVersionInformation moutform mforce pkg vsn reqs -> 
-          requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn)] reqs
+          requestInformation moutform mforce Single (VersionObject pkg vsn) reqs
         RequestModuleInformation moutform mforce pkg vsn m reqs -> 
-          requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m)] reqs
+          requestInformation moutform mforce Single (ModuleObject pkg vsn m) reqs
         RequestTypeInformation moutform mforce pkg vsn m t reqs -> 
-          requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("types", t)] reqs
+          requestInformation moutform mforce Single (TypeObject pkg vsn m t) reqs
         RequestTypeclassInformation moutform mforce pkg vsn m c reqs -> 
-          requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("typeclasses", c)] reqs
+          requestInformation moutform mforce Single (TypeClassObject pkg vsn m c) reqs
         RequestOperationInformation moutform mforce pkg vsn m o reqs -> 
-          requestInformation moutform mforce Single [("packages", pkg), ("versions", vsn), ("modules", m), ("operations", o)] reqs
+          requestInformation moutform mforce Single (OperationObject pkg vsn m o) reqs
         RequestAllTypesInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllTypes [("packages", pkg), ("versions", vsn), ("modules", m)] reqs
+          requestInformation moutform mforce AllTypes (ModuleObject pkg vsn m) reqs
         RequestAllTypeclassesInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllTypeclasses [("packages", pkg), ("versions", vsn), ("modules", m)] reqs
+          requestInformation moutform mforce AllTypeclasses (ModuleObject pkg vsn m) reqs
         RequestAllOperationsInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllOperations [("packages", pkg), ("versions", vsn), ("modules", m)] reqs
+          requestInformation moutform mforce AllOperations (ModuleObject pkg vsn m) reqs
         StopServer -> do
           sendServerResult handle ""
           hClose handle
@@ -137,7 +137,9 @@ serverLoopOnHandle cconfig socket1 handle = do
       (Nothing, Just _) -> sendRequestError "Given output format does not exist"
       (Just _, Nothing) -> sendRequestError "Given force value does not exist"
       (Just outform, Just force) -> catch
-        (getInfos (change singleOrAll (silentOptions {optForce = force, optOutput = outform})) obj reqs >>= printResult >>= sendResult)
+        (getInfos (change singleOrAll
+                     (silentOptions {optForce = force, optOutput = outform}))
+                  obj reqs >>= printResult >>= sendResult)
         sendRequestError
     
     change singleOrAll opts = case singleOrAll of

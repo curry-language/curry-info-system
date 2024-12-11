@@ -19,7 +19,7 @@ import System.FilePath ((</>), (<.>))
 --- 3 : ...and show read/store information
 --- 4 : ...show also stored/computed analysis data
 data DLevel = Quiet | Timing | Communicate | Storage | AllData
-    deriving Enum
+  deriving Enum
 
 data CConfig = CConfig DLevel
 
@@ -44,15 +44,15 @@ setDebugLevel dl (CConfig _) = CConfig (toEnum dl)
 --- This action returns the path to the server port file.
 getServerPortFileName :: IO String
 getServerPortFileName = do
-    path <- root
-    return (path </> ".curryinfo.port")
+  path <- root
+  return (path </> ".curryinfo.port")
 
 --- This action stores the given port in the server port file.
 storeServerPortNumber :: Int -> IO ()
 storeServerPortNumber portnum = do
-    mypid <- getPID
-    serverPortFileName <- getServerPortFileName
-    writeFile serverPortFileName (show (portnum, mypid))
+  mypid <- getPID
+  serverPortFileName <- getServerPortFileName
+  writeFile serverPortFileName (show (portnum, mypid))
 
 --- This action removes the server port file.
 removeServerPortNumber :: IO ()

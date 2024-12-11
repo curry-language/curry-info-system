@@ -203,3 +203,13 @@ data Dependency = Dependency Package Disjunction
 type Generator a b = Options -> a -> IO (Maybe b)
 
 type Printer b = Options -> b -> IO String
+
+
+-- The different kinds of objects passed to `CurryInfo.Information.getInfos`.
+data QueryObject =
+    PackageObject   Package
+  | VersionObject   Package Version
+  | ModuleObject    Package Version Module
+  | TypeObject      Package Version Module Type
+  | TypeClassObject Package Version Module Typeclass
+  | OperationObject Package Version Module Operation

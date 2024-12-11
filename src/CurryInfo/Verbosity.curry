@@ -19,19 +19,23 @@ detailVerbosity = 2
 debugVerbosity :: Int
 debugVerbosity = 3
 
---- This operation checks whether the verbosity level is high enough for Status messages.
+--- This operation checks whether the verbosity level is high enough
+--- for Status messages.
 isStatus :: Options -> Bool
 isStatus opts = optVerb opts >= statusVerbosity
 
---- This operation checks whether the verbosity level is high enough for Detail messages.
+--- This operation checks whether the verbosity level is high enough
+--- for Detail messages.
 isDetail :: Options -> Bool
 isDetail opts = optVerb opts >= detailVerbosity
 
---- This operation checks whether the verbosity level is high enough for Debug messages.
+--- This operation checks whether the verbosity level is high enough
+--- for Debug messages.
 isDebug :: Options -> Bool
 isDebug opts = optVerb opts >= debugVerbosity
 
---- This action prints a message to stderr if the boolean function returns True on the options.
+--- This action prints a message to stderr if the boolean function returns
+--- True on the options.
 printMessage :: (Options -> Bool) -> Options -> String -> IO ()
 printMessage checker opts msg = when (checker opts) (hPutStrLn stderr msg)
 
