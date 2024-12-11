@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "author": "Michael Hanus <mh@informatik.uni-kiel.de>, Dennis Thomsen <stu232874@mail.uni-kiel.de>",
   "maintainer": "Michael Hanus <mh@informatik.uni-kiel.de>",
-  "synopsis": "A tool to manage analysis and verification information about Curry programs",
+  "synopsis": "A tool to manage analysis and verification information about Curry packages",
   "category": [ "Packaging", "Programming", "Analysis", "Verification" ],
   "license": "BSD-3-Clause",
   "licenseFile": "LICENSE",

@@ -1,6 +1,7 @@
------------------------------------------------------------------------------------------
---- This modules defines operations to create outputs and process requests to get information about objects.
------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+--- This modules defines operations to create outputs and process requests
+--- to get information about objects.
+-----------------------------------------------------------------------------
 
 module CurryInfo.Information where
 
@@ -214,9 +215,17 @@ getInfos opts input reqs = do
         createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
         createNewInformation = foldr (\(r, ir) acc -> information acc (const acc) (\jv _ -> (r, jv):acc) ir) []
 
+        -- generate output for a single entity?
+        outputSingleEntity = not
+          (optAllTypes opts || optAllTypeclasses opts || optAllOperations opts)
+        
         createOutput :: ToString a => a -> [(String, InformationResult)] -> Output
         createOutput obj results = case optOutput opts of
-            OutText -> OutputText (unlines (toString obj : map (\(r, ir) -> r ++ ": " ++ information "?" id (flip const) ir) results))
+            OutText -> OutputText $ unlines $
+                         (if outputSingleEntity then [] else [toString obj]) ++
+                         map (\(r, ir) -> r ++ ": " ++ 
+                                          information "?" id (flip const) ir)
+                             results
             OutJSON -> OutputJSON (JObject [("object", (JString . toString) obj), ("results", JObject (map (\(r, ir) -> (r, information JNull JString (\_ s -> JString s) ir)) results))])
             OutTerm -> OutputTerm [(toString obj, show (map (\(r, ir) -> (r, information "?" id (flip const) ir)) results))]
 

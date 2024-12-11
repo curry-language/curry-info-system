@@ -23,12 +23,11 @@ data DLevel = Quiet | Timing | Communicate | Storage | AllData
 
 data CConfig = CConfig DLevel
 
---- This operation prints a message on the console when the given debug level is greater or equal than the given integer.
+--- This operation prints a message on the console when the given debug level
+--- is greater or equal than the given integer.
 debugMessage :: DLevel -> Int -> String -> IO ()
-debugMessage dl n message = debugString dl n (message ++ "\n")
-    where
-    debugString :: DLevel -> Int -> String -> IO ()
-    debugString dl n message = when (fromEnum dl >= n) $ putStr message
+debugMessage dl n message =
+  when (fromEnum dl >= n) $ putStrLn message
 
 --- The default config used for server mode.
 defaultCConfig :: CConfig

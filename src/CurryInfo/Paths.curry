@@ -6,11 +6,13 @@ module CurryInfo.Paths where
 
 import CurryInfo.Types
 
-import System.Directory (createDirectoryIfMissing, getDirectoryContents, getHomeDirectory, doesFileExist)
-import System.FilePath ((</>), (<.>))
+import System.Directory ( createDirectoryIfMissing, getDirectoryContents
+                        , getHomeDirectory, doesFileExist )
+import System.FilePath  ( (</>), (<.>) )
 
--- This action initializes the directory and json file for the given data. If the json file does not exist,
--- it will be initialized with "{}". If the json already exists, it will remain unchanged.
+-- This action initializes the directory and json file for the given data.
+-- If the json file does not exist, it will be initialized with "{}".
+-- If the json already exists, it will remain unchanged.
 initialize :: Path a => a -> IO ()
 initialize x = do
     -- Create directory
@@ -89,12 +91,17 @@ instance Path CurryOperation where
         where
             isOperator = not . and . map isAlphaNum
             convert o' = '_': concat (map (intToHex . ord) o')
-            intToHex i = reverse $ map (cs !!) (map (flip mod 16) (takeWhile (> 0) (iterate (flip div 16) i)))
-            cs = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+            intToHex i = reverse $ map (cs !!)
+                                       (map (flip mod 16)
+                                            (takeWhile (> 0)
+                                               (iterate (flip div 16) i)))
+            cs = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                  'A', 'B', 'C', 'D', 'E', 'F']
 
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]
-getReducedDirectoryContents path = fmap (filter (\p -> p /= "." && p /= "..")) (getDirectoryContents path)
+getReducedDirectoryContents path =
+  fmap (filter (\p -> p /= "." && p /= "..")) (getDirectoryContents path)
 
 --- This action returns the path to the index of the package manager.
 index :: IO String
@@ -107,7 +114,7 @@ index = do
 root :: IO String
 root = do
     home <- getHomeDirectory
-    return (home </> "tmp" </> ".curryanalysis")
+    return (home </> ".curry_info_cache")
 
 --- This action returns the path to the packages directory, where the local cache of the tool is.
 packagesPath :: IO String
