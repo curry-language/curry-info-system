@@ -130,8 +130,8 @@ getAllClasses = filter isClass
 -- Otherwise it returns False.
 isClass :: IDecl -> Bool
 isClass decl = case decl of
-    IClassDecl _ _ _ _ _ _  -> True
-    _                       -> False
+    IClassDecl _ _ _ _ _ _ _  -> True
+    _                         -> False
 
 -- This operation finds the declaration of the given type class.
 getClassDecl :: String -> [IDecl] -> Maybe IDecl
@@ -141,14 +141,14 @@ getClassDecl c = find (\decl -> Just c == getClassName decl)
 -- declaration is not of a type class, Nothing is returned.
 getClassName :: IDecl -> Maybe String
 getClassName decl = case decl of
-    IClassDecl _ name _ _ _ _   -> Just $ idName $ qidIdent name
-    _                           -> Nothing
+    IClassDecl _ name _ _ _ _ _   -> Just $ idName $ qidIdent name
+    _                             -> Nothing
 
 -- This operation returns the methods of a type class from its declaration. If the given
 -- declaration is not of a type class, Nothing is returned.
 getClassMethods :: IDecl -> Maybe [Method]
 getClassMethods decl = case decl of
-    IClassDecl _ _ _ _ methods _    -> Just $ map (pPrint . ppMethodDecl defaultOptions) methods
+    IClassDecl _ _ _ _ _ methods _  -> Just $ map (pPrint . ppMethodDecl defaultOptions) methods
     _                               -> Nothing
 
 -- This operation returns the declarations of hiding classes from the given declarations.
@@ -159,15 +159,15 @@ getHiddenClasses = filter isHiddenClass
 -- Otherwise it returns False.
 isHiddenClass :: IDecl -> Bool
 isHiddenClass decl = case decl of
-    HidingClassDecl _ _ _ _ -> True
-    _                       -> False
+    HidingClassDecl _ _ _ _ _ -> True
+    _                         -> False
 
 -- This operation returns the name of a type class from a hiding class declaration. If the given
 -- declaration is not of a hiding class, Nothing is returned.
 getHiddenClassName :: IDecl -> Maybe String
 getHiddenClassName decl = case decl of
-    HidingClassDecl _ name _ _  -> Just $ idName $ qidIdent name
-    _                           -> Nothing
+    HidingClassDecl _ name _ _ _ -> Just $ idName $ qidIdent name
+    _                            -> Nothing
 
 -- OPERATION
 
