@@ -21,8 +21,6 @@ import CurryInfo.Analysis
 import CurryInfo.SourceCode (SourceCode, readSourceCode, readDocumentation)
 import CurryInfo.Parser (parseVersionConstraints)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
-import CurryInfo.Reader (readInformation)
-import CurryInfo.Writer (writeInformation, (<+>))
 
 import Text.Pretty (text)
 

@@ -12,7 +12,7 @@ import Numeric (readNat)
 
 import CurryInfo.Types
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, getDirectoryPath, getJSONPath, packagesPath, root)
+import CurryInfo.Paths (Path, getDirPath, getJsonPath, packagesPath, root)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Checkout (checkouts, getCheckoutPath)
 import CurryInfo.Helper (safeRead)
@@ -105,23 +105,23 @@ getObject opts =
 cleanObject :: Options -> Maybe QueryObject -> IO ()
 cleanObject opts mbobj = case mbobj of
   Nothing -> cleanAll opts
-  Just obj -> case obj of
-    PackageObject pkg           -> let x = CurryPackage pkg in cleanJSON opts x >> cleanDirectory opts x
-    VersionObject pkg vsn       -> let x = CurryVersion pkg vsn in cleanJSON opts x >> cleanDirectory opts x >> cleanCheckout opts pkg vsn
-    ModuleObject pkg vsn m      -> let x = CurryModule pkg vsn m in cleanJSON opts x >> cleanDirectory opts x >> cleanCheckout opts pkg vsn
-    TypeObject pkg vsn m t      -> let x = CurryType pkg vsn m t in cleanJSON opts x >> cleanCheckout opts pkg vsn
-    TypeClassObject pkg vsn m c -> let x = CurryTypeclass pkg vsn m c in cleanJSON opts x >> cleanCheckout opts pkg vsn
-    OperationObject pkg vsn m o -> let x = CurryOperation pkg vsn m o in cleanJSON opts x >> cleanCheckout opts pkg vsn
+  Just obj -> cleanJSON opts obj >> case obj of
+    PackageObject _             -> cleanDirectory opts obj
+    VersionObject pkg vsn       -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
+    ModuleObject pkg vsn _      -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
+    TypeObject pkg vsn _ _      -> cleanCheckout opts pkg vsn
+    TypeClassObject pkg vsn _ _ -> cleanCheckout opts pkg vsn
+    OperationObject pkg vsn _ _ -> cleanCheckout opts pkg vsn
 
 -- This action deletes the json file containing the stored information of the given object.
-cleanJSON :: Path a => Options -> a -> IO ()
-cleanJSON opts obj' = do
-  getJSONPath obj' >>= deleteFile opts
+cleanJSON :: Options -> QueryObject -> IO ()
+cleanJSON opts obj = do
+  getJsonPath obj >>= deleteFile opts
 
 -- This action deletes the directory, in which the information of the given object art stored.
-cleanDirectory :: Path a => Options -> a -> IO ()
-cleanDirectory opts obj' = do
-  getDirectoryPath obj' >>= deleteDirectory opts
+cleanDirectory :: Options -> QueryObject -> IO ()
+cleanDirectory opts obj = do
+  getDirPath obj >>= deleteDirectory opts
 
 -- This action deletes the checkout directory of the given package and version.
 cleanCheckout :: Options -> Package -> Version -> IO ()

@@ -126,7 +126,8 @@ getInfos opts input reqs = do
       result <- checkTypeExists obj
       case result of
         False -> do
-          let err = "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+          let err = "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++
+                    vsn ++ "' of package '" ++ pkg ++ "' is not exported."
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
@@ -138,7 +139,9 @@ getInfos opts input reqs = do
       result <- checkTypeclassExists obj
       case result of
         False -> do
-          let err = "Typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+          let err = "Typeclass '" ++ c ++ "' of module '" ++ m ++
+                    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++
+                    "' is not exported."
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
@@ -150,7 +153,9 @@ getInfos opts input reqs = do
       result <- checkOperationExists obj
       case result of
         False -> do
-          let err = "Operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "' is not exported."
+          let err = "Operation '" ++ o ++ "' of module '" ++ m ++
+                    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++
+                    "' is not exported."
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
