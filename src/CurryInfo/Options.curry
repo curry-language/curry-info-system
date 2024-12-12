@@ -12,7 +12,7 @@ import Numeric (readNat)
 
 import CurryInfo.Types
 import CurryInfo.Configuration
-import CurryInfo.Paths (Path, getDirPath, getJsonPath, packagesPath, root)
+import CurryInfo.Paths (getDirectoryPath, getJSONPath, packagesPath, root)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 import CurryInfo.Checkout (checkouts, getCheckoutPath)
 import CurryInfo.Helper (safeRead)
@@ -116,12 +116,12 @@ cleanObject opts mbobj = case mbobj of
 -- This action deletes the json file containing the stored information of the given object.
 cleanJSON :: Options -> QueryObject -> IO ()
 cleanJSON opts obj = do
-  getJsonPath obj >>= deleteFile opts
+  getJSONPath obj >>= deleteFile opts
 
 -- This action deletes the directory, in which the information of the given object art stored.
 cleanDirectory :: Options -> QueryObject -> IO ()
 cleanDirectory opts obj = do
-  getDirPath obj >>= deleteDirectory opts
+  getDirectoryPath obj >>= deleteDirectory opts
 
 -- This action deletes the checkout directory of the given package and version.
 cleanCheckout :: Options -> Package -> Version -> IO ()
