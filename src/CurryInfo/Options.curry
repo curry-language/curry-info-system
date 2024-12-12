@@ -12,15 +12,17 @@ import Numeric (readNat)
 
 import CurryInfo.Types
 import CurryInfo.Configuration
-import CurryInfo.Paths (getDirectoryPath, getJSONPath, packagesPath, root)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
-import CurryInfo.Checkout (checkouts, getCheckoutPath)
+import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, packagesPath, root )
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage )
+import CurryInfo.Checkout  ( checkouts, getCheckoutPath )
 import CurryInfo.Helper (safeRead)
 
 import System.Console.GetOpt
 import System.Process (exitWith, system)
-import System.Directory (getDirectoryContents, doesFileExist, doesDirectoryExist, removeFile, removeDirectory)
-import System.FilePath ((</>))
+import System.Directory ( getDirectoryContents, doesFileExist
+                        , doesDirectoryExist, removeFile, removeDirectory )
+import System.FilePath  ( (</>) )
 
 -- This operation returns a string representing the requests of the given
 -- configuration using the given string as prefix.

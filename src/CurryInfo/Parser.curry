@@ -8,7 +8,8 @@ import CurryInfo.Types
 
 import Data.List (init, find, intercalate, intersperse)
 
-import DetParse (Parser, parse, word, (<|>), (*>), yield, failure, some, anyChar, char, check, (<$>), (<*>), many, (<*), (<!>))
+import DetParse ( Parser, parse, word, (<|>), (*>), yield, failure, some
+                , anyChar, char, check, (<$>), (<*>), many, (<*), (<!>) )
 import Prelude hiding ((<|>), (*>), some, (<$>), (<*>), many, (<*))
 
 -- This operation parses the version constraints of a package.
@@ -38,27 +39,33 @@ comparator =
     (word "~" *> yield VMinCompatible) <|>
     (word "^" *> yield VMajCompatible)
 
--- This parser parses a version number with an optional prerelease string following it.
+-- This parser parses a version number with an optional prerelease string
+-- following it.
 version :: Parser Version
 version = (++) <$> versionNumber <*> (prerelease <!> yield [])
 
 -- This parser parses a prerelease string used in a version.
 prerelease :: Parser String
-prerelease = (:) <$> (char '-' *> yield '-') <*> (some (check (\c -> c == '-' || isAlphaNum c) anyChar))
+prerelease =
+  (:) <$> (char '-' *> yield '-') <*>
+    (some (check (\c -> c == '-' || isAlphaNum c) anyChar))
 
 -- HELPER
 
--- This parser tries to parse using the given parser and yields Nothing if that parser fails.
+-- This parser tries to parse using the given parser and yields Nothing
+-- if that parser fails.
 optional :: Parser a -> Parser (Maybe a)
 optional p = Just <$> p <!> yield Nothing
 
--- This parser parses a list using a parser for the entries and a parser for the seperators.
+-- This parser parses a list using a parser for the entries and a parser
+-- for the seperators.
 parseList :: Parser a -> Parser b -> Parser [b]
 parseList sep entry = ((:) <$> entry <*> many (sep *> entry)) <|> yield []
 
 -- This parser parses a version number.
 versionNumber :: Parser String
-versionNumber = concat <$> (intersperse "." <$> (map show <$> parseList dot parseNumber))
+versionNumber =
+  concat <$> (intersperse "." <$> (map show <$> parseList dot parseNumber))
 
 -- This parser parses an integer number.
 parseNumber :: (Read a, Num a) => Parser a

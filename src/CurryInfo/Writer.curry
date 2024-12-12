@@ -22,6 +22,6 @@ info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
 --- into the respective json file.
 writeObjectInformation :: QueryObject -> [(String, JValue)] -> IO ()
 writeObjectInformation obj fields = do
-    let jtext = (ppJSON . JObject) fields
-    path <- getJSONPath obj
-    writeFile path jtext
+  let jtext = (ppJSON . JObject) fields
+  path <- getJSONPath obj
+  writeFile path jtext

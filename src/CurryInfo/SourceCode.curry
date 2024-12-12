@@ -5,14 +5,15 @@
 module CurryInfo.SourceCode where
 
 import CurryInfo.Types
-import CurryInfo.Checkout (checkoutIfMissing)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Checkout  ( checkoutIfMissing )
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage )
 
 import System.CurryPath (modNameToPath)
 import System.Directory (doesFileExist)
 import System.FilePath ((</>), (<.>))
 
-import Data.List (isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex)
+import Data.List  (isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex)
 import Data.Maybe (fromMaybe)
 
 type Checker = String -> Bool
@@ -113,9 +114,13 @@ instance SourceCode CurryModule where
         let (doc, _) = span (isPrefixOf "--") ls
         return (Just (Reference path 0 (length doc)))
 
--- This operation returns a checker that look for the definition of the given type.
+-- This operation returns a checker that looks for the definition
+-- of the given type.
 checkType :: Type -> Checker
-checkType t l = (isPrefixOf ("data " ++ t) l || isPrefixOf ("type " ++ t) l || isPrefixOf ("newtype " ++ t) l)
+checkType t l =
+  isPrefixOf ("data " ++ t) l ||
+  isPrefixOf ("type " ++ t) l ||
+  isPrefixOf ("newtype " ++ t) l
 
 instance SourceCode CurryType where
   readSourceCode opts (CurryType pkg vsn m t) = do

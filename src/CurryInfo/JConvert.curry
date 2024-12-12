@@ -21,7 +21,9 @@ instance ConvertJSON Infix where
         _ -> Nothing
 
 instance ConvertJSON Reference where
-    toJSON (Reference path start end) = JObject [("path", toJSON path), ("start", toJSON start), ("end", toJSON end)]
+    toJSON (Reference path start end) =
+      JObject [ ("path", toJSON path)
+              , ("start", toJSON start), ("end", toJSON end)]
 
     fromJSON jv = case jv of
         JObject fields -> do
@@ -39,7 +41,8 @@ instance ConvertJSON VersionConstraint where
         _ -> Nothing
 
 instance ConvertJSON Dependency where
-    toJSON (Dependency pkg dsj) = JObject [("package", toJSON pkg), ("constraints", toJSONList dsj)]
+    toJSON (Dependency pkg dsj) =
+      JObject [("package", toJSON pkg), ("constraints", toJSONList dsj)]
 
     fromJSON jv = case jv of
         JObject fields -> do
