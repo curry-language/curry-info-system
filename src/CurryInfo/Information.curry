@@ -73,7 +73,7 @@ getInfos opts qobj reqs = do
       case result of
         False -> do
           let err = "Version '" ++ vsn ++ "' of package '" ++ pkg ++
-                    "' does not exists."
+                    "' does not exist."
           printDetailMessage opts err
           generateOutputError opts err
         True -> do
@@ -189,8 +189,8 @@ getInfos opts qobj reqs = do
       -- OutputTerm [("obj", [("req", "res")])]
       OutputTerm [(_, x)] -> case lookup req (read x) of
         Nothing -> return Nothing
-        Just y -> return (Just (read y))
-      _ -> return Nothing
+        Just y  -> return (Just (read y))
+      _                   -> return Nothing
 
   combineOutput :: [Output] -> Output
   combineOutput outs = case optOutput opts of

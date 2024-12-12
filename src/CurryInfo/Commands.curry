@@ -4,15 +4,20 @@
 
 module CurryInfo.Commands where
 
+import Control.Monad       ( when )
 import CurryInfo.Types
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage )
 
-import System.IOExts (evalCmd)
-import System.Directory (setCurrentDirectory, getCurrentDirectory)
+import System.IOExts    ( evalCmd )
+import System.Directory ( setCurrentDirectory, getCurrentDirectory )
+import System.Path      ( fileInPath )
 
 -- This action runs the given command call and returns the result.
--- Additionaly it also prints messages to the output depending on the exit code of the command.
-runCmd :: Options -> (String, IO (Int, String, String)) -> IO (Int, String, String)
+-- Additionaly it also prints messages to the output depending on the exit code
+-- of the command.
+runCmd :: Options -> (String, IO (Int, String, String))
+       -> IO (Int, String, String)
 runCmd opts (cmd, action) = do
   printDetailMessage opts $ "Running command '" ++ cmd ++ "'..."
   (exitCode, output, err) <- action
@@ -26,8 +31,9 @@ runCmd opts (cmd, action) = do
   printDebugMessage opts "Command finished with output:"
   printDebugMessage opts output
 
-  printDebugMessage opts "Command finished with error output:"
-  printDebugMessage opts err
+  when (not (null err) && exitCode > 0) $ do
+    printStatusMessage opts "COMMAND FINISHED WITH ERROR OUTPUT:"
+    printStatusMessage opts err
 
   return (exitCode, output, err)
 
@@ -79,13 +85,22 @@ cmdCurryLoad path m =
 -- This action calls CASS to compute the given analysis for the given module in the given path.
 cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
 cmdCASS path analysis m =
-  let x@(cmd:args) = if analysis == "FailFree"
-              then ["cypm", "exec", "curry-calltypes", "--format=json", m]
-              else ["cypm", "exec", "cass", "-f", "JSONTerm", analysis, m]
+  let execbin = if analysis == "FailFree" then "curry-calltypes"
+                                          else "cass"
+      x@(cmd:args) = ["cypm", "exec", execbin] ++
+                     if analysis == "FailFree"
+                       then ["--format=json", m]
+                       else ["-f", "JSONTerm", analysis, m]
+
       action = do
-        current <- getCurrentDirectory
-        setCurrentDirectory path
-        (exitCode, output, err) <- evalCmd cmd args ""
-        setCurrentDirectory current
-        return (exitCode, output, err)
+        binexists <- fileInPath execbin
+        if binexists
+          then do
+            current <- getCurrentDirectory
+            setCurrentDirectory path
+            (exitCode, output, err) <- evalCmd cmd args ""
+            setCurrentDirectory current
+            return (exitCode, output, err)
+          else return (1, "", "Binary '" ++ execbin ++ "' not found in PATH!")
+
   in (unwords x, action)
