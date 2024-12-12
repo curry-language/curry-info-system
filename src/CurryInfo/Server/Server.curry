@@ -95,23 +95,23 @@ serverLoopOnHandle cconfig socket1 handle = do
           sendServerResult handle (unlines msg)
           serverLoopOnHandle cconfig socket1 handle
         RequestPackageInformation moutform mforce pkg reqs -> 
-          requestInformation moutform mforce Single (PackageObject pkg) reqs
+          requestInformation moutform mforce Single (QueryPackage pkg) reqs
         RequestVersionInformation moutform mforce pkg vsn reqs -> 
-          requestInformation moutform mforce Single (VersionObject pkg vsn) reqs
+          requestInformation moutform mforce Single (QueryVersion pkg vsn) reqs
         RequestModuleInformation moutform mforce pkg vsn m reqs -> 
-          requestInformation moutform mforce Single (ModuleObject pkg vsn m) reqs
+          requestInformation moutform mforce Single (QueryModule pkg vsn m) reqs
         RequestTypeInformation moutform mforce pkg vsn m t reqs -> 
-          requestInformation moutform mforce Single (TypeObject pkg vsn m t) reqs
+          requestInformation moutform mforce Single (QueryType pkg vsn m t) reqs
         RequestTypeclassInformation moutform mforce pkg vsn m c reqs -> 
-          requestInformation moutform mforce Single (TypeClassObject pkg vsn m c) reqs
+          requestInformation moutform mforce Single (QueryTypeClass pkg vsn m c) reqs
         RequestOperationInformation moutform mforce pkg vsn m o reqs -> 
-          requestInformation moutform mforce Single (OperationObject pkg vsn m o) reqs
+          requestInformation moutform mforce Single (QueryOperation pkg vsn m o) reqs
         RequestAllTypesInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllTypes (ModuleObject pkg vsn m) reqs
+          requestInformation moutform mforce AllTypes (QueryModule pkg vsn m) reqs
         RequestAllTypeclassesInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllTypeclasses (ModuleObject pkg vsn m) reqs
+          requestInformation moutform mforce AllTypeclasses (QueryModule pkg vsn m) reqs
         RequestAllOperationsInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllOperations (ModuleObject pkg vsn m) reqs
+          requestInformation moutform mforce AllOperations (QueryModule pkg vsn m) reqs
         StopServer -> do
           sendServerResult handle ""
           hClose handle

@@ -32,43 +32,43 @@ initializeStore x = do
 
 --- Gets the directory path where an object is stored.
 getDirectoryPath :: QueryObject -> IO String
-getDirectoryPath (PackageObject pkg) = do
+getDirectoryPath (QueryPackage pkg) = do
   path <- packagesPath
   return (path </> pkg)
-getDirectoryPath (VersionObject pkg vsn) = do
-  path <- getDirectoryPath (PackageObject pkg)
+getDirectoryPath (QueryVersion pkg vsn) = do
+  path <- getDirectoryPath (QueryPackage pkg)
   return (path </> "versions" </> vsn)
-getDirectoryPath (ModuleObject pkg vsn m) = do
-  path <- getDirectoryPath (VersionObject pkg vsn)
+getDirectoryPath (QueryModule pkg vsn m) = do
+  path <- getDirectoryPath (QueryVersion pkg vsn)
   return (path </> "modules" </> m)
-getDirectoryPath (TypeObject pkg vsn m _) = do
-  path <- getDirectoryPath (ModuleObject pkg vsn m)
+getDirectoryPath (QueryType pkg vsn m _) = do
+  path <- getDirectoryPath (QueryModule pkg vsn m)
   return (path </> "types")
-getDirectoryPath (TypeClassObject pkg vsn m _) = do
-  path <- getDirectoryPath (ModuleObject pkg vsn m)
+getDirectoryPath (QueryTypeClass pkg vsn m _) = do
+  path <- getDirectoryPath (QueryModule pkg vsn m)
   return (path </> "typeclasses")
-getDirectoryPath (OperationObject pkg vsn m _) = do
-  path <- getDirectoryPath (ModuleObject pkg vsn m)
+getDirectoryPath (QueryOperation pkg vsn m _) = do
+  path <- getDirectoryPath (QueryModule pkg vsn m)
   return (path </> "operations")
 
 --- Gets the path of the JSON file containing all information about an object.
 getJSONPath :: QueryObject -> IO String
-getJSONPath x@(PackageObject pkg) = do
+getJSONPath x@(QueryPackage pkg) = do
   path <- getDirectoryPath x
   return (path </> pkg <.> "json")
-getJSONPath x@(VersionObject _ vsn) = do
+getJSONPath x@(QueryVersion _ vsn) = do
   path <- getDirectoryPath x
   return (path </> vsn <.> "json")
-getJSONPath x@(ModuleObject _ _ m) = do
+getJSONPath x@(QueryModule _ _ m) = do
   path <- getDirectoryPath x
   return (path </> m <.> "json")
-getJSONPath x@(TypeObject _ _ _ t) = do
+getJSONPath x@(QueryType _ _ _ t) = do
   path <- getDirectoryPath x
   return (path </> t <.> "json")
-getJSONPath x@(TypeClassObject _ _ _ c) = do
+getJSONPath x@(QueryTypeClass _ _ _ c) = do
   path <- getDirectoryPath x
   return (path </> c <.> "json")
-getJSONPath x@(OperationObject _ _ _ o) = do
+getJSONPath x@(QueryOperation _ _ _ o) = do
   path <- getDirectoryPath x
   let name = if isOperator o then convert o else o
   return (path </> name <.> "json")

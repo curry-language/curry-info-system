@@ -140,57 +140,70 @@ type Printer b = Options -> b -> IO String
 
 ------------------------------------------------------------------------------
 --- The different kinds of objects passed to `CurryInfo.Information.getInfos`
---- in order to query some information about Curry entities.
+--- in order to query information about Curry entities.
 data QueryObject =
-  PackageObject   Package
-  | VersionObject   Package Version
-  | ModuleObject    Package Version Module
-  | TypeObject      Package Version Module Type
-  | TypeClassObject Package Version Module Typeclass
-  | OperationObject Package Version Module Operation
+    QueryPackage   Package
+  | QueryVersion   Package Version
+  | QueryModule    Package Version Module
+  | QueryType      Package Version Module Type
+  | QueryTypeClass Package Version Module Typeclass
+  | QueryOperation Package Version Module Operation
 
 --- Error message issued when there is an error reading some object.
 errorReadingObject :: QueryObject -> String
-errorReadingObject (PackageObject pkg) =
+errorReadingObject (QueryPackage pkg) =
   "JSON file for package " ++ pkg ++ " could not be read."
-errorReadingObject (VersionObject pkg vsn) =
-  "JSON file for version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorReadingObject (ModuleObject pkg vsn m) =
-  "JSON file for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorReadingObject (TypeObject pkg vsn m t) =
-  "JSON file for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorReadingObject (TypeClassObject pkg vsn m c) =
-  "JSON file for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorReadingObject (OperationObject pkg vsn m o) =
-  "JSON file for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+errorReadingObject (QueryVersion pkg vsn) =
+  "JSON file for version " ++ vsn ++ " of package " ++ pkg ++
+  " could not be read."
+errorReadingObject (QueryModule pkg vsn m) =
+  "JSON file for module " ++ m ++ " of version " ++ vsn ++ " of package " ++
+  pkg ++ " could not be read."
+errorReadingObject (QueryType pkg vsn m t) =
+  "JSON file for type " ++ t ++ " of module " ++ m ++ " of version " ++
+  vsn ++ " of package " ++ pkg ++ " could not be read."
+errorReadingObject (QueryTypeClass pkg vsn m c) =
+  "JSON file for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++
+  vsn ++ " of package " ++ pkg ++ " could not be read."
+errorReadingObject (QueryOperation pkg vsn m o) =
+  "JSON file for operation " ++ o ++ " of module " ++ m ++ " of version " ++
+  vsn ++ " of package " ++ pkg ++ " could not be read."
 
 --- Error message issued when there is an error getting some request.
 errorRequestObject :: QueryObject -> String -> String
-errorRequestObject (PackageObject pkg) req =
+errorRequestObject (QueryPackage pkg) req =
   "Request '" ++ req ++ "' could not be found for package '" ++ pkg ++ "'."
-errorRequestObject (VersionObject pkg vsn) req =
-  "Request '" ++ req ++ "' could not be found for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'."
-errorRequestObject (ModuleObject pkg vsn m) req =
-  "Request '" ++ req ++ "' could not be found for module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorRequestObject (TypeObject pkg vsn m t) req =
-  "Request '" ++ req ++ "' could not be found for type " ++ t ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorRequestObject (TypeClassObject pkg vsn m c) req =
-  "Request '" ++ req ++ "' could not be found for typeclass " ++ c ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
-errorRequestObject (OperationObject pkg vsn m o) req =
-  "Request '" ++ req ++ "' could not be found for for operation " ++ o ++ " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+errorRequestObject (QueryVersion pkg vsn) req =
+  "Request '" ++ req ++ "' could not be found for version '" ++ vsn ++
+  "' of package '" ++ pkg ++ "'."
+errorRequestObject (QueryModule pkg vsn m) req =
+  "Request '" ++ req ++ "' could not be found for module " ++ m ++
+  " of version " ++ vsn ++ " of package " ++ pkg ++ " could not be read."
+errorRequestObject (QueryType pkg vsn m t) req =
+  "Request '" ++ req ++ "' could not be found for type " ++ t ++
+  " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++
+  pkg ++ " could not be read."
+errorRequestObject (QueryTypeClass pkg vsn m c) req =
+  "Request '" ++ req ++ "' could not be found for typeclass " ++ c ++
+  " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++
+  pkg ++ " could not be read."
+errorRequestObject (QueryOperation pkg vsn m o) req =
+  "Request '" ++ req ++ "' could not be found for for operation " ++ o ++
+  " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++
+  pkg ++ " could not be read."
 
 --- Transforms an object into a string of tuples with the various components.
 object2StringTuple :: QueryObject -> String
-object2StringTuple (PackageObject pkg) = show pkg
-object2StringTuple (VersionObject pkg vsn) =
+object2StringTuple (QueryPackage pkg) = show pkg
+object2StringTuple (QueryVersion pkg vsn) =
   parenthesize (intercalate ", " [show pkg, show vsn])
-object2StringTuple (ModuleObject pkg vsn m) =
+object2StringTuple (QueryModule pkg vsn m) =
   parenthesize (intercalate ", " [show pkg, show vsn, show m])
-object2StringTuple (TypeObject pkg vsn m t) =
+object2StringTuple (QueryType pkg vsn m t) =
   parenthesize (intercalate ", " [show pkg, show vsn, show m, show t])
-object2StringTuple (TypeClassObject pkg vsn m c) =
+object2StringTuple (QueryTypeClass pkg vsn m c) =
   parenthesize (intercalate ", " [show pkg, show vsn, show m, show c])
-object2StringTuple (OperationObject pkg vsn m o) =
+object2StringTuple (QueryOperation pkg vsn m o) =
   parenthesize (intercalate ", " [show pkg, show vsn, show m, show o])
 
 ------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 --- to get information about objects.
 -----------------------------------------------------------------------------
 
-module CurryInfo.Information where
+module CurryInfo.Information ( getInfos, printResult ) where
 
 import CurryInfo.Configuration
 import CurryInfo.Paths     ( index, getJSONPath, initializeStore )
@@ -55,9 +55,8 @@ getInfos :: Options -> QueryObject -> [String] -> IO Output
 getInfos opts qobj reqs = do
   printStatusMessage opts "Checking structure of the request..."
   case qobj of
-    PackageObject pkg -> do
+    QueryPackage pkg -> do
       printStatusMessage opts "Structure matches Package."
-      let obj = CurryPackage pkg
       result <- checkPackageExists pkg
       case result of
         False -> do
@@ -66,10 +65,9 @@ getInfos opts qobj reqs = do
           generateOutputError opts err
         True -> do
           printDebugMessage opts "Package exists."
-          getInfos' packageConfiguration obj qobj
-    VersionObject pkg vsn -> do
+          getInfos' packageConfiguration (CurryPackage pkg) qobj
+    QueryVersion pkg vsn -> do
       printStatusMessage opts "Structure matches Version."
-      let obj = CurryVersion pkg vsn
       result <- checkVersionExists pkg vsn
       case result of
         False -> do
@@ -79,10 +77,9 @@ getInfos opts qobj reqs = do
           generateOutputError opts err
         True -> do
           printDetailMessage opts "Checked Version: exists."
-          getInfos' versionConfiguration obj qobj
-    ModuleObject pkg vsn m -> do
+          getInfos' versionConfiguration (CurryVersion pkg vsn) qobj
+    QueryModule pkg vsn m -> do
       printStatusMessage opts "Structure matches Module."
-      let obj = CurryModule pkg vsn m
       result <- checkModuleExists pkg vsn m
       case result of
         False -> do
@@ -100,7 +97,7 @@ getInfos opts qobj reqs = do
                   generateOutputError opts "Could not find types"
                 Just ts -> do
                   outs <- mapM (\(o,o') -> getInfos' typeConfiguration o o')
-                               (map (\t -> (CurryType pkg vsn m t, TypeObject pkg vsn m t)) ts)
+                               (map (\t -> (CurryType pkg vsn m t, QueryType pkg vsn m t)) ts)
                   let out = combineOutput outs
                   return out
             (_, True, _) -> do
@@ -110,7 +107,7 @@ getInfos opts qobj reqs = do
                   generateOutputError opts "Could not find typeclasses"
                 Just cs -> do
                   outs <- mapM (\(o,o') -> getInfos' typeclassConfiguration o o')
-                               (map (\t -> (CurryTypeclass pkg vsn m t, TypeClassObject pkg vsn m t)) cs)
+                               (map (\t -> (CurryTypeclass pkg vsn m t, QueryTypeClass pkg vsn m t)) cs)
                   let out = combineOutput outs
                   return out
             (_, _, True) -> do
@@ -120,14 +117,13 @@ getInfos opts qobj reqs = do
                   generateOutputError opts "Could not find operations."
                 Just os -> do
                   outs <- mapM (\(o,o') -> getInfos' operationConfiguration o o')
-                               (map (\o -> (CurryOperation pkg vsn m o, OperationObject pkg vsn m o)) os)
+                               (map (\o -> (CurryOperation pkg vsn m o, QueryOperation pkg vsn m o)) os)
                   let out = combineOutput outs
                   return out
             (False, False, False) -> do
-              getInfos' moduleConfiguration obj qobj
-    TypeObject pkg vsn m t -> do
+              getInfos' moduleConfiguration (CurryModule pkg vsn m) qobj
+    QueryType pkg vsn m t -> do
       printStatusMessage opts "Structure matches Type"
-      let obj = CurryType pkg vsn m t
       result <- checkTypeExists pkg vsn m t
       case result of
         False -> do
@@ -137,10 +133,9 @@ getInfos opts qobj reqs = do
           generateOutputError opts err
         True  -> do
           printDetailMessage opts "Checked Type: exists."
-          getInfos' typeConfiguration obj qobj
-    TypeClassObject pkg vsn m c -> do
+          getInfos' typeConfiguration (CurryType pkg vsn m t) qobj
+    QueryTypeClass pkg vsn m c -> do
       printStatusMessage opts "Structure matches Typeclass"
-      let obj = CurryTypeclass pkg vsn m c
       result <- checkTypeclassExists pkg vsn m c
       case result of
         False -> do
@@ -151,10 +146,9 @@ getInfos opts qobj reqs = do
           generateOutputError opts err
         True  -> do
           printDetailMessage opts "Checked Typeclass: exists."
-          getInfos' typeclassConfiguration obj qobj
-    OperationObject pkg vsn m o -> do
+          getInfos' typeclassConfiguration (CurryTypeclass pkg vsn m c) qobj
+    QueryOperation pkg vsn m o -> do
       printStatusMessage opts "Structure matches Operation."
-      let obj = CurryOperation pkg vsn m o
       result <- checkOperationExists pkg vsn m o
       case result of
         False -> do
@@ -164,18 +158,18 @@ getInfos opts qobj reqs = do
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
-          printDetailMessage opts "Checker Operation: exists."
-          getInfos' operationConfiguration obj qobj
+          printDetailMessage opts "Checked Operation: exists."
+          getInfos' operationConfiguration (CurryOperation pkg vsn m o) qobj
   where
-    getInfos' conf confobj qobj' = do
+    getInfos' conf configobject queryobject = do
       printStatusMessage opts "Initializing Input..."
-      initializeStore qobj'
+      initializeStore queryobject
       printStatusMessage opts "Reading current information..."
-      mfields <- readObjectInformation opts qobj'
+      mfields <- readObjectInformation opts queryobject
       case mfields of
         Nothing -> do
           printDetailMessage opts "Reading information failed."
-          return $ OutputError $ errorReadingObject qobj'
+          return $ OutputError $ errorReadingObject queryobject
         Just fields -> do
           printDetailMessage opts "Reading information succeeded."
           case optShowAll opts of
@@ -184,33 +178,35 @@ getInfos opts qobj reqs = do
               let fieldNames = map fst fields
               case mapM (flip lookupRequest conf) fieldNames of
                 Nothing -> do
-                  return $ OutputError $ "One of the fields could not be found: " ++ show fieldNames
+                  return $ OutputError $
+                    "One of the fields could not be found: " ++ show fieldNames
                 Just allReqs -> do
                   results <- zipWithM (\(_, _, extractor, _) fieldName -> fmap (\x -> (fieldName, x)) (extract extractor fields)) allReqs fieldNames :: IO [(String, Maybe (JValue, String))]
                   let results' = map (\(r, mr) -> (r, maybe InformationExtractionFailed (uncurry InformationResult) mr)) results
-                  let output = createOutput qobj' results' :: Output
+                  let output = createOutput queryobject results' :: Output
                   return output
             False -> do
               printDetailMessage opts "Extracting/Generating requested information..."
-              results <- mapM (extractOrGenerate conf fields confobj (errorRequestObject qobj'))
+              results <- mapM (extractOrGenerate conf fields configobject
+                                  (errorRequestObject queryobject))
                               (map (map toLower) reqs) :: IO [(String, InformationResult)]
 
               let newInformation = createNewInformation results
               printDebugMessage opts "Overwriting with updated information..."
-              writeObjectInformation qobj' (newInformation <+> fields)
+              writeObjectInformation queryobject (newInformation <+> fields)
               printDetailMessage opts "Overwriting finished."
 
-              let output = createOutput qobj' results :: Output
+              let output = createOutput queryobject results :: Output
               return output
     
     queryAllTypes :: Package -> Version -> Module -> IO (Maybe [Type])
-    queryAllTypes pkg vsn m = query (ModuleObject pkg vsn m) "types"
+    queryAllTypes pkg vsn m = query (QueryModule pkg vsn m) "types"
 
     queryAllTypeclasses :: Package -> Version -> Module -> IO (Maybe [Typeclass])
-    queryAllTypeclasses pkg vsn m = query (ModuleObject pkg vsn m) "typeclasses"
+    queryAllTypeclasses pkg vsn m = query (QueryModule pkg vsn m) "typeclasses"
 
     queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
-    queryAllOperations pkg vsn m = query (ModuleObject pkg vsn m) "operations"
+    queryAllOperations pkg vsn m = query (QueryModule pkg vsn m) "operations"
     
     combineOutput :: [Output] -> Output
     combineOutput outs = case optOutput opts of
@@ -312,7 +308,8 @@ getInfos opts qobj reqs = do
               printDebugMessage opts msg
               return (req, InformationError msg)
 
-    extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String))) -> [(String, JValue)] -> IO (Maybe (JValue, String))
+    extract :: (Options -> [(String, JValue)] -> IO (Maybe (JValue, String)))
+            -> [(String, JValue)] -> IO (Maybe (JValue, String))
     extract extractor fields = do
       printDebugMessage opts "Trying extraction..."
       extractionResult <- extractor opts fields
@@ -324,7 +321,8 @@ getInfos opts qobj reqs = do
           printDetailMessage opts "Extraction succeeded."
           return $ Just (jv, output)
     
-    generate :: (Options -> a -> IO (Maybe (JValue, String))) -> a -> IO (Maybe (JValue, String))
+    generate :: (Options -> a -> IO (Maybe (JValue, String))) -> a
+             -> IO (Maybe (JValue, String))
     generate generator obj = do
       printDebugMessage opts "Trying generation..."
       generationResult <- generator opts obj
@@ -338,7 +336,7 @@ getInfos opts qobj reqs = do
     
     checkPackageExists :: Package -> IO Bool
     checkPackageExists pkg = do
-      jpath <- getJSONPath (PackageObject pkg)
+      jpath <- getJSONPath (QueryPackage pkg)
       b1 <- doesFileExist jpath
       case b1 of
         True -> return True
@@ -350,7 +348,7 @@ getInfos opts qobj reqs = do
 
     checkVersionExists :: Package -> Version -> IO Bool
     checkVersionExists pkg vsn = do
-      jpath <- getJSONPath (VersionObject pkg vsn)
+      jpath <- getJSONPath (QueryVersion pkg vsn)
       b1 <- doesFileExist jpath
       case b1 of
         True -> return True
@@ -362,7 +360,7 @@ getInfos opts qobj reqs = do
 
     checkModuleExists :: Package -> Version -> Module -> IO Bool
     checkModuleExists pkg vsn m = do
-      jpath <- getJSONPath (ModuleObject pkg vsn m)
+      jpath <- getJSONPath (QueryModule pkg vsn m)
       b1 <- doesFileExist jpath
       case b1 of
         True -> return True
@@ -370,42 +368,43 @@ getInfos opts qobj reqs = do
           allMods <- readPackageModules opts pkg vsn
 
           packageJSON <- readPackageJSON opts pkg vsn
-          let exportedMods = maybe allMods id (parseJSON packageJSON >>= getExportedModules)
+          let exportedMods = maybe allMods id
+                                (parseJSON packageJSON >>= getExportedModules)
 
           return (elem m exportedMods)
 
     checkTypeExists :: Package -> Version -> Module -> Type -> IO Bool
     checkTypeExists pkg vsn m t = do
-      jpath <- getJSONPath (TypeObject pkg vsn m t)
+      jpath <- getJSONPath (QueryType pkg vsn m t)
       b1 <- doesFileExist jpath
       case b1 of
         True -> return True
         False -> do
-          res <- query (ModuleObject pkg vsn m) "types"
+          res <- query (QueryModule pkg vsn m) "types"
           case res of
             Nothing -> return False
             Just ts -> return $ elem t ts
 
     checkTypeclassExists :: Package -> Version -> Module -> Typeclass -> IO Bool
     checkTypeclassExists pkg vsn m c = do
-      jpath <- getJSONPath (TypeClassObject pkg vsn m c)
+      jpath <- getJSONPath (QueryTypeClass pkg vsn m c)
       b1 <- doesFileExist jpath
       case b1 of
         True -> return True
         False -> do
-          res <- query (ModuleObject pkg vsn m) "typeclasses"
+          res <- query (QueryModule pkg vsn m) "typeclasses"
           case res of
             Nothing -> return False
             Just cs -> return $ elem c cs
 
     checkOperationExists :: Package -> Version -> Module -> Operation -> IO Bool
     checkOperationExists pkg vsn m o = do
-      jpath <- getJSONPath (OperationObject pkg vsn m o)
+      jpath <- getJSONPath (QueryOperation pkg vsn m o)
       b1 <- doesFileExist jpath
       case b1 of
         True -> return True
         False -> do
-          res <- query (ModuleObject pkg vsn m) "operations"
+          res <- query (QueryModule pkg vsn m) "operations"
           case res of
             Nothing -> return False
             Just os -> return $ elem o os

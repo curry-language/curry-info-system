@@ -81,17 +81,17 @@ getObject opts =
                  , extractOpt "typeclass" (optTypeclass opts)
                  , extractOpt "operation" (optOperation opts) ] of
     [] -> return Nothing
-    [("package", pkg)] -> return $ Just $ PackageObject pkg
+    [("package", pkg)] -> return $ Just $ QueryPackage pkg
     [("package", pkg), ("version", vsn)] ->
-      return $ Just $ VersionObject pkg vsn
+      return $ Just $ QueryVersion pkg vsn
     [("package", pkg), ("version", vsn), ("module", m)] ->
-      return $ Just $ ModuleObject pkg vsn m
+      return $ Just $ QueryModule pkg vsn m
     [("package", pkg), ("version", vsn), ("module", m), ("type", t)] ->
-      return $ Just $ TypeObject pkg vsn m t
+      return $ Just $ QueryType pkg vsn m t
     [("package", pkg), ("version", vsn), ("module", m), ("typeclass", c)] ->
-      return $ Just $ TypeClassObject pkg vsn m c
+      return $ Just $ QueryTypeClass pkg vsn m c
     [("package", pkg), ("version", vsn), ("module", m), ("operation", o)] ->
-      return $ Just $ OperationObject pkg vsn m o
+      return $ Just $ QueryOperation pkg vsn m o
     obj -> do putStrLn $ "Options '" ++
                 intercalate " " (map (\(t,v) -> "--" ++ t ++ "=" ++ v) obj) ++
                 "'\ndo not match any request pattern!"
@@ -106,12 +106,12 @@ cleanObject :: Options -> Maybe QueryObject -> IO ()
 cleanObject opts mbobj = case mbobj of
   Nothing -> cleanAll opts
   Just obj -> cleanJSON opts obj >> case obj of
-    PackageObject _             -> cleanDirectory opts obj
-    VersionObject pkg vsn       -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
-    ModuleObject pkg vsn _      -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
-    TypeObject pkg vsn _ _      -> cleanCheckout opts pkg vsn
-    TypeClassObject pkg vsn _ _ -> cleanCheckout opts pkg vsn
-    OperationObject pkg vsn _ _ -> cleanCheckout opts pkg vsn
+    QueryPackage _             -> cleanDirectory opts obj
+    QueryVersion pkg vsn       -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
+    QueryModule pkg vsn _      -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
+    QueryType pkg vsn _ _      -> cleanCheckout opts pkg vsn
+    QueryTypeClass pkg vsn _ _ -> cleanCheckout opts pkg vsn
+    QueryOperation pkg vsn _ _ -> cleanCheckout opts pkg vsn
 
 -- This action deletes the json file containing the stored information of the given object.
 cleanJSON :: Options -> QueryObject -> IO ()

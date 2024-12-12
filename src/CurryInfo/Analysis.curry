@@ -92,43 +92,43 @@ analyseWithCASS opts pkg vsn m name analysis field constructor = do
 -- the given path.
 analyseUnsafeModuleWithCASS :: Options -> Package -> Version -> Module -> IO (Maybe String)
 analyseUnsafeModuleWithCASS opts pkg vsn m =
-  analyseWithCASS opts pkg vsn m m "UnsafeModule" "cass-unsafemodule" (ModuleObject pkg vsn)
+  analyseWithCASS opts pkg vsn m m "UnsafeModule" "cass-unsafemodule" (QueryModule pkg vsn)
 
 -- This action initiates a call to CASS to compute the 'Deterministic' analysis for the given module in
 -- the given path.
 analyseDeterministicWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe String)
 analyseDeterministicWithCASS opts pkg vsn m o =
-  analyseWithCASS opts pkg vsn m o "Deterministic" "cass-deterministic" (OperationObject pkg vsn m)
+  analyseWithCASS opts pkg vsn m o "Deterministic" "cass-deterministic" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to CASS to compute the 'Demand' analysis for the given module in
 -- the given path.
 analyseDemandWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe String)
 analyseDemandWithCASS opts pkg vsn m o =
-  analyseWithCASS opts pkg vsn m o "Demand" "cass-demand" (OperationObject pkg vsn m)
+  analyseWithCASS opts pkg vsn m o "Demand" "cass-demand" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to CASS to compute the 'Indeterministic' analysis for the given module in
 -- the given path.
 analyseIndeterministicWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe String)
 analyseIndeterministicWithCASS opts pkg vsn m o =
-  analyseWithCASS opts pkg vsn m o "Indeterministic" "cass-indeterministic" (OperationObject pkg vsn m)
+  analyseWithCASS opts pkg vsn m o "Indeterministic" "cass-indeterministic" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to CASS to compute the 'SolComplete' analysis for the given module in
 -- the given path.
 analyseSolCompleteWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe String)
 analyseSolCompleteWithCASS opts pkg vsn m o =
-  analyseWithCASS opts pkg vsn m o "SolComplete" "cass-solcomplete" (OperationObject pkg vsn m)
+  analyseWithCASS opts pkg vsn m o "SolComplete" "cass-solcomplete" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to CASS to compute the 'Terminating' analysis for the given module in
 -- the given path.
 analyseTerminatingWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe String)
 analyseTerminatingWithCASS opts pkg vsn m o =
-  analyseWithCASS opts pkg vsn m o "Terminating" "cass-terminating" (OperationObject pkg vsn m)
+  analyseWithCASS opts pkg vsn m o "Terminating" "cass-terminating" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to CASS to compute the 'Total' analysis for the given module in
 -- the given path.
 analyseTotalWithCASS :: Options -> Package -> Version -> Module -> Operation -> IO (Maybe String)
 analyseTotalWithCASS opts pkg vsn m o =
-  analyseWithCASS opts pkg vsn m o "Total" "cass-total" (OperationObject pkg vsn m)
+  analyseWithCASS opts pkg vsn m o "Total" "cass-total" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.
@@ -136,5 +136,5 @@ analyseFailFree :: Options -> Package -> Version -> Module -> Operation
         -> IO (Maybe String)
 analyseFailFree opts pkg vsn m o =
   analyseWithCASS opts pkg vsn m o "FailFree" "failfree"
-                 (OperationObject pkg vsn m)
+                 (QueryOperation pkg vsn m)
  
