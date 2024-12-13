@@ -20,22 +20,22 @@ runCmd :: Options -> (String, IO (Int, String, String))
        -> IO (Int, String, String)
 runCmd opts (cmd, action) = do
   printDetailMessage opts $ "Running command '" ++ cmd ++ "'..."
-  (exitCode, output, err) <- action
-  case exitCode of
-    127 -> printDetailMessage opts "Command could not be found."
-    126 -> printDetailMessage opts "Command was not an executable."
-    0   -> printDetailMessage opts "Command finished successfully."
-    _   -> printDetailMessage opts $ "Command failed with exit code '" ++
-                                     show exitCode ++ "'."
+  (ecode, output, err) <- action
+  when (ecode > 0) $ do
+    printStatusMessage opts $ "COMMAND: " ++ cmd ++ "\n" ++
+      case ecode of
+        127 -> "Command could not be found."
+        126 -> "Command was not an executable."
+        _   -> "Failed with exit code " ++ show ecode ++ "."
 
   printDebugMessage opts "Command finished with output:"
   printDebugMessage opts output
 
-  when (not (null err) && exitCode > 0) $ do
+  when (not (null err) && ecode > 0) $ do
     printStatusMessage opts "COMMAND FINISHED WITH ERROR OUTPUT:"
     printStatusMessage opts err
 
-  return (exitCode, output, err)
+  return (ecode, output, err)
 
 -- This action calls CPM to checkout the given package with the given version
 -- to the given path.
@@ -72,15 +72,9 @@ cmdCurryLoad path m =
 -- in the given path.
 cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
 cmdCASS path analysis m =
-  let execbin = "cass"
-      x@(cmd:args) = ["cypm", "exec", execbin, "-f", "JSONTerm", analysis, m]
-
-      action = do
-        binexists <- fileInPath execbin
-        if binexists
-          then evalCmdInDirectory path cmd args ""
-          else return (1, "", "Binary '" ++ execbin ++ "' not found in PATH!")
-
+  let x@(cmd:args) = ["cypm", "exec", "cass", "-q", "-f", "JSONTerm"
+                     , analysis, m]
+      action = evalCmdInDirectory path cmd args ""
   in (unwords x, action)
 
 -- This action calls `curry-calltypes` to compute results for the `failfree`
@@ -88,23 +82,20 @@ cmdCASS path analysis m =
 cmdCallTypes :: FilePath -> String -> Module
              -> (String, IO (Int, String, String))
 cmdCallTypes path _ m =
-  let execbin = "curry-calltypes"
-      x@(cmd:args) = ["cypm", "exec", execbin, "--format=json", m]
-
-      action = do
-        binexists <- fileInPath execbin
-        if binexists
-          then evalCmdInDirectory path cmd args ""
-          else return (1, "", "Binary '" ++ execbin ++ "' not found in PATH!")
-
+  let x@(cmd:args) = [ "cypm", "exec", "curry-calltypes", "-v1"
+                     , "--format=json", m]
+      action = evalCmdInDirectory path cmd args ""
   in (unwords x, action)
 
 -- Run `evalCmd` in a given directory.
 evalCmdInDirectory :: FilePath -> String -> [String] -> String
                    -> IO (Int,String,String)
 evalCmdInDirectory path cmd args inp = do
-  current <- getCurrentDirectory
-  setCurrentDirectory path
-  (exitCode, output, err) <- evalCmd cmd args inp
-  setCurrentDirectory current
-  return (exitCode, output, err)
+  binexists <- fileInPath cmd
+  if binexists
+    then do current <- getCurrentDirectory
+            setCurrentDirectory path
+            (exitCode, output, err) <- evalCmd cmd args inp
+            setCurrentDirectory current
+            return (exitCode, output, err)
+    else return (1, "", "Binary '" ++ cmd ++ "' not found in PATH!")

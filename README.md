@@ -12,7 +12,7 @@ Installation
 
 The tool itself can be simply installed by
 
-    > git clone https://git.ps.informatik.uni-kiel.de/curry-packages/curry-info-system.git
+    > git clone https://github.com/curry-language/curry-info-system.git
     > cd curry-info-system
     > cypm install
 
