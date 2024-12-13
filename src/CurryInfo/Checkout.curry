@@ -64,6 +64,6 @@ checkoutIfMissing opts pkg vsn = do
     False -> do
       printDetailMessage opts "Directory does not exist. Checkout necessary."
       printDetailMessage opts $ "Creating checkout..."
-      runCmd opts $ cmdCheckout path pkg vsn
+      runCmd opts $ cmdCheckout opts path pkg vsn
       printDetailMessage opts "Checkout created."
       return $ Just path

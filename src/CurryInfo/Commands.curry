@@ -39,61 +39,64 @@ runCmd opts (cmd, action) = do
 
 -- This action calls CPM to checkout the given package with the given version
 -- to the given path.
-cmdCheckout :: String -> Package -> Version -> (String, IO (Int,String,String))
-cmdCheckout path pkg vsn =
+cmdCheckout :: Options -> String -> Package -> Version
+            -> (String, IO (Int,String,String))
+cmdCheckout _ path pkg vsn =
   let x@(cmd:args) = ["cypm", "checkout", "-o", path, pkg, vsn]
       action = evalCmd cmd args ""
   in (unwords x, action)
 
 -- This action calls CPM to install dependencies in the given path.
-cmdCPMInstall :: String -> (String, IO (Int, String, String))
-cmdCPMInstall path = 
-  let x@(cmd:args) = ["cypm", "install"]
-      action = evalCmdInDirectory path cmd args ""
+cmdCPMInstall :: Options -> String -> (String, IO (Int, String, String))
+cmdCPMInstall opts path = 
+  let x@(cmd:args) = ["cypm", "install", "--noexec"]
+      action = evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- This action calls CPM to update the package index in the given path.
-cmdCPMUpdate :: String -> (String, IO (Int, String, String))
-cmdCPMUpdate path =
+cmdCPMUpdate :: Options -> String -> (String, IO (Int, String, String))
+cmdCPMUpdate opts path =
   let x@(cmd:args) = ["cypm", "update"]
-      action = evalCmdInDirectory path cmd args ""
+      action = evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- This action calls curry to load a specific module and immediatly quits again.
 -- This is done to initiate the compiler to generate files for the module
 -- (i.e., interface `.icurry` files).
-cmdCurryLoad :: String -> Module -> (String, IO (Int, String, String))
-cmdCurryLoad path m =
+cmdCurryLoad :: Options -> String -> Module -> (String, IO (Int, String, String))
+cmdCurryLoad opts path m =
   let x@(cmd:args) = ["cypm", "curry", ":l", m, ":q"]
-      action = evalCmdInDirectory path cmd args ""
+      action = evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- This action calls CASS to compute the given analysis for the given module
 -- in the given path.
-cmdCASS :: String -> String -> Module -> (String, IO (Int, String, String))
-cmdCASS path analysis m =
+cmdCASS :: Options -> String -> String -> Module
+        -> (String, IO (Int, String, String))
+cmdCASS opts path analysis m =
   let x@(cmd:args) = ["cypm", "exec", "cass", "-q", "-f", "JSONTerm"
                      , analysis, m]
-      action = evalCmdInDirectory path cmd args ""
+      action = evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- This action calls `curry-calltypes` to compute results for the `failfree`
 -- analysis on the given module in the given path.
-cmdCallTypes :: FilePath -> String -> Module
+cmdCallTypes :: Options -> FilePath -> String -> Module
              -> (String, IO (Int, String, String))
-cmdCallTypes path _ m =
+cmdCallTypes opts path _ m =
   let x@(cmd:args) = [ "cypm", "exec", "curry-calltypes", "-v1"
                      , "--format=json", m]
-      action = evalCmdInDirectory path cmd args ""
+      action = evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- Run `evalCmd` in a given directory.
-evalCmdInDirectory :: FilePath -> String -> [String] -> String
+evalCmdInDirectory :: Options -> FilePath -> String -> [String] -> String
                    -> IO (Int,String,String)
-evalCmdInDirectory path cmd args inp = do
+evalCmdInDirectory opts path cmd args inp = do
   binexists <- fileInPath cmd
   if binexists
     then do current <- getCurrentDirectory
+            printDebugMessage opts $ "Switch to directory: " ++ path
             setCurrentDirectory path
             (exitCode, output, err) <- evalCmd cmd args inp
             setCurrentDirectory current

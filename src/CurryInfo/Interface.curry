@@ -56,8 +56,8 @@ readInterface opts pkg vsn m = do
         False -> do
           printDebugMessage opts "icurry file does not exist."
           printDebugMessage opts "Generating icurry file..."
-          runCmd opts (cmdCPMInstall path)
-          runCmd opts (cmdCurryLoad path m)
+          runCmd opts (cmdCPMInstall opts path)
+          runCmd opts (cmdCurryLoad opts path m)
           printDebugMessage opts "Reading interface..."
           result <- readCurryInterfaceFile icurry
           return $ Just result
