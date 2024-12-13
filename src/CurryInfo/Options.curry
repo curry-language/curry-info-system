@@ -1,6 +1,6 @@
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --- This modules defines sets of options and operations to process them.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
 module CurryInfo.Options where
 
@@ -46,7 +46,7 @@ testOptions = defaultOptions { optVerb = 4 }
 queryOptions :: Options
 queryOptions = silentOptions { optOutput = OutTerm }
 
--- This action takes the agrument given to the program and processes the arguments.
+-- This action takes the agruments given to the program and processes them.
 -- If the help option is True, it prints the usage text and stops.
 -- If some error happens, an error message is printed and the program stops.
 processOptions :: String -> [String] -> IO (Options, [String])
@@ -65,7 +65,7 @@ processOptions banner argv = do
 usageText :: String
 usageText =
   usageInfo ("Usage: tool [options] <requests>\n") options ++
-  "\nRequests:\n\n" ++
+  "\nRequests for different kinds of entities:\n\n" ++
   printRequests "Package" packageConfiguration ++
   printRequests "Version" versionConfiguration ++
   printRequests "Module" moduleConfiguration ++
@@ -109,18 +109,22 @@ cleanObject opts mbobj = case mbobj of
   Nothing -> cleanAll opts
   Just obj -> cleanJSON opts obj >> case obj of
     QueryPackage _             -> cleanDirectory opts obj
-    QueryVersion pkg vsn       -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
-    QueryModule pkg vsn _      -> cleanDirectory opts obj >> cleanCheckout opts pkg vsn
+    QueryVersion pkg vsn       -> cleanDirectory opts obj >>
+                                  cleanCheckout opts pkg vsn
+    QueryModule pkg vsn _      -> cleanDirectory opts obj >>
+                                  cleanCheckout opts pkg vsn
     QueryType pkg vsn _ _      -> cleanCheckout opts pkg vsn
     QueryTypeClass pkg vsn _ _ -> cleanCheckout opts pkg vsn
     QueryOperation pkg vsn _ _ -> cleanCheckout opts pkg vsn
 
--- This action deletes the json file containing the stored information of the given object.
+-- This action deletes the json file containing the stored information
+-- of the given object.
 cleanJSON :: Options -> QueryObject -> IO ()
 cleanJSON opts obj = do
   getJSONPath obj >>= deleteFile opts
 
--- This action deletes the directory, in which the information of the given object art stored.
+-- This action deletes the directory, in which the information of the
+-- given object art stored.
 cleanDirectory :: Options -> QueryObject -> IO ()
 cleanDirectory opts obj = do
   getDirectoryPath obj >>= deleteDirectory opts
@@ -134,7 +138,8 @@ cleanCheckout opts pkg vsn = do
 quote :: String -> String
 quote s = "\"" ++ s ++ "\""
 
--- This action deletes the entire directory used by this tool to store information locally.
+-- This action deletes the entire directory used by this tool to store
+-- information locally.
 cleanAll :: Options -> IO ()
 cleanAll opts = root >>= deleteDirectory opts
 
@@ -146,15 +151,12 @@ delete check cmd opts path = do
   when exists $ do
     let cmd' = cmd ++ " " ++ quote path
     exitCode <- system cmd'
-    case exitCode of
-      127 -> do
-        printDetailMessage opts $ "Command '" ++ cmd' ++ "' could not be found."
-      126 -> do
-        printDetailMessage opts $ "Command '" ++ cmd' ++ "' was not an executable."
-      0 -> do
-        printDetailMessage opts $ "Command '" ++ cmd' ++ "' finished successfully."
-      _ -> do
-        printDetailMessage opts $ "Command '" ++ cmd' ++ "' failed with exist code '" ++ show exitCode ++ "'."
+    printDetailMessage opts $ case exitCode of
+      127 -> "Command '" ++ cmd' ++ "' could not be found."
+      126 -> "Command '" ++ cmd' ++ "' was not an executable."
+      0   -> "Command '" ++ cmd' ++ "' finished successfully."
+      _   -> "Command '" ++ cmd' ++ "' failed with exist code '" ++
+             show exitCode ++ "'."
 
 -- This action deletes the given directory, including all its contents.
 deleteDirectory :: Options -> String -> IO ()
@@ -171,8 +173,11 @@ options =
        (NoArg (\opts -> opts { optHelp = True }))
        "print help and exit"
   , Option "v" ["verbosity"]
-       (OptArg (maybe (checkVerb 1) (safeReadNat checkVerb)) "<n>")
-       "verbosity level:\n0: quiet (no output besides the result)\n1: show status messages (default)\n2: show actions performed\n3: show all details (commands, files,...)"
+       (OptArg (maybe (checkVerb 2) (safeReadNat checkVerb)) "<n>")
+       "verbosity level:\n0: quiet (no output besides info result)\n1: show status messages (default)\n2: show actions performed (same as '-v')\n3: show all details (commands, files,...)"
+  , Option "q" ["quiet"]
+       (NoArg (\opts -> opts { optVerb = 0 }))
+       "run quietly (same as `--quiet`)"
   , Option "f" ["force"]
        (OptArg (maybe (checkForce 1) (safeReadNat checkForce)) "<n>")
        "force generation of requested information:\n0: no generation\n1: only generate when missing (default)\n2: always generate"
@@ -229,6 +234,7 @@ options =
       if n >= 0 && n <= 3
         then opts { optVerb = n }
         else error "Illegal verbosity level (try '-h' for help)"
+
     checkForce n opts =
       if n >= 0 && n <= 2
         then opts { optForce = n }

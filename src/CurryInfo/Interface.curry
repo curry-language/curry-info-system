@@ -6,7 +6,7 @@ module CurryInfo.Interface where
 
 import CurryInfo.Checkout (getCheckoutPath, checkoutIfMissing)
 import CurryInfo.Types
-import CurryInfo.Commands (runCmd, cmdCYPMInstall, cmdCurryLoad)
+import CurryInfo.Commands (runCmd, cmdCPMInstall, cmdCurryLoad)
 import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
 
 import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
@@ -56,7 +56,7 @@ readInterface opts pkg vsn m = do
         False -> do
           printDebugMessage opts "icurry file does not exist."
           printDebugMessage opts "Generating icurry file..."
-          runCmd opts (cmdCYPMInstall path)
+          runCmd opts (cmdCPMInstall path)
           runCmd opts (cmdCurryLoad path m)
           printDebugMessage opts "Reading interface..."
           result <- readCurryInterfaceFile icurry
@@ -167,8 +167,9 @@ isHiddenClass decl = case decl of
   HidingClassDecl _ _ _ _ _ -> True
   _                         -> False
 
--- This operation returns the name of a type class from a hiding class declaration. If the given
--- declaration is not of a hiding class, Nothing is returned.
+-- This operation returns the name of a type class from a hiding class
+-- declaration.
+-- If the given declaration is not of a hiding class, Nothing is returned.
 getHiddenClassName :: IDecl -> Maybe String
 getHiddenClassName decl = case decl of
   HidingClassDecl _ name _ _ _ -> Just $ idName $ qidIdent name
@@ -176,7 +177,8 @@ getHiddenClassName decl = case decl of
 
 -- OPERATION
 
--- This operation returns the declarations of operations from the given declarations.
+-- This operation returns the declarations of operations from the
+-- given declarations.
 getOperations :: [IDecl] -> [IDecl]
 getOperations = filter isOperation
 
@@ -191,22 +193,22 @@ isOperation decl = case decl of
 getOperationDecl :: String -> [IDecl] -> Maybe IDecl
 getOperationDecl o = find (\decl -> Just o == getOperationName decl)
 
--- This operation returns the name of the given operation declaration. If the given
--- declaration is not of an operation, Nothing is returned.
+-- This operation returns the name of the given operation declaration.
+-- If the given declaration is not of an operation, Nothing is returned.
 getOperationName :: IDecl -> Maybe String
 getOperationName decl = case decl of
   IFunctionDecl name _ _ _    -> Just $ idName $ qidIdent name
   _                           -> Nothing
 
--- This operation returns the arity from the given operation declaration. If the given
--- declaration is not of an operation, Nothing is returned.
+-- This operation returns the arity from the given operation declaration.
+-- If the given declaration is not of an operation, Nothing is returned.
 getOperationArity :: IDecl -> Maybe Int
 getOperationArity decl = case decl of
   IFunctionDecl _ _ arity _   -> Just arity
   _                           -> Nothing
 
--- This operation returns the signature of the given operation declaration. If the given
--- declaration is not of an operation, Nothing is returned.
+-- This operation returns the signature of the given operation declaration.
+-- If the given declaration is not of an operation, Nothing is returned.
 getOperationSignature :: IDecl -> Maybe Signature
 getOperationSignature decl = case decl of
   IFunctionDecl _ _ _ t   -> Just $ (pPrint . ppQualType defaultOptions) t
@@ -233,8 +235,8 @@ getOperationInfix decl = case decl of
     CurryInterface.Types.InfixR -> Just CurryInfo.Types.InfixR
   _                   -> Nothing
 
--- This operation returns the precedence of the given infix declaration. If the given
--- declaration ii not of an infix, Nothing is returned.
+-- This operation returns the precedence of the given infix declaration.
+-- If the given declaration ii not of an infix, Nothing is returned.
 getOperationPrecedence :: IDecl -> Maybe CurryInfo.Types.Precedence
 getOperationPrecedence decl = case decl of
   IInfixDecl _ p _    -> Just p

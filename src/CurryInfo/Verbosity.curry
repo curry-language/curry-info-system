@@ -34,10 +34,10 @@ isDetail opts = optVerb opts >= detailVerbosity
 isDebug :: Options -> Bool
 isDebug opts = optVerb opts >= debugVerbosity
 
---- This action prints a message to stderr if the boolean function returns
+--- This action prints a message to stderr if the Boolean function returns
 --- True on the options.
 printMessage :: (Options -> Bool) -> Options -> String -> IO ()
-printMessage checker opts msg = when (checker opts) (hPutStrLn stderr msg)
+printMessage checker opts msg = when (checker opts) (putStrLn msg)
 
 --- This action prints a Status message if the verbosity level is high enough.
 printStatusMessage :: Options -> String -> IO ()
@@ -50,3 +50,7 @@ printDetailMessage = printMessage isDetail
 --- This action prints a Debug message if the verbosity level is high enough.
 printDebugMessage :: Options -> String -> IO ()
 printDebugMessage = printMessage isDebug
+
+--- Print the argument string as a line to stderr.
+printErrorMessage :: String -> IO ()
+printErrorMessage msg = hPutStrLn stderr msg

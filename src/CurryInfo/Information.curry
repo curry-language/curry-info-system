@@ -54,10 +54,10 @@ generateOutputError opts err = do
 --- returns the output for the requests.
 getInfos :: Options -> QueryObject -> [String] -> IO Output
 getInfos opts qobj reqs = do
-  printStatusMessage opts "Checking structure of the request..."
+  printDetailMessage opts "Checking structure of the request..."
   case qobj of
     QueryPackage pkg -> do
-      printStatusMessage opts "Structure matches Package."
+      printDetailMessage opts "Request is Package."
       result <- checkPackageExists pkg
       case result of
         False -> do
@@ -68,7 +68,7 @@ getInfos opts qobj reqs = do
           printDebugMessage opts "Package exists."
           getInfosConfig opts qobj reqs packageConfiguration (CurryPackage pkg)
     QueryVersion pkg vsn -> do
-      printStatusMessage opts "Structure matches Version."
+      printDetailMessage opts "Request is Version."
       result <- checkVersionExists pkg vsn
       case result of
         False -> do
@@ -77,11 +77,11 @@ getInfos opts qobj reqs = do
           printDetailMessage opts err
           generateOutputError opts err
         True -> do
-          printDetailMessage opts "Checked Version: exists."
+          printDetailMessage opts "Version entity exists."
           getInfosConfig opts qobj reqs
                          versionConfiguration (CurryVersion pkg vsn)
     QueryModule pkg vsn m -> do
-      printStatusMessage opts "Structure matches Module."
+      printDetailMessage opts "Request is Module."
       result <- checkModuleExists pkg vsn m
       case result of
         False -> do
@@ -90,7 +90,7 @@ getInfos opts qobj reqs = do
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
-          printDetailMessage opts "Checked Module: exists."
+          printDetailMessage opts "Module entity exists."
           case (optAllTypes opts, optAllTypeclasses opts, optAllOperations opts) of
             (True, _, _) -> do
               mts <- queryAllTypes pkg vsn m
@@ -132,7 +132,7 @@ getInfos opts qobj reqs = do
               getInfosConfig opts qobj reqs
                              moduleConfiguration (CurryModule pkg vsn m)
     QueryType pkg vsn m t -> do
-      printStatusMessage opts "Structure matches Type"
+      printDetailMessage opts "Request is Type"
       result <- checkTypeExists pkg vsn m t
       case result of
         False -> do
@@ -141,11 +141,11 @@ getInfos opts qobj reqs = do
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
-          printDetailMessage opts "Checked Type: exists."
+          printDetailMessage opts "Type entity exists."
           getInfosConfig opts qobj reqs
                          typeConfiguration (CurryType pkg vsn m t)
     QueryTypeClass pkg vsn m c -> do
-      printStatusMessage opts "Structure matches Typeclass"
+      printDetailMessage opts "Request is Typeclass"
       result <- checkTypeclassExists pkg vsn m c
       case result of
         False -> do
@@ -155,11 +155,11 @@ getInfos opts qobj reqs = do
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
-          printDetailMessage opts "Checked Typeclass: exists."
+          printDetailMessage opts "Typeclass entity exists."
           getInfosConfig opts qobj reqs
                          typeclassConfiguration (CurryTypeclass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
-      printStatusMessage opts "Structure matches Operation."
+      printDetailMessage opts "Request is Operation."
       result <- checkOperationExists pkg vsn m o
       case result of
         False -> do
@@ -169,7 +169,7 @@ getInfos opts qobj reqs = do
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
-          printDetailMessage opts "Checked Operation: exists."
+          printDetailMessage opts "Operation entity exists."
           getInfosConfig opts qobj reqs
                          operationConfiguration (CurryOperation pkg vsn m o)
  where
@@ -272,9 +272,9 @@ whenFileDoesNotExist path act = do
 getInfosConfig :: Options -> QueryObject -> [String]
               -> [RegisteredRequest a] -> a -> IO Output
 getInfosConfig opts queryobject reqs conf configobject = do
-  printStatusMessage opts "Initializing Input..."
+  printDetailMessage opts "Initializing store for entity..."
   initializeStore queryobject
-  printStatusMessage opts "Reading current information..."
+  printDetailMessage opts "Reading current entity information..."
   mfields <- readObjectInformation opts queryobject
   case mfields of
     Nothing -> do
@@ -284,7 +284,7 @@ getInfosConfig opts queryobject reqs conf configobject = do
       printDetailMessage opts "Reading information succeeded."
       case optShowAll opts of
         True -> do
-          printStatusMessage opts
+          printDetailMessage opts
             "Returning all currently available information..."
           let fieldNames = map fst fields
           case mapM (flip lookupRequest conf) fieldNames of
@@ -351,14 +351,15 @@ getInfosConfig opts queryobject reqs conf configobject = do
                               results))]
 
   extractOrGenerate fields obj reqerrormsg req = do
-    printStatusMessage opts $ "\nProcessing request '" ++ req ++ "'..."
+    printDetailMessage opts $ "\nProcessing request '" ++ req ++ "'..."
     case lookupRequest req conf of
       Nothing -> do
         let msg = reqerrormsg req
         printDetailMessage opts $ msg
-        return (req, InformationError "REQUEST NOT FOUND")
+        return (req, InformationError "REQUEST DOES NOT EXIST IN CONFIGURATION")
       Just (_, _, extractor, generator) -> do
-        printDetailMessage opts "Found request. Looking at Force option..."
+        printDetailMessage opts
+          "Request found in configuration. Looking at Force option..."
         case optForce opts of
           0 -> do
             printDebugMessage opts "Force option 0: Only extraction"
@@ -411,7 +412,7 @@ extract opts extractor fields = do
   extractionResult <- extractor opts fields
   case extractionResult of
     Nothing -> do
-      printDetailMessage opts "Extraction failed."
+      printDetailMessage opts "Extraction failed: no such request in entity"
       return Nothing
     Just (jv, output) -> do
       printDetailMessage opts "Extraction succeeded."
