@@ -193,17 +193,19 @@ errorRequestObject (QueryOperation pkg vsn m o) req =
   pkg ++ " could not be read."
 
 --- Transforms an object into a string of tuples with the various components.
+--- For entities inside a module, only the module name and entitiy name
+--- is printed.
 object2StringTuple :: QueryObject -> String
 object2StringTuple (QueryPackage pkg) = show pkg
 object2StringTuple (QueryVersion pkg vsn) =
   parenthesize (intercalate ", " [show pkg, show vsn])
 object2StringTuple (QueryModule pkg vsn m) =
   parenthesize (intercalate ", " [show pkg, show vsn, show m])
-object2StringTuple (QueryType pkg vsn m t) =
-  parenthesize (intercalate ", " [show pkg, show vsn, show m, show t])
-object2StringTuple (QueryTypeClass pkg vsn m c) =
-  parenthesize (intercalate ", " [show pkg, show vsn, show m, show c])
-object2StringTuple (QueryOperation pkg vsn m o) =
-  parenthesize (intercalate ", " [show pkg, show vsn, show m, show o])
+object2StringTuple (QueryType _ _ m t) =
+  parenthesize (intercalate ", " [show m, show t])
+object2StringTuple (QueryTypeClass _ _ m c) =
+  parenthesize (intercalate ", " [show m, show c])
+object2StringTuple (QueryOperation _ _ m o) =
+  parenthesize (intercalate ", " [show m, show o])
 
 ------------------------------------------------------------------------------

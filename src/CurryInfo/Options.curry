@@ -200,8 +200,9 @@ options =
        (ReqArg (\args opts -> opts { optOperation = Just args }) "<o>")
        "requested operation"
   , Option "" ["output"]
-       (OptArg (\args opts -> opts { optOutput = maybe OutText read args })
-               "<format>")
+       (ReqArg (\args opts -> opts { optOutput =
+                                       maybe OutText id (safeRead args) })
+          "<format>")
        "output format: Text (default), JSON, CurryTerm"
   , Option "" ["clean"]
        (NoArg (\opts -> opts { optClean = True }))

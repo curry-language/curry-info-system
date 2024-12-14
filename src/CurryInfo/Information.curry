@@ -6,7 +6,8 @@
 module CurryInfo.Information ( getInfos, printResult ) where
 
 import CurryInfo.Configuration
-import CurryInfo.Paths     ( index, getJSONPath, initializeStore )
+import CurryInfo.Paths     ( index, getDirectoryPath, getJSONPath
+                           , initializeStore, jsonFile2Name )
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
@@ -21,13 +22,15 @@ import JSON.Pretty (ppJSON)
 import JSON.Data
 import JSON.Parser (parseJSON)
 
-import Data.Maybe (isJust)
-import Data.Either (partitionEithers)
-import Data.Char (toLower)
+import Data.Char   ( toLower )
+import Data.Either ( partitionEithers )
+import Data.List   ( isSuffixOf )
+import Data.Maybe  ( catMaybes, isJust )
 
-import System.Environment (getArgs)
-import System.FilePath ((</>), (<.>))
-import System.Directory (doesDirectoryExist, doesFileExist)
+import System.Environment ( getArgs )
+import System.FilePath    ( (</>), (<.>) )
+import System.Directory   ( doesDirectoryExist, doesFileExist
+                          , getDirectoryContents )
 
 import Control.Monad (unless, zipWithM, when)
 
@@ -173,14 +176,23 @@ getInfos opts qobj reqs = do
           getInfosConfig opts qobj reqs
                          operationConfiguration (CurryOperation pkg vsn m o)
  where
+  queryAllEntities :: QueryObject -> IO (Maybe [String])
+  queryAllEntities qo = do
+    dir <- getDirectoryPath qo
+    exdir <- doesDirectoryExist dir
+    if exdir then do jsonfiles <- fmap (catMaybes . map jsonFile2Name)
+                                       (getDirectoryContents dir)
+                     return (Just jsonfiles)
+             else return Nothing
+
   queryAllTypes :: Package -> Version -> Module -> IO (Maybe [Type])
-  queryAllTypes pkg vsn m = query (QueryModule pkg vsn m) "types"
+  queryAllTypes pkg vsn m = queryAllEntities (QueryType pkg vsn m "?")
 
   queryAllTypeclasses :: Package -> Version -> Module -> IO (Maybe [Typeclass])
-  queryAllTypeclasses pkg vsn m = query (QueryModule pkg vsn m) "typeclasses"
+  queryAllTypeclasses pkg vsn m = queryAllEntities (QueryTypeClass pkg vsn m "?")
 
   queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
-  queryAllOperations pkg vsn m = query (QueryModule pkg vsn m) "operations"
+  queryAllOperations pkg vsn m = queryAllEntities (QueryOperation pkg vsn m "?")
 
   query :: Read a => QueryObject -> String -> IO (Maybe a)
   query obj req = do
@@ -270,7 +282,7 @@ whenFileDoesNotExist path act = do
 --- w.r.t. to the configuration for the kind of query object and
 --- returns the output for the requests.
 getInfosConfig :: Options -> QueryObject -> [String]
-              -> [RegisteredRequest a] -> a -> IO Output
+               -> [RegisteredRequest a] -> a -> IO Output
 getInfosConfig opts queryobject reqs conf configobject = do
   printDetailMessage opts "Initializing store for entity..."
   initializeStore queryobject
@@ -333,13 +345,14 @@ getInfosConfig opts queryobject reqs conf configobject = do
   createOutput :: QueryObject -> [(String, InformationResult)] -> Output
   createOutput obj results = case optOutput opts of
     OutText -> OutputText $ unlines $
-            (if outputSingleEntity then [] else [object2StringTuple obj]) ++
-            map (\(r, ir) -> r ++ ": " ++ 
-                    information "?" id (flip const) ir)
-              results
+                 (if outputSingleEntity then []
+                                        else [object2StringTuple obj]) ++
+                 map (\(r, ir) -> r ++ ": " ++ 
+                        information "?" id (flip const) ir)
+                    results
     OutJSON -> OutputJSON $ JObject
                   [("object", (JString . object2StringTuple) obj),
-                  ("results",
+                   ("results",
                     JObject (map (\(r, ir) ->
                                     (r, information JNull JString
                                           (\_ s -> JString s) ir))

@@ -16,7 +16,7 @@ slice start end l = take (end - start) (drop start l)
 safeRead :: Read a => String -> Maybe a
 safeRead s = case readsPrec 0 s of
     [(x, "")] -> Just x
-    _ -> Nothing
+    _         -> Nothing
 
 --- This type is used to differentiate between a request failing because of missing information and other errors.
 data InformationResult = InformationError String | InformationResult JValue String | InformationExtractionFailed

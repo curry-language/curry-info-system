@@ -4,6 +4,8 @@
 
 module CurryInfo.Paths where
 
+import Data.List        ( isSuffixOf )
+import Numeric          ( readHex )
 import CurryInfo.Types
 
 import System.Directory ( createDirectoryIfMissing, getDirectoryContents
@@ -77,10 +79,27 @@ getJSONPath x@(QueryOperation _ _ _ o) = do
   convert o' = '_': concat (map (intToHex . ord) o')
   intToHex i = reverse $ map (cs !!)
                               (map (flip mod 16)
-                                  (takeWhile (> 0)
+                                   (takeWhile (> 0)
                                               (iterate (flip div 16) i)))
   cs = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
         'A', 'B', 'C', 'D', 'E', 'F']
+
+--- Translates a JSON file name (without directory but with suffix `.json`)
+--- into name of corresponding entity.
+jsonFile2Name :: String -> Maybe String
+jsonFile2Name fns
+  | ".json" `isSuffixOf` fns
+  = let fn = take (length fns - 5) fns
+    in if take 1 fn == "_"
+         then decodeHex "" (tail fn)
+         else Just fn
+  | otherwise = Nothing
+ where
+  decodeHex s []         = Just (reverse s)
+  decodeHex _ [_]        = Nothing
+  decodeHex s (c1:c2:cs) = case readHex [c1,c2] of
+                             [(h,"")] -> decodeHex (chr h : s) cs
+                             _        -> Nothing
 
 -- This action returns the content of a given directory excluding "." and "..".
 getReducedDirectoryContents :: String -> IO [String]

@@ -6,6 +6,7 @@ module CurryInfo.Server.Server where
 
 import CurryInfo.Types
 import CurryInfo.Options
+import CurryInfo.Verbosity
 import CurryInfo.Information (getInfos, printResult)
 import CurryInfo.Configuration
 import CurryInfo.Helper (safeRead)
@@ -37,46 +38,46 @@ data InfoServerMessage
   | ParseError
 
 -- This action starts the server.
-mainServer :: CConfig -> Maybe Int -> IO ()
-mainServer cconfig mbport = do
-  putStrLn "Start Server"
+startServer :: Options -> IO ()
+startServer opts = do
+  printStatusMessage opts "Start Server"
   (port1, socket1) <- maybe listenOnFresh
             (\p -> listenOn p >>= \s -> return (p, s))
-            mbport
+            (optPort opts)
   putStrLn ("Server Port: " ++ show port1)
   storeServerPortNumber port1
-  serverLoop cconfig socket1
+  serverLoop opts socket1
 
 -- This action is the main server loop.
-serverLoop :: CConfig -> Socket -> IO ()
-serverLoop cconfig socket1 = do
+serverLoop :: Options -> Socket -> IO ()
+serverLoop opts socket1 = do
   connection <- waitForSocketAccept socket1 waitTime
   case connection of
-    Just (_, handle) -> serverLoopOnHandle cconfig socket1 handle
+    Just (_, handle) -> serverLoopOnHandle opts socket1 handle
     Nothing -> do
       putStrLn "serverLoop: connection error: time out in waitForSocketAccept"
       sleep 1
-      serverLoop cconfig socket1
+      serverLoop opts socket1
 
 -- This action is the main loop of handling communication after successfully connecting.
-serverLoopOnHandle :: CConfig -> Socket -> Handle -> IO ()
-serverLoopOnHandle cconfig socket1 handle = do
+serverLoopOnHandle :: Options -> Socket -> Handle -> IO ()
+serverLoopOnHandle opts socket1 handle = do
   eof <- hIsEOF handle
   if eof
     then do
       hClose handle
-      debugMessage dl 2 "SERVER connection: eof"
-      serverLoop cconfig socket1
+      printDetailMessage opts "SERVER connection: eof"
+      serverLoop opts socket1
     else do
       string <- hGetLineUntilEOF handle
-      debugMessage dl 2 ("SERVER got message: " ++ string)
+      printDetailMessage opts $ "SERVER got message: " ++ string
       case parseServerMessage string of
         ParseError -> do
-          sendServerError dl handle ("Illegal message received: " ++ string)
-          serverLoopOnHandle cconfig socket1 handle
+          sendServerError opts handle $ "Illegal message received: " ++ string
+          serverLoopOnHandle opts socket1 handle
         GetRequests mobj -> do
-          sendRequestNamesAndFormats dl handle mobj
-          serverLoopOnHandle cconfig socket1 handle
+          sendRequestNamesAndFormats opts handle mobj
+          serverLoopOnHandle opts socket1 handle
         GetCommands -> do
           let msg =
                 [ "GetRequests | GetRequests <obj>"
@@ -93,7 +94,7 @@ serverLoopOnHandle cconfig socket1 handle = do
                 , "StopServer"
                 ]
           sendServerResult handle (unlines msg)
-          serverLoopOnHandle cconfig socket1 handle
+          serverLoopOnHandle opts socket1 handle
         RequestPackageInformation moutform mforce pkg reqs -> 
           requestInformation moutform mforce Single (QueryPackage pkg) reqs
         RequestVersionInformation moutform mforce pkg vsn reqs -> 
@@ -116,37 +117,33 @@ serverLoopOnHandle cconfig socket1 handle = do
           sendServerResult handle ""
           hClose handle
           close socket1
-          putStrLn "Stop Server"
+          printStatusMessage opts "Stop Server"
           removeServerPortNumber
-        -- _ -> do putStrLn "NOT IMPLEMENTED YET"
-        --         serverLoopOnHandle cconfig socket1 handle
-  where
-    dl = debugLevel cconfig
-
-    sendResult resultstring = do
-      debugMessage dl 4 ("formatted result:\n" ++ resultstring)
-      sendServerResult handle resultstring
-      serverLoopOnHandle cconfig socket1 handle
-    
-    sendRequestError err = do
-      sendServerError dl handle ("Error in information server: " ++ show err)
-      serverLoopOnHandle cconfig socket1 handle
-    
-    requestInformation moutform mforce singleOrAll obj reqs = case (moutform, mforce) of
-      (Nothing, Nothing) -> sendRequestError "Given output format and given force value do not exist"
-      (Nothing, Just _) -> sendRequestError "Given output format does not exist"
-      (Just _, Nothing) -> sendRequestError "Given force value does not exist"
-      (Just outform, Just force) -> catch
-        (getInfos (change singleOrAll
-                     (silentOptions {optForce = force, optOutput = outform}))
-                  obj reqs >>= printResult >>= sendResult)
-        sendRequestError
-    
-    change singleOrAll opts = case singleOrAll of
-      Single -> opts
-      AllTypes -> opts {optAllTypes = True}
-      AllTypeclasses -> opts {optAllTypeclasses = True}
-      AllOperations -> opts {optAllOperations = True}
+ where
+  sendResult resultstring = do
+    printDebugMessage opts $ "Formatted result:\n" ++ resultstring
+    sendServerResult handle resultstring
+    serverLoopOnHandle opts socket1 handle
+  
+  sendRequestError err = do
+    sendServerError opts handle ("Error in information server: " ++ show err)
+    serverLoopOnHandle opts socket1 handle
+  
+  requestInformation moutform mforce singleOrAll obj reqs = case (moutform, mforce) of
+    (Nothing, Nothing) -> sendRequestError "Given output format and given force value do not exist"
+    (Nothing, Just _ ) -> sendRequestError "Given output format does not exist"
+    (Just _ , Nothing) -> sendRequestError "Given force value does not exist"
+    (Just outform, Just force) -> catch
+      (getInfos (change singleOrAll
+                    (silentOptions {optForce = force, optOutput = outform}))
+                obj reqs >>= printResult >>= sendResult)
+      sendRequestError
+  
+  change singleOrAll slopts = case singleOrAll of
+    Single         -> slopts
+    AllTypes       -> slopts {optAllTypes = True}
+    AllTypeclasses -> slopts {optAllTypeclasses = True}
+    AllOperations  -> slopts {optAllOperations = True}
 
 -- This action sends a result string over the given handle.
 sendServerResult :: Handle -> String -> IO ()
@@ -157,10 +154,10 @@ sendServerResult handle resultstring = do
   hFlush handle
 
 -- This action sends an error string over the given handle.
-sendServerError :: DLevel -> Handle -> String -> IO ()
-sendServerError dl handle errstring = do
-  debugMessage dl 1 errstring
-  hPutStrLn handle ("error " ++ errstring)
+sendServerError :: Options -> Handle -> String -> IO ()
+sendServerError opts handle errstring = do
+  printStatusMessage opts errstring
+  hPutStrLn handle $ "ERROR: " ++ errstring
   hFlush handle
 
 -- This action reads from a handle until it reaches EOF.
@@ -178,15 +175,15 @@ hGetLineUntilEOF h = do
 -- This operation sends a results string over the handle with a list of requests.
 -- If Nothing is used, all requests are send.
 -- If Just is used, only the requests of the matching object type are send.
-sendRequestNamesAndFormats :: DLevel -> Handle -> Maybe String -> IO ()
-sendRequestNamesAndFormats dl handle mobj = case mobj of
+sendRequestNamesAndFormats :: Options -> Handle -> Maybe String -> IO ()
+sendRequestNamesAndFormats opts handle mobj = case mobj of
   Just "package" -> sendServerResult handle (unlines ("PACKAGES":listRequests packageConfiguration))
   Just "version" -> sendServerResult handle (unlines ("VERSIONS":listRequests versionConfiguration))
   Just "module" -> sendServerResult handle (unlines ("MODULES":listRequests moduleConfiguration))
   Just "type" -> sendServerResult handle (unlines ("TYPES":listRequests typeConfiguration))
   Just "typeclass" -> sendServerResult handle (unlines ("TYPECLASSES":listRequests typeclassConfiguration))
   Just "operation" -> sendServerResult handle (unlines ("OPERATIONS":listRequests operationConfiguration))
-  Just obj -> sendServerError dl handle $ "There are no requests for '" ++ obj ++ "'."
+  Just obj -> sendServerError opts handle $ "There are no requests for '" ++ obj ++ "'."
   Nothing -> sendServerResult handle $ unlines
     (  "PACKAGES":listRequests packageConfiguration
     ++ "\nVERSIONS":listRequests versionConfiguration
