@@ -176,8 +176,8 @@ getInfos opts qobj reqs = do
           getInfosConfig opts qobj reqs
                          operationConfiguration (CurryOperation pkg vsn m o)
  where
-  queryAllEntities :: QueryObject -> IO (Maybe [String])
-  queryAllEntities qo = do
+  queryAllStoredEntities :: QueryObject -> IO (Maybe [String])
+  queryAllStoredEntities qo = do
     dir <- getDirectoryPath qo
     exdir <- doesDirectoryExist dir
     if exdir then do jsonfiles <- fmap (catMaybes . map jsonFile2Name)
@@ -186,13 +186,19 @@ getInfos opts qobj reqs = do
              else return Nothing
 
   queryAllTypes :: Package -> Version -> Module -> IO (Maybe [Type])
-  queryAllTypes pkg vsn m = queryAllEntities (QueryType pkg vsn m "?")
+  queryAllTypes pkg vsn m =
+    queryAllStoredEntities (QueryType pkg vsn m "?") >>=
+    maybe (query (QueryModule pkg vsn m) "types") (return . Just)
 
   queryAllTypeclasses :: Package -> Version -> Module -> IO (Maybe [Typeclass])
-  queryAllTypeclasses pkg vsn m = queryAllEntities (QueryTypeClass pkg vsn m "?")
+  queryAllTypeclasses pkg vsn m =
+    queryAllStoredEntities (QueryTypeClass pkg vsn m "?") >>=
+    maybe (query (QueryModule pkg vsn m) "typeclasses") (return . Just)
 
   queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
-  queryAllOperations pkg vsn m = queryAllEntities (QueryOperation pkg vsn m "?")
+  queryAllOperations pkg vsn m =
+    queryAllStoredEntities (QueryOperation pkg vsn m "?") >>=
+    maybe (query (QueryModule pkg vsn m) "operations") (return . Just)
 
   query :: Read a => QueryObject -> String -> IO (Maybe a)
   query obj req = do
