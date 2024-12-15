@@ -5,10 +5,11 @@
 module CurryInfo.Printer where
 
 import CurryInfo.Types
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
-import CurryInfo.Helper (slice)
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage )
+import CurryInfo.Helper    ( slice )
 
-import System.Directory (doesFileExist)
+import System.Directory    ( doesFileExist )
 
 import JSON.Data
 
@@ -27,15 +28,15 @@ pVersionVersion _ vsn = return vsn
 
 pVersionDocumentation :: Printer String
 pVersionDocumentation opts path = do
-    b <- doesFileExist path
-    case b of
-        False -> do
-            printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
-            return "FAILED DUE TO FILE NOT EXISTING"
-        True -> do
-            printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-            content <- readFile path
-            return content
+  b <- doesFileExist path
+  case b of
+    False -> do
+      printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
+      return "FAILED DUE TO FILE NOT EXISTING"
+    True -> do
+      printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
+      content <- readFile path
+      return content
 
 pVersionCategories :: Printer [String]
 pVersionCategories _ cats = return (show cats)
@@ -45,7 +46,7 @@ pVersionModules _ mods = return (show mods)
 
 pVersionDependencies :: Printer [Dependency]
 pVersionDependencies _ deps = return (show deps)
-    
+  
 -- MODULE
 
 pModuleName :: Printer String
@@ -143,13 +144,14 @@ pOperationFailFree _ t = return t
 -- This action returns the content of the file the given reference points to.
 printFromReference :: Options -> Reference -> IO String
 printFromReference opts (Reference path start end) = do
-    b <- doesFileExist path
-    case b of
-        False -> do
-            printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
-            return "FAILED DUE TO FILE NOT EXISTING"
-        True -> do
-            printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-            content <- readFile path
-            let ls = lines content
-            return (unlines (slice start end ls))
+  b <- doesFileExist path
+  case b of
+    False -> do
+      printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
+      return "FAILED DUE TO FILE NOT EXISTING"
+    True -> do
+      printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
+      content <- readFile path
+      let ls = lines content
+      return $ (if optOutFormat opts == OutText then "\n" else "") ++
+               unlines (slice start end ls)
