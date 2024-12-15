@@ -36,22 +36,24 @@ import Control.Monad (unless, zipWithM, when)
 
 --- This action prints the given output to stdout and also returns
 --- the string as result.
-printResult :: Output -> IO String
-printResult (OutputText txt)  = printAndReturn txt
-printResult (OutputJSON jv)   = printAndReturn (ppJSON jv)
-printResult (OutputTerm ts)   = printAndReturn (show ts)
-printResult (OutputError err) = printAndReturn ("Error: " ++ err)
+printResult :: Options -> Output -> IO String
+printResult opts (OutputText txt)  = printAndReturn opts txt
+printResult opts (OutputJSON jv)   = printAndReturn opts (ppJSON jv)
+printResult opts (OutputTerm ts)   = printAndReturn opts (show ts)
+printResult opts (OutputError err) = printAndReturn opts ("Error: " ++ err)
 
-printAndReturn :: String -> IO String
-printAndReturn s = putStrLn s >> return s
+printAndReturn :: Options -> String -> IO String
+printAndReturn opts s =
+  let ofile = optOutFile opts
+  in (if null ofile then putStrLn else writeFile ofile) s >> return s
 
 --- This action returns a failed output with the given error message.
 generateOutputError :: Options -> String -> IO Output
 generateOutputError opts err = do
   printDetailMessage opts err
-  return $ case optOutput opts of OutText -> OutputText err
-                                  OutJSON -> OutputJSON (JString err)
-                                  OutTerm -> OutputTerm []
+  return $ case optOutFormat opts of OutText -> OutputText err
+                                     OutJSON -> OutputJSON (JString err)
+                                     OutTerm -> OutputTerm []
 
 --- This action process the given requests for the given query object and
 --- returns the output for the requests.
@@ -211,7 +213,7 @@ getInfos opts qobj reqs = do
       _                   -> return Nothing
 
   combineOutput :: [Output] -> Output
-  combineOutput outs = case optOutput opts of
+  combineOutput outs = case optOutFormat opts of
     OutText -> OutputText (unlines (map fromOutputText outs))
     OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
     OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
@@ -349,7 +351,7 @@ getInfosConfig opts queryobject reqs conf configobject = do
     (optAllTypes opts || optAllTypeclasses opts || optAllOperations opts)
   
   createOutput :: QueryObject -> [(String, InformationResult)] -> Output
-  createOutput obj results = case optOutput opts of
+  createOutput obj results = case optOutFormat opts of
     OutText -> OutputText $ unlines $
                  (if outputSingleEntity then []
                                         else [object2StringTuple obj]) ++

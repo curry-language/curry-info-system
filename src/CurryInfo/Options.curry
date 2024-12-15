@@ -29,22 +29,22 @@ import System.FilePath  ( (</>) )
 printRequests :: String -> Configuration a -> String
 printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 
--- The default options used by the tool.
+--- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions =
-  Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText
+  Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText ""
           False False False Nothing False False False
 
--- Options, with that nothing is printed by the tool.
+--- Options, with that nothing is printed by the tool (beyond the info results).
 silentOptions :: Options
 silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
 
 testOptions :: Options
 testOptions = defaultOptions { optVerb = 4 }
 
--- Options, that are used internally when querying specific information.
+--- Options, that are used internally when querying specific information.
 queryOptions :: Options
-queryOptions = silentOptions { optOutput = OutTerm }
+queryOptions = silentOptions { optOutFormat = OutTerm }
 
 -- This action takes the agruments given to the program and processes them.
 -- If the help option is True, it prints the usage text and stops.
@@ -64,7 +64,7 @@ processOptions banner argv = do
 -- The usage text of the program.
 usageText :: String
 usageText =
-  usageInfo ("Usage: tool [options] <requests>\n") options ++
+  usageInfo ("Usage: curry-info [options] <requests>\n") options ++
   "\nRequests for different kinds of entities:\n\n" ++
   printRequests "Package" packageConfiguration ++
   printRequests "Version" versionConfiguration ++
@@ -199,11 +199,14 @@ options =
   , Option "o" ["operation"]
        (ReqArg (\args opts -> opts { optOperation = Just args }) "<o>")
        "requested operation"
-  , Option "" ["output"]
-       (ReqArg (\args opts -> opts { optOutput =
+  , Option "" ["format"]
+       (ReqArg (\args opts -> opts { optOutFormat =
                                        maybe OutText id (safeRead args) })
           "<format>")
        "output format: Text (default), JSON, CurryTerm"
+  , Option "" ["output"]
+       (ReqArg (\arg opts -> opts { optOutFile = arg }) "<f>")
+       "write results to file <f> (default: stdout)"
   , Option "" ["clean"]
        (NoArg (\opts -> opts { optClean = True }))
        "clean requested object or all information"

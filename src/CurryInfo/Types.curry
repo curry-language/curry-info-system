@@ -16,8 +16,8 @@ import Data.List (intercalate)
 -- Options Type
 
 data Options = Options
-  { optVerb           :: Int          -- The verbosity
-  , optHelp           :: Bool         -- Usage info
+  { optVerb           :: Int          -- verbosity level
+  , optHelp           :: Bool         -- show usage info?
   , optForce          :: Int          -- Only Extract - Generate if necessary - Generate always
   , optPackage        :: Maybe String -- The requested package
   , optVersion        :: Maybe String -- The requested version
@@ -25,7 +25,8 @@ data Options = Options
   , optType           :: Maybe String -- The requested type
   , optTypeclass      :: Maybe String -- The requested type class
   , optOperation      :: Maybe String -- The requested operation
-  , optOutput         :: OutFormat    -- The output format
+  , optOutFormat      :: OutFormat    -- The output format
+  , optOutFile        :: String       -- posible file name to store output
   , optClean          :: Bool         -- Clean up information
   , optShowAll        :: Bool         -- Show all currently available information
   , optServer         :: Bool         -- Run the tool in server mode

@@ -134,16 +134,16 @@ serverLoopOnHandle opts socket1 handle = do
     (Nothing, Just _ ) -> sendRequestError "Given output format does not exist"
     (Just _ , Nothing) -> sendRequestError "Given force value does not exist"
     (Just outform, Just force) -> catch
-      (getInfos (change singleOrAll
-                    (silentOptions {optForce = force, optOutput = outform}))
-                obj reqs >>= printResult >>= sendResult)
+      (let giopts = silentOptions { optForce = force, optOutFormat = outform }
+       in getInfos (change singleOrAll giopts) obj reqs
+            >>= printResult giopts >>= sendResult)
       sendRequestError
   
   change singleOrAll slopts = case singleOrAll of
     Single         -> slopts
-    AllTypes       -> slopts {optAllTypes = True}
-    AllTypeclasses -> slopts {optAllTypeclasses = True}
-    AllOperations  -> slopts {optAllOperations = True}
+    AllTypes       -> slopts { optAllTypes = True }
+    AllTypeclasses -> slopts { optAllTypeclasses = True }
+    AllOperations  -> slopts { optAllOperations = True }
 
 -- This action sends a result string over the given handle.
 sendServerResult :: Handle -> String -> IO ()
