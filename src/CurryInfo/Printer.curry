@@ -7,9 +7,10 @@ module CurryInfo.Printer where
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage )
-import CurryInfo.Helper    ( slice )
+import CurryInfo.Helper    ( readSliceFromFile, parenthesize )
 
 import System.Directory    ( doesFileExist )
+import System.IOExts       ( readCompleteFile )
 
 import JSON.Data
 
@@ -35,7 +36,7 @@ pVersionDocumentation opts path = do
       return "FAILED DUE TO FILE NOT EXISTING"
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-      content <- readFile path
+      content <- readCompleteFile path
       return content
 
 pVersionCategories :: Printer [String]
@@ -151,7 +152,5 @@ printFromReference opts (Reference path start end) = do
       return "FAILED DUE TO FILE NOT EXISTING"
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-      content <- readFile path
-      let ls = lines content
-      return $ (if optOutFormat opts == OutText then "\n" else "") ++
-               unlines (slice start end ls)
+      slice <- readSliceFromFile path start end
+      return $ (if optOutFormat opts == OutText then "\n" else "") ++ slice

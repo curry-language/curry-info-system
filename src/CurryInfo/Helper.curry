@@ -4,12 +4,20 @@
 
 module CurryInfo.Helper where
 
+import Data.Char ( isAlpha, isAlphaNum )
+import System.IO
+
 import JSON.Data
 
--- This operation returns a slice of the given list, with the first index
--- being inclusive and the second index being exclusive.
-slice :: Int -> Int -> [a] -> [a]
-slice start end l = take (end - start) (drop start l)
+-- Reads a sequence of lines from a file, with the start index
+-- being inclusive and the stop index being exclusive.
+readSliceFromFile :: FilePath -> Int -> Int -> IO String
+readSliceFromFile fname start end = do
+   h <- openFile fname ReadMode
+   mapM_ (\_ -> hGetLine h) [1..start]
+   slicelines <- mapM (\_ -> hGetLine h) [1 .. (end-start)]
+   hClose h
+   return $ unlines slicelines
 
 -- This operation tries to read a value from a string,
 -- returning Nothing if it fails.
@@ -40,3 +48,12 @@ information _ _ res (InformationResult jv s) = res jv s
 --- This operation parenthesizes the given string.
 parenthesize :: String -> String
 parenthesize s = "(" ++ s ++ ")"
+
+-- Is a string a name of an allowed Curry identifier (i.e., not a generated id)?
+isCurryID :: String -> Bool
+isCurryID n = case n of
+  []               -> False
+  x:xs | isAlpha x -> all (\c -> isAlphaNum c || c `elem` "'_") xs
+       | otherwise -> all (flip elem opChars) n
+ where
+  opChars = "~!@#$%^&*+-=<>?./|\\:"

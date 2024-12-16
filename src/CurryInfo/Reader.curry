@@ -5,13 +5,15 @@
 module CurryInfo.Reader where
 
 import CurryInfo.Types
-import CurryInfo.Paths (getJSONPath)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Paths     ( getJSONPath )
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage)
 
-import JSON.Parser (parseJSON)
+import JSON.Parser         ( parseJSON )
 import JSON.Data
 
-import System.Directory (doesFileExist)
+import System.Directory    ( doesFileExist )
+import System.IOExts       ( readCompleteFile )
 
 --- This action reads the current information for the query object
 --- that exist at the moment.
@@ -27,8 +29,8 @@ readObjectInformation opts obj = do
       return Nothing
     True -> do
       printDebugMessage opts "json file exists."
-      jtext <- readFile path
-      printDebugMessage opts $ "Read json file.\n" ++ jtext
+      jtext <- readCompleteFile path
+      printDebugMessage opts $ "Read complete json file.\n" ++ jtext
       case parseJSON jtext of
         Just (JObject fields) -> do
           printDebugMessage opts "Parsing json file succeeded."
@@ -37,5 +39,6 @@ readObjectInformation opts obj = do
           printDebugMessage opts "Parsing failed."
           return Nothing
         _ -> do
-          printDebugMessage opts "Parsing succeeded, but structure was not expected."
+          printDebugMessage opts
+            "Parsing succeeded, but structure was not expected."
           return Nothing

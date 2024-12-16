@@ -7,20 +7,25 @@ module CurryInfo.Generator where
 import CurryInfo.Types
 import CurryInfo.Paths
 import CurryInfo.JConvert
-import CurryInfo.Checkout (toCheckout, getCheckoutPath, initializeCheckouts, checkoutIfMissing)
+import CurryInfo.Checkout ( toCheckout, getCheckoutPath, initializeCheckouts
+                          , checkoutIfMissing)
 import CurryInfo.Interface 
   ( readInterface
   , getDeclarations
   , getOperations, getOperationName, getOperationDecl, getOperationSignature
   , getInfixDecl, getOperationInfix
   , getOperationPrecedence
-  , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl, getTypeConstructors
-  , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName, getClassDecl, getClassMethods
+  , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl
+  , getTypeConstructors
+  , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
+  , getClassDecl, getClassMethods
   )
+import CurryInfo.Helper     ( isCurryID )
 import CurryInfo.Analysis
-import CurryInfo.SourceCode (SourceCode, readSourceCode, readDocumentation)
-import CurryInfo.Parser (parseVersionConstraints)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation )
+import CurryInfo.Parser     ( parseVersionConstraints )
+import CurryInfo.Verbosity  ( printStatusMessage, printDetailMessage
+                            , printDebugMessage)
 
 import Text.Pretty (text)
 
@@ -29,13 +34,13 @@ import JSON.Parser (parseJSON)
 import JSON.Convert
 import JSON.Pretty
 
-import System.IOExts (evalCmd)
-import System.Directory (doesDirectoryExist, doesFileExist)
-import System.CurryPath (curryModulesInDirectory, modNameToPath)
-import System.FilePath ((</>), (<.>))
-
-import Data.List (isPrefixOf, intersect, (\\))
-import Data.Maybe (catMaybes)
+import System.IOExts    ( evalCmd )
+import System.Directory ( doesDirectoryExist, doesFileExist )
+import System.CurryPath ( curryModulesInDirectory, modNameToPath )
+import System.FilePath  ( (</>), (<.>) )
+import System.IOExts    ( readCompleteFile )
+import Data.List        ( isPrefixOf, intersect, (\\) )
+import Data.Maybe       ( catMaybes )
 
 import Control.Monad (when)
 
@@ -211,17 +216,21 @@ gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
   generateDocumentation opts x
 
 gOperationSourceCode :: Generator CurryOperation Reference
-gOperationSourceCode opts x@(CurryOperation pkg vsn m o) = do
-  printDetailMessage opts $ "Generating source code of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-  generateSourceCode opts x
+gOperationSourceCode opts x@(CurryOperation pkg vsn m o)
+  | isCurryID o
+  = do printDetailMessage opts $ "Generating source code of operation '" ++ o ++
+         "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++
+         pkg ++ "'..."
+       generateSourceCode opts x
+  | otherwise = return Nothing
 
 gOperationSignature :: Generator CurryOperation Signature
 gOperationSignature opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating signature of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    generateFromInterface pkg vsn m "signature" signatureSelector opts
-  where
-    signatureSelector :: Interface -> Maybe Signature
-    signatureSelector interface = getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
+  printDetailMessage opts $ "Generating signature of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  generateFromInterface pkg vsn m "signature" signatureSelector opts
+ where
+  signatureSelector :: Interface -> Maybe Signature
+  signatureSelector interface = getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
 
 gOperationInfix :: Generator CurryOperation (Maybe Infix)
 gOperationInfix opts (CurryOperation pkg vsn m o) = do
@@ -429,7 +438,7 @@ readPackageJSON opts pkg vsn = do
         False -> do
           return "{}"
         True -> do
-          readFile packageJSON
+          readCompleteFile packageJSON
 
 packageREADMEPath :: Options -> Package -> Version -> IO String
 packageREADMEPath opts pkg vsn = do

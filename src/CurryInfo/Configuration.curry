@@ -45,7 +45,7 @@ moduleConfiguration :: Configuration CurryModule
 moduleConfiguration =
   [ registerRequest "module"              "\t\t\tThe name of the module"                              gModuleName             pModuleName 
   , registerRequest "documentation"       "\t\tReference to the documentation comment of the module"  gModuleDocumentation    pModuleDocumentation
-  , registerRequest "sourceCode"          "\t\tReference to the source code of the module"            gModuleSourceCode       pModuleSourceCode
+  , registerRequest "sourcecode"          "\t\tReference to the source code of the module"            gModuleSourceCode       pModuleSourceCode
   , registerRequest "cass-unsafemodule"   "\tAnalysis result whether the module is safe"              gModuleUnsafeModule     pModuleUnsafeModule
   , registerRequest "typeclasses"         "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      pModuleTypeclasses
   , registerRequest "types"               "\t\t\tThe exported types of the module"                    gModuleTypes            pModuleTypes
@@ -76,19 +76,19 @@ typeclassConfiguration =
 
 operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
-  [ registerRequest "operation"               "\t\tThe name of the operation"                               gOperationName                pOperationName
-  , registerRequest "documentation"           "\t\tReference to documentation comment of the operation"     gOperationDocumentation       pOperationDocumentation
-  , registerRequest "definition"              "\t\tReference to definition of the operation"                gOperationSourceCode          pOperationSourceCode
-  , registerRequest "signature"               "\t\tThe signature of the operation"                          gOperationSignature           pOperationSignature
-  , registerRequest "infix"                   "\t\t\tAssociativity of operation"                            gOperationInfix               pOperationInfix
-  , registerRequest "precedence"              "\t\tPrecedence of the operation when used infix"             gOperationPrecedence          pOperationPrecedence
-  , registerRequest "cass-deterministic"      "\tAnalysis result: operation deterministic?"                 gOperationCASSDeterministic   pOperationCASSDeterministic
-  , registerRequest "cass-demand"             "\t\tAnalysis result: demanded arguments"                     gOperationCASSDemand          pOperationCASSDemand
-  , registerRequest "cass-indeterministic"    "\tAnalysis result: operation indeterministic?"               gOperationCASSIndeterministic pOperationCASSIndeterministic
-  , registerRequest "cass-solcomplete"        "\tAnalysis result: operation solution complete?"             gOperationCASSSolComplete     pOperationCASSSolComplete
-  , registerRequest "cass-terminating"        "\tAnalysis result: operation always terminating?"            gOperationCASSTerminating     pOperationCASSTerminating
-  , registerRequest "cass-total"              "\t\tAnalysis result: operation totally defined?"             gOperationCASSTotal           pOperationCASSTotal
-  , registerRequest "failfree"                "\t\tVerification result: failing behavior of the operation"  gOperationFailFree            pOperationFailFree
+  [ registerRequest "operation"            "\t\tThe name of the operation"                               gOperationName                pOperationName
+  , registerRequest "documentation"        "\t\tReference to documentation comment of the operation"     gOperationDocumentation       pOperationDocumentation
+  , registerRequest "definition"           "\t\tReference to definition of the operation"                gOperationSourceCode          pOperationSourceCode
+  , registerRequest "signature"            "\t\tThe signature of the operation"                          gOperationSignature           pOperationSignature
+  , registerRequest "infix"                "\t\t\tAssociativity of operation"                            gOperationInfix               pOperationInfix
+  , registerRequest "precedence"           "\t\tPrecedence of the operation when used infix"             gOperationPrecedence          pOperationPrecedence
+  , registerRequest "cass-deterministic"   "\tAnalysis result: operation deterministic?"                 gOperationCASSDeterministic   pOperationCASSDeterministic
+  , registerRequest "cass-demand"          "\t\tAnalysis result: demanded arguments"                     gOperationCASSDemand          pOperationCASSDemand
+  , registerRequest "cass-indeterministic" "\tAnalysis result: operation indeterministic?"               gOperationCASSIndeterministic pOperationCASSIndeterministic
+  , registerRequest "cass-solcomplete"     "\tAnalysis result: operation solution complete?"             gOperationCASSSolComplete     pOperationCASSSolComplete
+  , registerRequest "cass-terminating"     "\tAnalysis result: operation always terminating?"            gOperationCASSTerminating     pOperationCASSTerminating
+  , registerRequest "cass-total"           "\t\tAnalysis result: operation totally defined?"             gOperationCASSTotal           pOperationCASSTotal
+  , registerRequest "failfree"             "\t\tVerification result: failing behavior of the operation"  gOperationFailFree            pOperationFailFree
   ]
 
 ------------------------------------

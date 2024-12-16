@@ -289,7 +289,7 @@ whenFileDoesNotExist path act = do
 --- This action process the given requests for the given query object
 --- w.r.t. to the configuration for the kind of query object and
 --- returns the output for the requests.
-getInfosConfig :: Options -> QueryObject -> [String]
+getInfosConfig :: Show a => Options -> QueryObject -> [String]
                -> [RegisteredRequest a] -> a -> IO Output
 getInfosConfig opts queryobject reqs conf configobject = do
   printDetailMessage opts "Initializing store for entity..."
@@ -372,7 +372,7 @@ getInfosConfig opts queryobject reqs conf configobject = do
                               results))]
 
   extractOrGenerate fields obj reqerrormsg req = do
-    printDetailMessage opts $ "\nProcessing request '" ++ req ++ "'..."
+    printDetailMessage opts $ "\nProcessing request '" ++ req ++ "' for " ++ show obj ++ "..."
     case lookupRequest req conf of
       Nothing -> do
         let msg = reqerrormsg req
