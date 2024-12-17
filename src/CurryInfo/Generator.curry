@@ -1,6 +1,6 @@
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --- This modules defines operations to generate information for the requests.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
 module CurryInfo.Generator where
 
@@ -125,12 +125,12 @@ gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
   mres <- analyseUnsafeModuleWithCASS opts pkg vsn m
   processAnalysisResult opts mres
 
-gModuleTypeclasses :: Generator CurryModule [String]
-gModuleTypeclasses opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported typeclasses for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    generateFromInterface pkg vsn m "typeclasses" typeclassesSelector opts
+gModuleClasses :: Generator CurryModule [String]
+gModuleClasses opts (CurryModule pkg vsn m) = do
+    printDetailMessage opts $ "Generating exported classes for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    generateFromInterface pkg vsn m "classes" classesSelector opts
   where
-    typeclassesSelector interface =
+    classesSelector interface =
       let allClasses    = catMaybes $ map getClassName $ getAllClasses $ getDeclarations interface
           hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
       in Just (allClasses \\ hiddenClasses)
@@ -179,27 +179,27 @@ gTypeDefinition opts x@(CurryType pkg vsn m t) = do
 
 -- TYPECLASS
 
-gTypeclassName :: Generator CurryTypeclass String
-gTypeclassName opts (CurryTypeclass pkg vsn m c) = do
-  printDetailMessage opts $ "Generating name of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+gClassName :: Generator CurryClass String
+gClassName opts (CurryClass pkg vsn m c) = do
+  printDetailMessage opts $ "Generating name of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   printDebugMessage opts $ "Name is: " ++ c
   finishResult opts c
 
-gTypeclassDocumentation :: Generator CurryTypeclass Reference
-gTypeclassDocumentation opts x@(CurryTypeclass pkg vsn m c) = do
-  printDetailMessage opts $ "Generating documentation of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+gClassDocumentation :: Generator CurryClass Reference
+gClassDocumentation opts x@(CurryClass pkg vsn m c) = do
+  printDetailMessage opts $ "Generating documentation of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   generateDocumentation opts x
 
-gTypeclassMethods :: Generator CurryTypeclass [String]
-gTypeclassMethods opts (CurryTypeclass pkg vsn m c) = do
-    printDetailMessage opts $ "Generating methods of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+gClassMethods :: Generator CurryClass [String]
+gClassMethods opts (CurryClass pkg vsn m c) = do
+    printDetailMessage opts $ "Generating methods of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     generateFromInterface pkg vsn m "methods" methodsSelector opts
   where
     methodsSelector interface = getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods
 
-gTypeclassDefinition :: Generator CurryTypeclass Reference
-gTypeclassDefinition opts x@(CurryTypeclass pkg vsn m c) = do
-  printDetailMessage opts $ "Generating definition of typeclass '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+gClassDefinition :: Generator CurryClass Reference
+gClassDefinition opts x@(CurryClass pkg vsn m c) = do
+  printDetailMessage opts $ "Generating definition of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   generateSourceCode opts x
 
 -- OPERATION
@@ -226,25 +226,36 @@ gOperationSourceCode opts x@(CurryOperation pkg vsn m o)
 
 gOperationSignature :: Generator CurryOperation Signature
 gOperationSignature opts (CurryOperation pkg vsn m o) = do
-  printDetailMessage opts $ "Generating signature of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $ "Generating signature of operation '" ++ o ++
+    "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++
+    pkg ++ "'..."
   generateFromInterface pkg vsn m "signature" signatureSelector opts
  where
   signatureSelector :: Interface -> Maybe Signature
-  signatureSelector interface = getOperationDecl o (getOperations $ getDeclarations interface) >>= getOperationSignature
+  signatureSelector int =
+    getOperationDecl o (getOperations $ getDeclarations int)
+      >>= getOperationSignature
 
 gOperationInfix :: Generator CurryOperation (Maybe Infix)
 gOperationInfix opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating infix of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    printDetailMessage opts $ "Generating infix of operation '" ++ o ++
+      "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++
+      pkg ++ "'..."
     generateFromInterface pkg vsn m "infix" infixSelector opts
   where
-    infixSelector interface = Just (getInfixDecl o (getDeclarations interface) >>= getOperationInfix)
+    infixSelector interface =
+      Just (getInfixDecl o (getDeclarations interface) >>= getOperationInfix)
 
 gOperationPrecedence :: Generator CurryOperation (Maybe Precedence)
 gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
-    printDetailMessage opts $ "Generating precedence of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    printDetailMessage opts $ "Generating precedence of operation '" ++ o ++ 
+      "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++
+      pkg ++ "'..."
     generateFromInterface pkg vsn m "precedence" precedenceSelector opts
   where
-    precedenceSelector interface = Just (getInfixDecl o (getDeclarations interface) >>= getOperationPrecedence :: Maybe Precedence)
+    precedenceSelector interface =
+      Just (getInfixDecl o (getDeclarations interface)
+              >>= getOperationPrecedence :: Maybe Precedence)
 
 gOperationCASSDeterministic :: Generator CurryOperation String
 gOperationCASSDeterministic =
@@ -354,27 +365,32 @@ generateDocumentation = generateReference readDocumentation
 generateSourceCode :: SourceCode a => Generator a Reference
 generateSourceCode = generateReference readSourceCode
 
---- Generator function to create an information generator using CASS for analysis.
+--- Generator function to create an information generator using CASS for
+--- the analysis.
 --- The first argument is a description of the analysis
---- and the second argument is the name of the analysis given to CASS as an argument.
-generateOperationAnalysisWithCASS :: Show b => String -> (Options -> Package -> Version -> Module -> Operation -> IO (Maybe b)) -> Generator CurryOperation b
-generateOperationAnalysisWithCASS desc analysis opts (CurryOperation pkg vsn m o) = do
-  printDetailMessage opts $ "Generating " ++ desc ++ " analysis of operation '" ++
-    o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
+--- and the second argument is the name of the analysis given to CASS
+--- as an argument.
+generateOperationAnalysisWithCASS :: Show b => String
+  -> (Options -> Package -> Version -> Module -> Operation -> IO (Maybe b))
+  -> Generator CurryOperation b
+generateOperationAnalysisWithCASS desc analysis opts
+                                  (CurryOperation pkg vsn m o) = do
+  printDetailMessage opts $ "Generating " ++ desc ++ " analysis of operation '"
+    ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
     "' of package '" ++ pkg ++ "'..."
   mres <- analysis opts pkg vsn m o
   processAnalysisResult opts mres
 
---- This action prints messages about the result depending on the current options.
---- It returns the result as a Maybe value.
+--- This action prints messages about the result depending on the current
+--- options. It returns the result as a Maybe value.
 finishResult :: Options -> String -> IO (Maybe String)
 finishResult opts res = do
   printDebugMessage opts $ "Result is: " ++ res
   printDetailMessage opts "Generating finished successfully."
   return $ Just res
 
---- This action prints messages about the result depending on the current options and
---- whether a result even exists.
+--- This action prints messages about the result depending on the current
+--- options and whether a result even exists.
 --- The result is returned unchanged.
 processAnalysisResult :: Show b => Options -> Maybe b -> IO (Maybe b)
 processAnalysisResult opts mres = case mres of

@@ -1,6 +1,7 @@
------------------------------------------------------------------------------------------
---- This modules defines operations to find specific sections from source code files.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--- This modules defines operations to find specific sections from
+--- source code files.
+------------------------------------------------------------------------------
 
 module CurryInfo.SourceCode where
 
@@ -167,9 +168,9 @@ instance SourceCode CurryType where
       Just (path,h) -> getDocumentationRef opts (checkType t) path h
 
 -- This operation returns a checker that look for the definition of the
--- given typeclass.
-checkTypeclass :: Typeclass -> Checker
-checkTypeclass c l = let
+-- given type class.
+checkClass :: Class -> Checker
+checkClass c l = let
     ls = words l
     classIndex = elemIndex "class" ls
     nameIndex = elemIndex c ls
@@ -181,35 +182,37 @@ checkTypeclass c l = let
         fromMaybe True ((<) <$> arrowIndex <*> nameIndex)
       else False
 
-instance SourceCode CurryTypeclass where
-  readSourceCode opts (CurryTypeclass pkg vsn m c) = do
+instance SourceCode CurryClass where
+  readSourceCode opts (CurryClass pkg vsn m c) = do
     mresult <- getSourceFileHandle opts pkg vsn m
     case mresult of
       Nothing       -> return Nothing
-      Just (path,h) -> getSourceCodeRef opts (checkTypeclass c) belongs path h
+      Just (path,h) -> getSourceCodeRef opts (checkClass c) belongs path h
   
-  readDocumentation opts (CurryTypeclass pkg vsn m c) = do
+  readDocumentation opts (CurryClass pkg vsn m c) = do
     mresult <- getSourceFileHandle opts pkg vsn m
     case mresult of
       Nothing       -> return Nothing
-      Just (path,h) -> getDocumentationRef opts (checkTypeclass c) path h
+      Just (path,h) -> getDocumentationRef opts (checkClass c) path h
 
 -- This operation returns a checker that look for the definition of the
 -- given operation.
 checkOperation :: Operation -> Checker
 checkOperation o l = let
     ls = words l
-    operationIndex = elemIndex o ls
+    operationIndex   = elemIndex o ls
     paranthesisIndex = elemIndex ("(" ++ o ++ ")") ls
-    typingIndex = elemIndex "::" ls
-    equalIndex = elemIndex "=" ls
+    typingIndex      = elemIndex "::" ls
+    equalIndex       = elemIndex "=" ls
+    externalIndex    = elemIndex "external" ls
   in
-    if elem o ls && (elem "::" ls || elem "=" ls)
-      then
-        fromMaybe False ((<) <$> operationIndex <*> typingIndex) ||
-        fromMaybe False ((<) <$> operationIndex <*> equalIndex) ||
-        fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex) ||
-        fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex)
+    if elem o ls && (elem "::" ls || elem "=" ls || elem "external" ls)
+      then fromMaybe False ((<) <$> operationIndex   <*> typingIndex  ) ||
+           fromMaybe False ((<) <$> operationIndex   <*> equalIndex   ) ||
+           fromMaybe False ((<) <$> operationIndex   <*> externalIndex) ||
+           fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex  ) ||
+           fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex   ) ||
+           fromMaybe False ((<) <$> paranthesisIndex <*> externalIndex)
       else False
 
 instance SourceCode CurryOperation where

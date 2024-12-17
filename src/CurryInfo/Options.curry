@@ -66,11 +66,11 @@ usageText :: String
 usageText =
   usageInfo ("Usage: curry-info [options] <requests>\n") options ++
   "\nRequests for different kinds of entities:\n\n" ++
-  printRequests "Package" packageConfiguration ++
-  printRequests "Version" versionConfiguration ++
-  printRequests "Module" moduleConfiguration ++
-  printRequests "Type" typeConfiguration ++
-  printRequests "Typeclass" typeclassConfiguration ++
+  printRequests "Package"   packageConfiguration ++
+  printRequests "Version"   versionConfiguration ++
+  printRequests "Module"    moduleConfiguration ++
+  printRequests "Type"      typeConfiguration ++
+  printRequests "Class"     classConfiguration ++
   printRequests "Operation" operationConfiguration
 
 -- This operation returns the requested object from the given options.
@@ -80,7 +80,7 @@ getObject opts =
                  , extractOpt "version"   (optVersion opts)
                  , extractOpt "module"    (optModule opts)
                  , extractOpt "type"      (optType opts)
-                 , extractOpt "typeclass" (optTypeclass opts)
+                 , extractOpt "class"     (optClass opts)
                  , extractOpt "operation" (optOperation opts) ] of
     [] -> return Nothing
     [("package", pkg)] -> return $ Just $ QueryPackage pkg
@@ -90,8 +90,8 @@ getObject opts =
       return $ Just $ QueryModule pkg vsn m
     [("package", pkg), ("version", vsn), ("module", m), ("type", t)] ->
       return $ Just $ QueryType pkg vsn m t
-    [("package", pkg), ("version", vsn), ("module", m), ("typeclass", c)] ->
-      return $ Just $ QueryTypeClass pkg vsn m c
+    [("package", pkg), ("version", vsn), ("module", m), ("class", c)] ->
+      return $ Just $ QueryClass pkg vsn m c
     [("package", pkg), ("version", vsn), ("module", m), ("operation", o)] ->
       return $ Just $ QueryOperation pkg vsn m o
     obj -> do putStrLn $ "Options '" ++
@@ -106,7 +106,7 @@ getObject opts =
 -- including subdirectories.
 cleanObject :: Options -> Maybe QueryObject -> IO ()
 cleanObject opts mbobj = case mbobj of
-  Nothing -> cleanAll opts
+  Nothing  -> cleanAll opts
   Just obj -> cleanJSON opts obj >> case obj of
     QueryPackage _             -> cleanDirectory opts obj
     QueryVersion pkg vsn       -> cleanDirectory opts obj >>
@@ -114,7 +114,7 @@ cleanObject opts mbobj = case mbobj of
     QueryModule pkg vsn _      -> cleanDirectory opts obj >>
                                   cleanCheckout opts pkg vsn
     QueryType pkg vsn _ _      -> cleanCheckout opts pkg vsn
-    QueryTypeClass pkg vsn _ _ -> cleanCheckout opts pkg vsn
+    QueryClass pkg vsn _ _     -> cleanCheckout opts pkg vsn
     QueryOperation pkg vsn _ _ -> cleanCheckout opts pkg vsn
 
 -- This action deletes the json file containing the stored information
@@ -126,24 +126,22 @@ cleanJSON opts obj = do
 -- This action deletes the directory, in which the information of the
 -- given object art stored.
 cleanDirectory :: Options -> QueryObject -> IO ()
-cleanDirectory opts obj = do
-  getDirectoryPath obj >>= deleteDirectory opts
+cleanDirectory opts obj = getDirectoryPath obj >>= deleteDirectory opts
 
 -- This action deletes the checkout directory of the given package and version.
 cleanCheckout :: Options -> Package -> Version -> IO ()
-cleanCheckout opts pkg vsn = do
-  getCheckoutPath pkg vsn >>= deleteDirectory opts
+cleanCheckout opts pkg vsn = getCheckoutPath pkg vsn >>= deleteDirectory opts
 
--- This operation puts quotation marks around the given string.
+-- This operation puts single quotation marks around the given string.
 quote :: String -> String
-quote s = "\"" ++ s ++ "\""
+quote s = "'" ++ s ++ "'"
 
 -- This action deletes the entire directory used by this tool to store
 -- information locally.
 cleanAll :: Options -> IO ()
 cleanAll opts = root >>= deleteDirectory opts
 
--- This action deletes the given file using a boolean function to determine it
+-- This action deletes the given file using a Boolean function to determine it
 -- being the correct kind of file.
 delete :: (String -> IO Bool) -> String -> Options -> String -> IO ()
 delete check cmd opts path = do
@@ -160,11 +158,15 @@ delete check cmd opts path = do
 
 -- This action deletes the given directory, including all its contents.
 deleteDirectory :: Options -> String -> IO ()
-deleteDirectory = delete doesDirectoryExist "rm -rf"
+deleteDirectory opts dir = do
+  printDebugMessage opts $ "Deleting directory " ++ quote dir ++ "..."
+  delete doesDirectoryExist "rm -rf" opts dir
 
 -- This action deletes the given file.
 deleteFile :: Options -> String -> IO ()
-deleteFile = delete doesFileExist "rm -f"
+deleteFile opts dir = do
+  printDebugMessage opts $ "Deleting file " ++ quote dir ++ "..."
+  delete doesFileExist "rm -f" opts dir
 
 -- The options description.
 options :: [OptDescr (Options -> Options)]
@@ -193,9 +195,9 @@ options =
   , Option "t" ["type"]
        (ReqArg (\args opts -> opts { optType = Just args }) "<t>")
        "requested type"
-  , Option "c" ["typeclass"]
-       (ReqArg (\args opts -> opts { optTypeclass = Just args }) "<c>")
-       "requested typeclass"
+  , Option "c" ["class"]
+       (ReqArg (\args opts -> opts { optClass = Just args }) "<c>")
+       "requested type class"
   , Option "o" ["operation"]
        (ReqArg (\args opts -> opts { optOperation = Just args }) "<o>")
        "requested operation"
@@ -222,9 +224,9 @@ options =
   , Option "" ["alltypes"]
        (NoArg (\opts -> opts { optAllTypes = True }))
        "process requests for all types in module"
-  , Option "" ["alltypeclasses"]
-       (NoArg (\opts -> opts { optAllTypeclasses = True }))
-       "process requests for all typeclasses in module"
+  , Option "" ["allclasses"]
+       (NoArg (\opts -> opts { optAllClasses = True }))
+       "process requests for all type classes in module"
   , Option "" ["alloperations"]
        (NoArg (\opts -> opts { optAllOperations = True }))
        "process requests for all operations in module"

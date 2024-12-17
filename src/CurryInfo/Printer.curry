@@ -62,8 +62,8 @@ pModuleSourceCode opts ref = printFromReference opts ref
 pModuleUnsafeModule :: Printer String
 pModuleUnsafeModule _ safe = return safe
 
-pModuleTypeclasses :: Printer [String]
-pModuleTypeclasses _ cs = return (show cs)
+pModuleClasses :: Printer [String]
+pModuleClasses _ cs = return (show cs)
 
 pModuleTypes :: Printer [String]
 pModuleTypes _ ts = return (show ts)
@@ -87,17 +87,17 @@ pTypeDefinition opts ref = printFromReference opts ref
 
 -- TYPECLASS
 
-pTypeclassName :: Printer String
-pTypeclassName _ name = return name
+pClassName :: Printer String
+pClassName _ name = return name
 
-pTypeclassDocumentation :: Printer Reference
-pTypeclassDocumentation opts ref = printFromReference opts ref
+pClassDocumentation :: Printer Reference
+pClassDocumentation opts ref = printFromReference opts ref
 
-pTypeclassMethods :: Printer [String]
-pTypeclassMethods _ ms = return (show ms)
+pClassMethods :: Printer [String]
+pClassMethods _ ms = return (show ms)
 
-pTypeclassDefinition :: Printer Reference
-pTypeclassDefinition opts ref = printFromReference opts ref
+pClassDefinition :: Printer Reference
+pClassDefinition opts ref = printFromReference opts ref
 
 -- OPERATION
 

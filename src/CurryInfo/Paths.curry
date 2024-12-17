@@ -46,9 +46,9 @@ getDirectoryPath (QueryModule pkg vsn m) = do
 getDirectoryPath (QueryType pkg vsn m _) = do
   path <- getDirectoryPath (QueryModule pkg vsn m)
   return (path </> "types")
-getDirectoryPath (QueryTypeClass pkg vsn m _) = do
+getDirectoryPath (QueryClass pkg vsn m _) = do
   path <- getDirectoryPath (QueryModule pkg vsn m)
-  return (path </> "typeclasses")
+  return (path </> "classes")
 getDirectoryPath (QueryOperation pkg vsn m _) = do
   path <- getDirectoryPath (QueryModule pkg vsn m)
   return (path </> "operations")
@@ -67,7 +67,7 @@ getJSONPath x@(QueryModule _ _ m) = do
 getJSONPath x@(QueryType _ _ _ t) = do
   path <- getDirectoryPath x
   return (path </> t <.> "json")
-getJSONPath x@(QueryTypeClass _ _ _ c) = do
+getJSONPath x@(QueryClass _ _ _ c) = do
   path <- getDirectoryPath x
   return (path </> c <.> "json")
 getJSONPath x@(QueryOperation _ _ _ o) = do

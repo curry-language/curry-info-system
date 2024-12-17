@@ -20,7 +20,7 @@ import Network.Socket (Socket(..), listenOn, listenOnFresh
 
 type Force = Int
 
-data SingleOrAll = Single | AllTypes | AllTypeclasses | AllOperations
+data SingleOrAll = Single | AllTypes | AllClasses | AllOperations
 
 data InfoServerMessage
   = GetRequests (Maybe String)
@@ -29,10 +29,10 @@ data InfoServerMessage
   | RequestVersionInformation (Maybe OutFormat) (Maybe Force) Package Version [String]
   | RequestModuleInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
   | RequestTypeInformation (Maybe OutFormat) (Maybe Force) Package Version Module Type [String]
-  | RequestTypeclassInformation (Maybe OutFormat) (Maybe Force) Package Version Module Typeclass [String]
+  | RequestClassInformation (Maybe OutFormat) (Maybe Force) Package Version Module Class [String]
   | RequestOperationInformation (Maybe OutFormat) (Maybe Force) Package Version Module Operation [String]
   | RequestAllTypesInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
-  | RequestAllTypeclassesInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
+  | RequestAllClassesInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
   | RequestAllOperationsInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
   | StopServer
   | ParseError
@@ -86,10 +86,10 @@ serverLoopOnHandle opts socket1 handle = do
                 , "RequestVersionInformation <outform> <force> <pkg> <vsn> <reqs>"
                 , "RequestModuleInformation <outform> <force> <pkg> <vsn> <mod>  <reqs>"
                 , "RequestTypeInformation <outform> <force> <pkg> <vsn> <mod> <t> <reqs>"
-                , "RequestTypeclassInformation <outform> <force> <pkg> <vsn> <mod> <tc> <reqs>"
+                , "RequestClassInformation <outform> <force> <pkg> <vsn> <mod> <tc> <reqs>"
                 , "RequestOperationInformation <outform> <force> <pkg> <vsn> <mod> <op> <reqs>"
                 , "RequestAllTypesInformation <outform> <force> <pkg> <vsn> <mod> <reqs"
-                , "RequestAllTypeclassesInformation <outform> <force> <pkg> <vsn> <mod> <reqs"
+                , "RequestAllClassesInformation <outform> <force> <pkg> <vsn> <mod> <reqs"
                 , "RequestAllOperationsInformation <outform> <force> <pkg> <vsn> <mod> <reqs"
                 , "StopServer"
                 ]
@@ -103,14 +103,14 @@ serverLoopOnHandle opts socket1 handle = do
           requestInformation moutform mforce Single (QueryModule pkg vsn m) reqs
         RequestTypeInformation moutform mforce pkg vsn m t reqs -> 
           requestInformation moutform mforce Single (QueryType pkg vsn m t) reqs
-        RequestTypeclassInformation moutform mforce pkg vsn m c reqs -> 
-          requestInformation moutform mforce Single (QueryTypeClass pkg vsn m c) reqs
+        RequestClassInformation moutform mforce pkg vsn m c reqs -> 
+          requestInformation moutform mforce Single (QueryClass pkg vsn m c) reqs
         RequestOperationInformation moutform mforce pkg vsn m o reqs -> 
           requestInformation moutform mforce Single (QueryOperation pkg vsn m o) reqs
         RequestAllTypesInformation moutform mforce pkg vsn m reqs ->
           requestInformation moutform mforce AllTypes (QueryModule pkg vsn m) reqs
-        RequestAllTypeclassesInformation moutform mforce pkg vsn m reqs ->
-          requestInformation moutform mforce AllTypeclasses (QueryModule pkg vsn m) reqs
+        RequestAllClassesInformation moutform mforce pkg vsn m reqs ->
+          requestInformation moutform mforce AllClasses (QueryModule pkg vsn m) reqs
         RequestAllOperationsInformation moutform mforce pkg vsn m reqs ->
           requestInformation moutform mforce AllOperations (QueryModule pkg vsn m) reqs
         StopServer -> do
@@ -140,10 +140,10 @@ serverLoopOnHandle opts socket1 handle = do
       sendRequestError
   
   change singleOrAll slopts = case singleOrAll of
-    Single         -> slopts
-    AllTypes       -> slopts { optAllTypes = True }
-    AllTypeclasses -> slopts { optAllTypeclasses = True }
-    AllOperations  -> slopts { optAllOperations = True }
+    Single        -> slopts
+    AllTypes      -> slopts { optAllTypes = True }
+    AllClasses    -> slopts { optAllClasses = True }
+    AllOperations -> slopts { optAllOperations = True }
 
 -- This action sends a result string over the given handle.
 sendServerResult :: Handle -> String -> IO ()
@@ -177,11 +177,11 @@ hGetLineUntilEOF h = do
 -- If Just is used, only the requests of the matching object type are send.
 sendRequestNamesAndFormats :: Options -> Handle -> Maybe String -> IO ()
 sendRequestNamesAndFormats opts handle mobj = case mobj of
-  Just "package" -> sendServerResult handle (unlines ("PACKAGES":listRequests packageConfiguration))
-  Just "version" -> sendServerResult handle (unlines ("VERSIONS":listRequests versionConfiguration))
-  Just "module" -> sendServerResult handle (unlines ("MODULES":listRequests moduleConfiguration))
-  Just "type" -> sendServerResult handle (unlines ("TYPES":listRequests typeConfiguration))
-  Just "typeclass" -> sendServerResult handle (unlines ("TYPECLASSES":listRequests typeclassConfiguration))
+  Just "package"   -> sendServerResult handle (unlines ("PACKAGES":listRequests packageConfiguration))
+  Just "version"   -> sendServerResult handle (unlines ("VERSIONS":listRequests versionConfiguration))
+  Just "module"    -> sendServerResult handle (unlines ("MODULES":listRequests moduleConfiguration))
+  Just "type"      -> sendServerResult handle (unlines ("TYPES":listRequests typeConfiguration))
+  Just "class"     -> sendServerResult handle (unlines ("CLASSES":listRequests classConfiguration))
   Just "operation" -> sendServerResult handle (unlines ("OPERATIONS":listRequests operationConfiguration))
   Just obj -> sendServerError opts handle $ "There are no requests for '" ++ obj ++ "'."
   Nothing -> sendServerResult handle $ unlines
@@ -189,7 +189,7 @@ sendRequestNamesAndFormats opts handle mobj = case mobj of
     ++ "\nVERSIONS":listRequests versionConfiguration
     ++ "\nMODULES":listRequests moduleConfiguration
     ++ "\nTYPES":listRequests typeConfiguration
-    ++ "\nTYPECLASSES":listRequests typeclassConfiguration
+    ++ "\nCLASSES":listRequests classConfiguration
     ++ "\nOPERATIONS":listRequests operationConfiguration
     )
 
@@ -204,10 +204,10 @@ parseServerMessage s = case words s of
   "RequestVersionInformation":outform:force:pkg:vsn:reqs -> RequestVersionInformation (readOutputFormat outform) (readForce force) pkg vsn reqs
   "RequestModuleInformation":outform:force:pkg:vsn:m:reqs -> RequestModuleInformation (readOutputFormat outform) (readForce force) pkg vsn m reqs
   "RequestTypeInformation":outform:force:pkg:vsn:m:t:reqs -> RequestTypeInformation (readOutputFormat outform) (readForce force) pkg vsn m t reqs
-  "RequestTypeclassInformation":outform:force:pkg:vsn:m:c:reqs -> RequestTypeclassInformation (readOutputFormat outform) (readForce force) pkg vsn m c reqs
+  "RequestClassInformation":outform:force:pkg:vsn:m:c:reqs -> RequestClassInformation (readOutputFormat outform) (readForce force) pkg vsn m c reqs
   "RequestOperationInformation":outform:force:pkg:vsn:m:o:reqs -> RequestOperationInformation (readOutputFormat outform) (readForce force) pkg vsn m o reqs
   "RequestAllTypesInformation":outform:force:pkg:vsn:m:reqs -> RequestAllTypesInformation (readOutputFormat outform) (readForce force) pkg vsn m reqs
-  "RequestAllTypeclassesInformation":outform:force:pkg:vsn:m:reqs -> RequestAllTypeclassesInformation (readOutputFormat outform) (readForce force) pkg vsn m reqs
+  "RequestAllClassesInformation":outform:force:pkg:vsn:m:reqs -> RequestAllClassesInformation (readOutputFormat outform) (readForce force) pkg vsn m reqs
   "RequestAllOperationsInformation":outform:force:pkg:vsn:m:reqs -> RequestAllOperationsInformation (readOutputFormat outform) (readForce force) pkg vsn m reqs
   _ -> ParseError
 

@@ -96,7 +96,7 @@ getInfos opts qobj reqs = do
           generateOutputError opts err
         True  -> do
           printDetailMessage opts "Module entity exists."
-          case (optAllTypes opts, optAllTypeclasses opts, optAllOperations opts) of
+          case (optAllTypes opts, optAllClasses opts, optAllOperations opts) of
             (True, _, _) -> do
               mts <- queryAllTypes pkg vsn m
               case mts of
@@ -110,15 +110,15 @@ getInfos opts qobj reqs = do
                   let out = combineOutput outs
                   return out
             (_, True, _) -> do
-              mcs <- queryAllTypeclasses pkg vsn m
+              mcs <- queryAllClasses pkg vsn m
               case mcs of
                 Nothing -> do
-                  generateOutputError opts "Could not find typeclasses"
+                  generateOutputError opts "Could not find type classes"
                 Just cs -> do
                   outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
-                                             typeclassConfiguration o)
-                               (map (\t -> (QueryTypeClass pkg vsn m t,
-                                            CurryTypeclass pkg vsn m t)) cs)
+                                             classConfiguration o)
+                               (map (\t -> (QueryClass pkg vsn m t,
+                                            CurryClass pkg vsn m t)) cs)
                   let out = combineOutput outs
                   return out
             (_, _, True) -> do
@@ -149,20 +149,20 @@ getInfos opts qobj reqs = do
           printDetailMessage opts "Type entity exists."
           getInfosConfig opts qobj reqs
                          typeConfiguration (CurryType pkg vsn m t)
-    QueryTypeClass pkg vsn m c -> do
-      printDetailMessage opts "Request is Typeclass"
-      result <- checkTypeclassExists pkg vsn m c
+    QueryClass pkg vsn m c -> do
+      printDetailMessage opts "Request is Class"
+      result <- checkClassExists pkg vsn m c
       case result of
         False -> do
-          let err = "Typeclass '" ++ c ++ "' of module '" ++ m ++
+          let err = "Class '" ++ c ++ "' of module '" ++ m ++
                     "' of version '" ++ vsn ++ "' of package '" ++ pkg ++
                     "' is not exported."
           printDetailMessage opts err
           generateOutputError opts err
         True  -> do
-          printDetailMessage opts "Typeclass entity exists."
+          printDetailMessage opts "Class entity exists."
           getInfosConfig opts qobj reqs
-                         typeclassConfiguration (CurryTypeclass pkg vsn m c)
+                         classConfiguration (CurryClass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
       printDetailMessage opts "Request is Operation."
       result <- checkOperationExists pkg vsn m o
@@ -192,10 +192,10 @@ getInfos opts qobj reqs = do
     queryAllStoredEntities (QueryType pkg vsn m "?") >>=
     maybe (query (QueryModule pkg vsn m) "types") (return . Just)
 
-  queryAllTypeclasses :: Package -> Version -> Module -> IO (Maybe [Typeclass])
-  queryAllTypeclasses pkg vsn m =
-    queryAllStoredEntities (QueryTypeClass pkg vsn m "?") >>=
-    maybe (query (QueryModule pkg vsn m) "typeclasses") (return . Just)
+  queryAllClasses :: Package -> Version -> Module -> IO (Maybe [Class])
+  queryAllClasses pkg vsn m =
+    queryAllStoredEntities (QueryClass pkg vsn m "?") >>=
+    maybe (query (QueryModule pkg vsn m) "classes") (return . Just)
 
   queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
   queryAllOperations pkg vsn m =
@@ -264,11 +264,11 @@ getInfos opts qobj reqs = do
       case res of Nothing -> return False
                   Just ts -> return $ elem t ts
 
-  checkTypeclassExists :: Package -> Version -> Module -> Typeclass -> IO Bool
-  checkTypeclassExists pkg vsn m c = do
-    jpath <- getJSONPath (QueryTypeClass pkg vsn m c)
+  checkClassExists :: Package -> Version -> Module -> Class -> IO Bool
+  checkClassExists pkg vsn m c = do
+    jpath <- getJSONPath (QueryClass pkg vsn m c)
     whenFileDoesNotExist jpath $ do
-      res <- query (QueryModule pkg vsn m) "typeclasses"
+      res <- query (QueryModule pkg vsn m) "classes"
       case res of Nothing -> return False
                   Just cs -> return $ elem c cs
 
@@ -348,7 +348,7 @@ getInfosConfig opts queryobject reqs conf configobject = do
 
   -- generate output for a single entity?
   outputSingleEntity = not
-    (optAllTypes opts || optAllTypeclasses opts || optAllOperations opts)
+    (optAllTypes opts || optAllClasses opts || optAllOperations opts)
   
   createOutput :: QueryObject -> [(String, InformationResult)] -> Output
   createOutput obj results = case optOutFormat opts of
@@ -372,7 +372,8 @@ getInfosConfig opts queryobject reqs conf configobject = do
                               results))]
 
   extractOrGenerate fields obj reqerrormsg req = do
-    printDetailMessage opts $ "\nProcessing request '" ++ req ++ "' for " ++ show obj ++ "..."
+    printDetailMessage opts $
+      "\nProcessing request '" ++ req ++ "' for " ++ show obj ++ "..."
     case lookupRequest req conf of
       Nothing -> do
         let msg = reqerrormsg req

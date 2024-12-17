@@ -1,6 +1,7 @@
------------------------------------------------------------------------------------------
---- This modules defines configurations for the different objects and their requests.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--- This modules defines configurations for the different objects and
+--- their requests.
+------------------------------------------------------------------------------
 
 module CurryInfo.Configuration where
 
@@ -24,59 +25,59 @@ import Data.List (find)
 
 packageConfiguration :: Configuration CurryPackage
 packageConfiguration =
-  [ registerRequest "package"     "\t\tThe name of the package"                 gPackageName        pPackageName
-  , registerRequest "versions"    "\t\tThe versions available of the package"   gPackageVersions    pPackageVersions
+  [ registerRequest "name"      "\t\t\tThe name of the package"               gPackageName        pPackageName
+  , registerRequest "versions"  "\t\tThe versions available of the package"   gPackageVersions    pPackageVersions
   ]
 
 -- VERSION
 
 versionConfiguration :: Configuration CurryVersion
 versionConfiguration =
-  [ registerRequest "version" "\t\tThe version number of the version"         gVersionVersion         pVersionVersion
+  [ registerRequest "version"       "\t\tThe version number of the version"   gVersionVersion         pVersionVersion
   , registerRequest "documentation" "\t\tThe documentation of the version"    gVersionDocumentation   pVersionDocumentation
-  , registerRequest "categories" "\t\tThe categories of the version"          gVersionCategories      pVersionCategories
-  , registerRequest "modules" "\t\tThe exported modules of the version"       gVersionModules         pVersionModules
-  , registerRequest "dependencies" "\t\tThe dependencies of the version"      gVersionDependencies    pVersionDependencies
+  , registerRequest "categories"    "\t\tThe categories of the version"       gVersionCategories      pVersionCategories
+  , registerRequest "modules"       "\t\tThe exported modules of the version" gVersionModules         pVersionModules
+  , registerRequest "dependencies"  "\t\tThe dependencies of the version"     gVersionDependencies    pVersionDependencies
   ]
 
 -- MODULE
 
 moduleConfiguration :: Configuration CurryModule
 moduleConfiguration =
-  [ registerRequest "module"              "\t\t\tThe name of the module"                              gModuleName             pModuleName 
-  , registerRequest "documentation"       "\t\tReference to the documentation comment of the module"  gModuleDocumentation    pModuleDocumentation
-  , registerRequest "sourcecode"          "\t\tReference to the source code of the module"            gModuleSourceCode       pModuleSourceCode
-  , registerRequest "cass-unsafemodule"   "\tAnalysis result whether the module is safe"              gModuleUnsafeModule     pModuleUnsafeModule
-  , registerRequest "typeclasses"         "\t\tThe exported typeclasses of the module"                gModuleTypeclasses      pModuleTypeclasses
-  , registerRequest "types"               "\t\t\tThe exported types of the module"                    gModuleTypes            pModuleTypes
-  , registerRequest "operations"          "\t\tThe exported operations of the module"                 gModuleOperations       pModuleOperations
+  [ registerRequest "name"              "\t\t\tThe name of the module"                              gModuleName           pModuleName 
+  , registerRequest "documentation"     "\t\tReference to the documentation comment of the module"  gModuleDocumentation  pModuleDocumentation
+  , registerRequest "sourcecode"        "\t\tReference to the source code of the module"            gModuleSourceCode     pModuleSourceCode
+  , registerRequest "cass-unsafemodule" "\tAnalysis result whether the module is safe"              gModuleUnsafeModule   pModuleUnsafeModule
+  , registerRequest "classes"           "\t\tThe exported classes of the module"                    gModuleClasses        pModuleClasses
+  , registerRequest "types"             "\t\t\tThe exported types of the module"                    gModuleTypes          pModuleTypes
+  , registerRequest "operations"        "\t\tThe exported operations of the module"                 gModuleOperations     pModuleOperations
   ]
 
 -- TYPE
 
 typeConfiguration :: Configuration CurryType
 typeConfiguration =
-  [ registerRequest "typeName"        "\t\tThe name of the type"                                  gTypeName           pTypeName
-  , registerRequest "documentation"   "\t\tReference to the documentation comment of the type"    gTypeDocumentation  pTypeDocumentation
-  , registerRequest "constructors"    "\t\tThe list of the constructors of the type"              gTypeConstructors   pTypeConstructors
-  , registerRequest "definition"      "\t\tReference to the definition of the type"               gTypeDefinition     pTypeDefinition
+  [ registerRequest "name"          "\t\t\tThe name of the type"                                gTypeName           pTypeName
+  , registerRequest "documentation" "\t\tReference to the documentation comment of the type"    gTypeDocumentation  pTypeDocumentation
+  , registerRequest "constructors"  "\t\tThe list of the constructors of the type"              gTypeConstructors   pTypeConstructors
+  , registerRequest "definition"    "\t\tReference to the definition of the type"               gTypeDefinition     pTypeDefinition
   ]
 
--- TYPECLASS
+-- CLASS
 
-typeclassConfiguration :: Configuration CurryTypeclass
-typeclassConfiguration =
-  [ registerRequest "typeclass"       "\t\tThe name of the typeclass"                                 gTypeclassName          pTypeclassName
-  , registerRequest "documentation"   "\t\tReference to the documentation comment of the typeclass"   gTypeclassDocumentation pTypeclassDocumentation
-  , registerRequest "methods"         "\t\tThe list of the methods of the typeclass"                  gTypeclassMethods       pTypeclassMethods
-  , registerRequest "definition"      "\t\tReference to the definition of the typeclass"              gTypeclassDefinition    pTypeclassDefinition
+classConfiguration :: Configuration CurryClass
+classConfiguration =
+  [ registerRequest "name"          "\t\t\tThe name of the type class"                              gClassName          pClassName
+  , registerRequest "documentation" "\t\tReference to the documentation comment of the type class"  gClassDocumentation pClassDocumentation
+  , registerRequest "methods"       "\t\tThe list of the methods of the type class"                 gClassMethods       pClassMethods
+  , registerRequest "definition"    "\t\tReference to the definition of the type class"             gClassDefinition    pClassDefinition
   ]
 
 -- OPERATION
 
 operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
-  [ registerRequest "operation"            "\t\tThe name of the operation"                               gOperationName                pOperationName
+  [ registerRequest "name"                 "\t\t\tThe name of the operation"                             gOperationName                pOperationName
   , registerRequest "documentation"        "\t\tReference to documentation comment of the operation"     gOperationDocumentation       pOperationDocumentation
   , registerRequest "definition"           "\t\tReference to definition of the operation"                gOperationSourceCode          pOperationSourceCode
   , registerRequest "signature"            "\t\tThe signature of the operation"                          gOperationSignature           pOperationSignature
