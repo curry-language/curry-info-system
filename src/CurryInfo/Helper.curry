@@ -45,6 +45,10 @@ information ext _ _ InformationExtractionFailed = ext
 information _ err _ (InformationError s) = err s
 information _ _ res (InformationResult jv s) = res jv s
 
+--- This operation puts single quotation marks around the given string.
+quote :: String -> String
+quote s = "'" ++ s ++ "'"
+
 --- This operation parenthesizes the given string.
 parenthesize :: String -> String
 parenthesize s = "(" ++ s ++ ")"

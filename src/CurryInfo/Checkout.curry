@@ -6,8 +6,10 @@ module CurryInfo.Checkout where
 
 import CurryInfo.Types
 import CurryInfo.Paths (root)
-import CurryInfo.Commands (runCmd, cmdCheckout)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Commands  ( runCmd, cmdCheckout )
+import CurryInfo.Helper    ( quote )
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage, printErrorMessage )
 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
@@ -24,8 +26,8 @@ checkouts = do
   path <- root
   return (path </> "checkouts")
 
--- This action returns the path to the directory, in which the checkout of the given version
--- of the given package is stored or will be stored.
+-- This action returns the path to the directory, in which the checkout
+-- of the given version of the given package is stored or will be stored.
 getCheckoutPath :: Package -> Version -> IO String
 getCheckoutPath pkg vsn = do
   initializeCheckouts
@@ -49,15 +51,17 @@ cmdSuccess :: Int
 cmdSuccess = 0
 -}
 
--- This action creates a checkout for the given version of the given package.
+--- Checkout a given package with a specified version of the given package
+--- and return the directory where the package is stored.
 checkoutIfMissing :: Options -> Package -> Version -> IO (Maybe String)
 checkoutIfMissing opts pkg vsn = do
-  printDetailMessage opts $ "Computing checkout path for package '" ++ pkg ++ "' with version '" ++ vsn ++ "'..."
+  printDetailMessage opts $ "Computing checkout path for package '" ++ pkg ++
+                            "' with version '" ++ vsn ++ "'..."
   path <- getCheckoutPath pkg vsn
   printDetailMessage opts $ "Checkout path: " ++ path
   printDetailMessage opts "Determining if checkout is necessary..."
-  b <- doesDirectoryExist path
-  case b of
+  expath <- doesDirectoryExist path
+  case expath of
     True -> do
       printDetailMessage opts "Directory already exists. Checkout unnecessary."
       return $ Just path
@@ -65,5 +69,10 @@ checkoutIfMissing opts pkg vsn = do
       printDetailMessage opts "Directory does not exist. Checkout necessary."
       printDetailMessage opts $ "Creating checkout..."
       runCmd opts $ cmdCheckout opts path pkg vsn
-      printDetailMessage opts "Checkout created."
-      return $ Just path
+      b <- doesDirectoryExist path
+      case b of
+        True  -> do printDetailMessage opts "Checkout created."
+                    return $ Just path
+        False -> do printErrorMessage $ "Checkout of " ++ quote pkg ++
+                      " with version " ++ quote vsn ++ " failed!"
+                    return Nothing

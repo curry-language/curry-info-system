@@ -43,8 +43,7 @@ cmdCheckout :: Options -> String -> Package -> Version
             -> (String, IO (Int,String,String))
 cmdCheckout _ path pkg vsn =
   let x@(cmd:args) = ["cypm", "checkout", "-o", path, pkg, vsn]
-      action = evalCmd cmd args ""
-  in (unwords x, action)
+  in (unwords x, evalCmd cmd args "")
 
 -- This action calls CPM to install dependencies in the given path.
 cmdCPMInstall :: Options -> String -> (String, IO (Int, String, String))
@@ -52,6 +51,13 @@ cmdCPMInstall opts path =
   let x@(cmd:args) = ["cypm", "install", "--noexec"]
       action = evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
+
+--- Generate command to compute the load path of the package stored
+---in the given path.
+cmdCPMPath :: Options -> String -> (String, IO (Int, String, String))
+cmdCPMPath opts path = 
+  let x@(cmd:args) = ["cypm", "deps", "--path"]
+  in (unwords x, evalCmdInDirectory opts path cmd args "")
 
 -- This action calls CPM to update the package index in the given path.
 cmdCPMUpdate :: Options -> String -> (String, IO (Int, String, String))
@@ -66,8 +72,7 @@ cmdCPMUpdate opts path =
 cmdCurryLoad :: Options -> String -> Module -> (String, IO (Int, String, String))
 cmdCurryLoad opts path m =
   let x@(cmd:args) = ["cypm", "curry", ":l", m, ":q"]
-      action = evalCmdInDirectory opts path cmd args ""
-  in (unwords x, action)
+  in (unwords x, evalCmdInDirectory opts path cmd args "")
 
 -- This action calls CASS to compute the given analysis for the given module
 -- in the given path.

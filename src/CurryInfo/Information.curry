@@ -16,15 +16,14 @@ import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage)
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
                            , readPackageModules)
-import CurryInfo.Helper    ( InformationResult(..), information )
+import CurryInfo.Helper    ( InformationResult(..), information, quote )
 
 import JSON.Pretty (ppJSON)
 import JSON.Data
-import JSON.Parser (parseJSON)
 
 import Data.Char   ( toLower )
 import Data.Either ( partitionEithers )
-import Data.List   ( isSuffixOf )
+import Data.List   ( isSuffixOf, union )
 import Data.Maybe  ( catMaybes, isJust )
 
 import System.Environment ( getArgs )
@@ -59,16 +58,15 @@ generateOutputError opts err = do
 --- returns the output for the requests.
 getInfos :: Options -> QueryObject -> [String] -> IO Output
 getInfos opts qobj reqs = do
-  printDetailMessage opts "Checking structure of the request..."
+  printDetailMessage opts $
+    "Checking structure of request " ++ quotePrettyObject qobj
   case qobj of
     QueryPackage pkg -> do
       printDetailMessage opts "Request is Package."
       result <- checkPackageExists pkg
       case result of
-        False -> do
-          let err = "Package '" ++ pkg ++ "' does not exist."
-          printDebugMessage opts err
-          generateOutputError opts err
+        False ->
+          printDebugAndOutputError $ "Package '" ++ pkg ++ "' does not exist."
         True -> do
           printDebugMessage opts "Package exists."
           getInfosConfig opts qobj reqs packageConfiguration (CurryPackage pkg)
@@ -76,11 +74,9 @@ getInfos opts qobj reqs = do
       printDetailMessage opts "Request is Version."
       result <- checkVersionExists pkg vsn
       case result of
-        False -> do
-          let err = "Version '" ++ vsn ++ "' of package '" ++ pkg ++
-                    "' does not exist."
-          printDetailMessage opts err
-          generateOutputError opts err
+        False ->
+          printDebugAndOutputError $ "Version '" ++ vsn ++ "' of package '" ++
+            pkg ++ "' does not exist."
         True -> do
           printDetailMessage opts "Version entity exists."
           getInfosConfig opts qobj reqs
@@ -90,15 +86,14 @@ getInfos opts qobj reqs = do
       result <- checkModuleExists pkg vsn m
       case result of
         False -> do
-          let err = "Module '" ++ m ++ "' of version '" ++ vsn ++
-                    "' of package '" ++ pkg ++ "' is not exported."
-          printDetailMessage opts err
-          generateOutputError opts err
+          printDebugAndOutputError $ "Module '" ++ m ++ "' of version '" ++
+            vsn ++ "' of package '" ++ pkg ++ "' is not exported."
         True  -> do
           printDetailMessage opts "Module entity exists."
           case (optAllTypes opts, optAllClasses opts, optAllOperations opts) of
             (True, _, _) -> do
-              mts <- queryAllTypes pkg vsn m
+              mts <- queryAllEntities pkg vsn m (QueryType pkg vsn m "?")
+                                      "types"
               case mts of
                 Nothing -> do
                   generateOutputError opts "Could not find types"
@@ -110,7 +105,8 @@ getInfos opts qobj reqs = do
                   let out = combineOutput outs
                   return out
             (_, True, _) -> do
-              mcs <- queryAllClasses pkg vsn m
+              mcs <- queryAllEntities pkg vsn m (QueryClass pkg vsn m "?")
+                                      "classes"
               case mcs of
                 Nothing -> do
                   generateOutputError opts "Could not find type classes"
@@ -122,9 +118,10 @@ getInfos opts qobj reqs = do
                   let out = combineOutput outs
                   return out
             (_, _, True) -> do
-              mos <- queryAllOperations pkg vsn m
+              mos <- queryAllEntities pkg vsn m (QueryOperation pkg vsn m "?")
+                                      "operations"
               case mos of
-                Nothing -> do
+                Nothing ->
                   generateOutputError opts "Could not find operations."
                 Just os -> do
                   outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
@@ -138,73 +135,68 @@ getInfos opts qobj reqs = do
                              moduleConfiguration (CurryModule pkg vsn m)
     QueryType pkg vsn m t -> do
       printDetailMessage opts "Request is Type"
-      result <- checkTypeExists pkg vsn m t
+      result <- checkEntityExists pkg vsn m t (QueryType pkg vsn m t) "types"
       case result of
         False -> do
-          let err = "Type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++
-                    vsn ++ "' of package '" ++ pkg ++ "' is not exported."
-          printDetailMessage opts err
-          generateOutputError opts err
+          printDebugAndOutputError $ noExistMessage pkg vsn m "Type" t
         True  -> do
-          printDetailMessage opts "Type entity exists."
+          printDetailMessage opts $
+            "Type " ++ quotePrettyObject qobj ++ " exists."
           getInfosConfig opts qobj reqs
                          typeConfiguration (CurryType pkg vsn m t)
     QueryClass pkg vsn m c -> do
       printDetailMessage opts "Request is Class"
-      result <- checkClassExists pkg vsn m c
+      result <- checkEntityExists pkg vsn m c (QueryClass pkg vsn m c) "classes"
       case result of
-        False -> do
-          let err = "Class '" ++ c ++ "' of module '" ++ m ++
-                    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++
-                    "' is not exported."
-          printDetailMessage opts err
-          generateOutputError opts err
+        False -> 
+          printDebugAndOutputError $ noExistMessage pkg vsn m "Class" c
         True  -> do
-          printDetailMessage opts "Class entity exists."
+          printDetailMessage opts $
+            "Class " ++ quotePrettyObject qobj ++ " exists."
           getInfosConfig opts qobj reqs
                          classConfiguration (CurryClass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
       printDetailMessage opts "Request is Operation."
-      result <- checkOperationExists pkg vsn m o
+      result <- checkEntityExists pkg vsn m o (QueryOperation pkg vsn m o)
+                                  "operations"
       case result of
-        False -> do
-          let err = "Operation '" ++ o ++ "' of module '" ++ m ++
-                    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++
-                    "' is not exported."
-          printDetailMessage opts err
-          generateOutputError opts err
+        False ->
+          printDebugAndOutputError $ noExistMessage pkg vsn m "Operation" o
         True  -> do
-          printDetailMessage opts "Operation entity exists."
+          printDetailMessage opts $
+            "Operation " ++ quotePrettyObject qobj ++ " exists."
           getInfosConfig opts qobj reqs
                          operationConfiguration (CurryOperation pkg vsn m o)
  where
-  queryAllStoredEntities :: QueryObject -> IO (Maybe [String])
+  noExistMessage pkg vsn m ek e = unwords
+    [ ek, quote e, "of module", quote m, "of version", quote vsn, "of package"
+    , quote pkg, "is not exported."]
+  
+  printDebugAndOutputError err = do printDetailMessage opts err
+                                    generateOutputError opts err
+
+  -- Return all entities of the query object currently stored in json files:
+  queryAllStoredEntities :: QueryObject -> IO [String]
   queryAllStoredEntities qo = do
-    dir <- getDirectoryPath qo
+    dir   <- getDirectoryPath qo
     exdir <- doesDirectoryExist dir
     if exdir then do jsonfiles <- fmap (catMaybes . map jsonFile2Name)
                                        (getDirectoryContents dir)
-                     return (Just jsonfiles)
-             else return Nothing
+                     return jsonfiles
+             else return []
 
-  queryAllTypes :: Package -> Version -> Module -> IO (Maybe [Type])
-  queryAllTypes pkg vsn m =
-    queryAllStoredEntities (QueryType pkg vsn m "?") >>=
-    maybe (query (QueryModule pkg vsn m) "types") (return . Just)
-
-  queryAllClasses :: Package -> Version -> Module -> IO (Maybe [Class])
-  queryAllClasses pkg vsn m =
-    queryAllStoredEntities (QueryClass pkg vsn m "?") >>=
-    maybe (query (QueryModule pkg vsn m) "classes") (return . Just)
-
-  queryAllOperations :: Package -> Version -> Module -> IO (Maybe [Operation])
-  queryAllOperations pkg vsn m =
-    queryAllStoredEntities (QueryOperation pkg vsn m "?") >>=
-    maybe (query (QueryModule pkg vsn m) "operations") (return . Just)
+  -- Return all entities of the query object.
+  queryAllEntities pkg vsn m entqobj entreq = do
+    stnames <- queryAllStoredEntities entqobj
+    opnames <- query (QueryModule pkg vsn m) entreq
+    return (opnames >>= Just . union stnames)
 
   query :: Read a => QueryObject -> String -> IO (Maybe a)
   query obj req = do
-    res <- getInfos queryOptions obj [req] :: IO Output
+    printDetailMessage opts $ "Query for object " ++ quotePrettyObject obj ++
+                              " and request " ++ quote req
+    res <- getInfos queryOptions obj [req]
+    printDebugMessage opts $ "Query result: " ++ show res
     case res of
       -- OutputTerm [("obj", [("req", "res")])]
       OutputTerm [(_, x)] -> case lookup req (read x) of
@@ -251,34 +243,17 @@ getInfos opts qobj reqs = do
     jpath <- getJSONPath (QueryModule pkg vsn m)
     whenFileDoesNotExist jpath $ do
       allMods <- readPackageModules opts pkg vsn
-      packageJSON <- readPackageJSON opts pkg vsn
-      let exportedMods = maybe allMods id
-                               (parseJSON packageJSON >>= getExportedModules)
-      return (elem m exportedMods)
+      mbjson  <- readPackageJSON opts pkg vsn
+      let exportedmods = maybe allMods id
+                               (mbjson >>= Just  . snd >>= getExportedModules)
+      return (elem m exportedmods)
 
-  checkTypeExists :: Package -> Version -> Module -> Type -> IO Bool
-  checkTypeExists pkg vsn m t = do
-    jpath <- getJSONPath (QueryType pkg vsn m t)
+  checkEntityExists pkg vsn m e qentity ereq = do
+    jpath <- getJSONPath qentity
     whenFileDoesNotExist jpath $ do
-      res <- query (QueryModule pkg vsn m) "types"
+      res <- query (QueryModule pkg vsn m) ereq
       case res of Nothing -> return False
-                  Just ts -> return $ elem t ts
-
-  checkClassExists :: Package -> Version -> Module -> Class -> IO Bool
-  checkClassExists pkg vsn m c = do
-    jpath <- getJSONPath (QueryClass pkg vsn m c)
-    whenFileDoesNotExist jpath $ do
-      res <- query (QueryModule pkg vsn m) "classes"
-      case res of Nothing -> return False
-                  Just cs -> return $ elem c cs
-
-  checkOperationExists :: Package -> Version -> Module -> Operation -> IO Bool
-  checkOperationExists pkg vsn m o = do
-    jpath <- getJSONPath (QueryOperation pkg vsn m o)
-    whenFileDoesNotExist jpath $ do
-      res <- query (QueryModule pkg vsn m) "operations"
-      case res of Nothing -> return False
-                  Just os -> return $ elem o os
+                  Just es -> return $ elem e es
     
 whenFileDoesNotExist :: FilePath -> IO Bool -> IO Bool
 whenFileDoesNotExist path act = do
@@ -292,9 +267,11 @@ whenFileDoesNotExist path act = do
 getInfosConfig :: Show a => Options -> QueryObject -> [String]
                -> [RegisteredRequest a] -> a -> IO Output
 getInfosConfig opts queryobject reqs conf configobject = do
-  printDetailMessage opts "Initializing store for entity..."
+  printDetailMessage opts $
+    "Initializing store for entity " ++ quotePrettyObject queryobject
   initializeStore queryobject
-  printDetailMessage opts "Reading current entity information..."
+  printDetailMessage opts $
+    "Reading current information of entity " ++ quotePrettyObject queryobject
   mfields <- readObjectInformation opts queryobject
   case mfields of
     Nothing -> do

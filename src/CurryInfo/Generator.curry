@@ -20,9 +20,10 @@ import CurryInfo.Interface
   , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
   , getClassDecl, getClassMethods
   )
-import CurryInfo.Helper     ( isCurryID )
+import CurryInfo.Helper     ( isCurryID, quote )
 import CurryInfo.Analysis
-import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation )
+import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation
+                            , getSourceCodeRef )
 import CurryInfo.Parser     ( parseVersionConstraints )
 import CurryInfo.Verbosity  ( printStatusMessage, printDetailMessage
                             , printDebugMessage)
@@ -35,11 +36,12 @@ import JSON.Convert
 import JSON.Pretty
 
 import System.IOExts    ( evalCmd )
-import System.Directory ( doesDirectoryExist, doesFileExist )
-import System.CurryPath ( curryModulesInDirectory, modNameToPath )
+import System.Directory ( doesDirectoryExist, doesFileExist
+                        , getDirectoryContents )
+import System.CurryPath ( curryModulesInDirectory )
 import System.FilePath  ( (</>), (<.>) )
 import System.IOExts    ( readCompleteFile )
-import Data.List        ( isPrefixOf, intersect, (\\) )
+import Data.List        ( find, isPrefixOf, intersect, (\\) )
 import Data.Maybe       ( catMaybes )
 
 import Control.Monad (when)
@@ -92,10 +94,11 @@ gVersionCategories =
 
 gVersionModules :: Generator CurryVersion [String]
 gVersionModules opts x@(CurryVersion pkg vsn) = do
-    allMods <- readPackageModules opts pkg vsn
-    generateFromPackageJSON "modules" (modulesSelector allMods) opts x
-  where
-    modulesSelector allMods jv = maybe allMods (intersect allMods) (getExportedModules jv)
+  allMods <- readPackageModules opts pkg vsn
+  generateFromPackageJSON "modules" (modulesSelector allMods) opts x
+ where
+  modulesSelector allMods jv =
+    maybe allMods (intersect allMods) (getExportedModules jv)
 
 gVersionDependencies :: Generator CurryVersion [Dependency]
 gVersionDependencies =
@@ -287,20 +290,21 @@ gOperationFailFree =
 
 --------------------------------------------------------------------------
 
---- Generator function to create an information generator for versions.
+--- Generator function to create an information generator for package versions.
 --- The first argument is a description of the generated information
---- and the second argument is the operation, that looks for the information in the package json file.
-generateFromPackageJSON :: Show b => String -> (JValue -> b) -> Generator CurryVersion b
+--- and the second argument is the operation that looks for the information
+--- in the package json file.
+generateFromPackageJSON :: Show b => String -> (JValue -> b)
+                        -> Generator CurryVersion b
 generateFromPackageJSON desc selector opts (CurryVersion pkg vsn) = do
-  printDetailMessage opts $ "Generating " ++ desc ++ " for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-  packageJSON <- readPackageJSON opts pkg vsn
-  case parseJSON packageJSON of
-    Nothing -> do
-      printDetailMessage opts "Failed to parse package.json."
-      return Nothing
-    Just jv -> do
-      printDebugMessage opts $ "json:\n" ++ ppJSON jv
-      let res = selector jv
+  printDetailMessage opts $ unwords $
+    ["Generating", desc, "for version", quote vsn, "of package", quote pkg, "..."]
+  mbdirjson <- readPackageJSON opts pkg vsn
+  case mbdirjson of
+    Nothing -> return Nothing
+    Just (_,pkgjson) -> do
+      printDebugMessage opts $ "JSON:\n" ++ ppJSON pkgjson
+      let res = selector pkgjson
       printDebugMessage opts $ "Result: " ++ show res
       printDetailMessage opts "Generating finished successfully."
       return $ Just res
@@ -410,20 +414,28 @@ lookupField s jv = case jv of
   JObject fields -> lookup s fields
   _ -> Nothing
 
+--- Returns the `category` field in a JSON object, if present.
 getCategories :: JValue -> Maybe [String]
 getCategories jv = lookupField "category" jv >>= fromJSONList
 
+--- Returns the `exportedModules` field in a JSON object, if present.
 getExportedModules :: JValue -> Maybe [String]
 getExportedModules jv = lookupField "exportedModules" jv >>= fromJSONList
 
+--- Returns the `sourceDirs` field in a JSON object. If it is not present,
+--- return the single directory `src`.
+getSourceDirs :: JValue -> [String]
+getSourceDirs jv = 
+  maybe ["src"] id (lookupField "sourceDirs" jv >>= fromJSONList)
+
+--- Returns the `dependencies` field in a JSON object, if present.
 getDependencies :: JValue -> Maybe [Dependency]
 getDependencies jv = case jv of
   JObject fields -> do
     value <- lookup "dependencies" fields
     case value of
-      JObject fields' -> do
-        mapM convertDependency fields'
-      _ -> Nothing
+      JObject fields' -> mapM convertDependency fields'
+      _               -> Nothing
   _ -> Nothing
 
 convertDependency :: (String, JValue) -> Maybe Dependency
@@ -434,39 +446,46 @@ convertDependency (pkg, jv) = do
 
 readPackageModules :: Options -> Package -> Version -> IO [Module]
 readPackageModules opts pkg vsn = do
-  result <- checkoutIfMissing opts pkg vsn
-  case result of
-    Nothing -> return []
-    Just dir -> do
-      let src = dir </> "src"
-      curryModulesInDirectory src
+  mbdirjson <- readPackageJSON opts pkg vsn
+  case mbdirjson of
+    Nothing  -> return []
+    Just (dir,json) -> do
+      let srcdirs = map (dir </>) (getSourceDirs json)
+      fmap concat (mapM curryModulesInDirectory srcdirs)
 
-readPackageJSON :: Options -> Package -> Version -> IO String
+--- Returns the directory and JSON value of `package.json` of a package with
+--- the given version. `Nothing` is returned it it cannot be found
+--- or cannot be parsed (which should not be the case).
+readPackageJSON :: Options -> Package -> Version
+                   -> IO (Maybe (String,JValue))
 readPackageJSON opts pkg vsn = do
-  printDetailMessage opts "Reading package json..."
+  printDetailMessage opts $
+    "Reading package json of " ++ pkg ++ "-" ++ vsn ++ "..."
   result <- checkoutIfMissing opts pkg vsn
   case result of
-    Nothing -> return "{}"
+    Nothing  -> return Nothing
     Just dir -> do
       let packageJSON = dir </> "package.json"
       b <- doesFileExist packageJSON
       case b of
-        False -> do
-          return "{}"
-        True -> do
-          readCompleteFile packageJSON
+        False -> do printDetailMessage opts "'package.json' not found!"
+                    return Nothing
+        True  -> do
+          jsontxt <- readCompleteFile packageJSON
+          case parseJSON jsontxt of
+            Nothing   -> do printDetailMessage opts
+                             "Failed to parse package.json."
+                            return Nothing
+            Just json -> return (Just (dir,json))
 
+--- Returns the path of a `README` file of a package with the given version.
+--- Returns the empty string if such a file does not exist.
 packageREADMEPath :: Options -> Package -> Version -> IO String
 packageREADMEPath opts pkg vsn = do
   printDetailMessage opts "Finding path to README..."
   result <- checkoutIfMissing opts pkg vsn
   case result of
-    Nothing -> return ""
+    Nothing  -> return ""
     Just dir -> do
-      let readme = dir </> "README.md"
-      b <- doesFileExist readme
-      case b of
-        False -> do
-          return ""
-        True -> do
-          return readme
+      dconts <- getDirectoryContents dir
+      return $ maybe "" id (find ("README" `isPrefixOf`) dconts)

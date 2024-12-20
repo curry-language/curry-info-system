@@ -4,7 +4,7 @@
 
 module CurryInfo.Types where
 
-import CurryInfo.Helper (parenthesize)
+import CurryInfo.Helper ( parenthesize, quote )
 
 import Text.Pretty (Doc)
 
@@ -149,6 +149,21 @@ data QueryObject =
   | QueryType      Package Version Module Type
   | QueryClass     Package Version Module Class
   | QueryOperation Package Version Module Operation
+
+--- Transforms a query object into a pretty compact string representation.
+--- For instance, this is used for details and debug output.
+prettyObject :: QueryObject -> String
+prettyObject (QueryPackage pkg)       = pkg
+prettyObject (QueryVersion pkg vsn)   = pkg ++ "-" ++ vsn
+prettyObject (QueryModule pkg vsn m)  = pkg ++ "-" ++ vsn ++ " / " ++ m
+prettyObject (QueryType p v m t)      = p ++ "-" ++ v ++ " / " ++ m ++ "." ++ t
+prettyObject (QueryClass p v m c)     = p ++ "-" ++ v ++ " / " ++ m ++ "." ++ c
+prettyObject (QueryOperation p v m o) = p ++ "-" ++ v ++ " / " ++ m ++ "." ++ o
+
+--- Transforms a query object into a quoted pretty compact string
+--- representation. For instance, this is used for details and debug output.
+quotePrettyObject :: QueryObject -> String
+quotePrettyObject = quote . prettyObject
 
 --- Error message issued when there is an error reading some object.
 errorReadingObject :: QueryObject -> String

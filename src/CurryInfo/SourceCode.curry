@@ -5,18 +5,20 @@
 
 module CurryInfo.SourceCode where
 
+import CurryInfo.Helper    ( quote )
 import CurryInfo.Types
 import CurryInfo.Checkout  ( checkoutIfMissing )
+import CurryInfo.Commands  ( cmdCPMPath, runCmd )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage )
+                           , printDebugMessage, printErrorMessage )
 
-import System.CurryPath (modNameToPath)
-import System.Directory (doesFileExist)
-import System.FilePath ((</>), (<.>))
+import System.CurryPath ( lookupModuleSource )
+import System.Directory ( doesFileExist )
+import System.FilePath  ( (</>), (<.>), splitSearchPath )
 import System.IO
 
-import Data.List  (isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex)
-import Data.Maybe (fromMaybe)
+import Data.List  ( isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex )
+import Data.Maybe ( fromMaybe )
 
 type Checker = String -> Bool
 
@@ -59,19 +61,54 @@ belongsLine h belong lnum = do
 belongs :: String -> Bool
 belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
 
--- This operation returns a handle to the source file of the given module
--- together with the path to the source file.
-getSourceFileHandle :: Options -> Package -> Version -> Module
-                    -> IO (Maybe (String, Handle))
-getSourceFileHandle opts pkg vsn m = do
-  printDebugMessage opts "Reading source file..."
+--- Gets the Curry load path of a package stored in the given path
+--- by CPM.
+getPackageLoadPath :: Options -> FilePath -> IO (Maybe [String])
+getPackageLoadPath opts path = do
+  printDetailMessage opts $ "Get load path of package in '" ++ path ++ "'..."
+  (ec,out,err) <- runCmd opts $ cmdCPMPath opts path
+  if ec > 0
+    then do printErrorMessage "Getting package load path failed!"
+            printErrorMessage $ "Outputs:\n" ++ out ++ err
+            return Nothing
+    else do let ls = lines out
+            return $ Just $ if null ls then [] else splitSearchPath (head ls)
+
+--- This operation returns the directory and the actual path of the source file
+--- of the given module.
+getSourceFilePath :: Options -> Package -> Version -> Module
+                  -> IO (Maybe (FilePath,FilePath))
+getSourceFilePath opts pkg vsn m = do
+  printDebugMessage opts $ "Getting source file path of " ++ quote m ++ "..."
   mpath <- checkoutIfMissing opts pkg vsn
   case mpath of
     Nothing -> do
-      printDebugMessage opts "Failed to read source file"
+      printDebugMessage opts "Package checkout failed: cannot get source file"
       return Nothing
-    Just cpath -> do
-      let path = cpath </> "src" </> modNameToPath m <.> "curry"
+    Just pkgpath -> do
+      mlpath <- getPackageLoadPath opts pkgpath
+      case mlpath of
+        Nothing -> do printDebugMessage opts $ "Cannot determine load path " ++
+                                               "for package '" ++ pkg ++ "'!"
+                      return Nothing
+        Just lpath -> do
+          msrcpath <- lookupModuleSource lpath m
+          case msrcpath of
+            Nothing -> do printDebugMessage opts $ "Source file of module '" ++
+                                                   m ++ "' not found!"
+                          return Nothing
+            Just dirpath -> return (Just dirpath)
+
+--- This operation returns a handle to the source file of the given module
+--- together with the path to the source file.
+getSourceFileHandle :: Options -> Package -> Version -> Module
+                    -> IO (Maybe (String, Handle))
+getSourceFileHandle opts pkg vsn m = do
+  printDebugMessage opts $ "Reading source file of module " ++ quote m ++ "..."
+  mpath <- getSourceFilePath opts pkg vsn m
+  case mpath of
+    Nothing   -> return Nothing
+    Just (_,path) -> do
       printDebugMessage opts $ "Path to source file: " ++ path
       b <- doesFileExist path
       case b of
@@ -79,7 +116,7 @@ getSourceFileHandle opts pkg vsn m = do
           printDebugMessage opts $ "Source file does not exist: " ++ path
           return Nothing
         True -> do
-          printDebugMessage opts "Opening source file..."
+          printDebugMessage opts $ "Opening source file " ++ quote path ++ "..."
           hdl <- openFile path ReadMode
           return (Just (path, hdl))
 

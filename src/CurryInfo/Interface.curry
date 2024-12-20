@@ -1,22 +1,26 @@
------------------------------------------------------------------------------------------
---- This modules defines operations to extract information from Curry interfaces.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--- This modules defines operations to extract information from Curry interface
+--- files.
+------------------------------------------------------------------------------
 
 module CurryInfo.Interface where
 
-import CurryInfo.Checkout (getCheckoutPath, checkoutIfMissing)
+import CurryInfo.Checkout   ( getCheckoutPath, checkoutIfMissing )
+import CurryInfo.SourceCode ( getSourceFilePath )
 import CurryInfo.Types
-import CurryInfo.Commands (runCmd, cmdCPMInstall, cmdCurryLoad)
-import CurryInfo.Verbosity (printStatusMessage, printDetailMessage, printDebugMessage)
+import CurryInfo.Commands   ( runCmd, cmdCPMInstall, cmdCurryLoad )
+import CurryInfo.Verbosity  ( printStatusMessage, printDetailMessage
+                            , printDebugMessage )
 
-import System.Directory (doesFileExist, getCurrentDirectory, setCurrentDirectory)
-import System.IOExts (evalCmd)
-import System.FrontendExec (FrontendTarget (..), callFrontend)
-import System.CurryPath (currySubdir, modNameToPath)
-import System.FilePath ((</>), (<.>))
+import System.Directory     ( doesFileExist, getCurrentDirectory
+                            , setCurrentDirectory )
+import System.IOExts        ( evalCmd )
+import System.FrontendExec  ( FrontendTarget (..), callFrontend )
+import System.CurryPath     ( currySubdir )
+import System.FilePath      ( (</>), (<.>) )
 
 import CurryInterface.Types
-import CurryInterface.Files  ( readCurryInterfaceFile )
+import CurryInterface.Files  ( curryInterfaceFileName, readCurryInterfaceFile )
 import CurryInterface.Pretty ( defaultOptions, ppConstructor, ppNewConstructor
                              , ppType, ppMethodDecl, ppQualType )
 
@@ -24,26 +28,21 @@ import Data.List (find)
 
 import Text.Pretty (pPrint)
 
--- This action returns the path to the respective .icurry file in the
--- `checkouts` subdirectory.
-icurryPath :: Package -> Version -> Module -> IO String
-icurryPath pkg vsn m = do
-  path <- getCheckoutPath pkg vsn
-  return (path </> "src" </> currySubdir </> modNameToPath m <.> "icurry")
-
 -- This action tries to parse the respective .icurry file. If the file
 -- does not exist yet, the action will invoke 'cypm' and 'curry' to install
 -- missing dependencies of the package and make the parser generate
 -- the .icurry file.
 readInterface :: Options -> Package -> Version -> Module -> IO (Maybe Interface)
 readInterface opts pkg vsn m = do
-  printDetailMessage opts $
-    "Checkout for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-  mpath <- checkoutIfMissing opts pkg vsn
-  case mpath of
-    Just path -> do
+  mbsrcpath <- getSourceFilePath opts pkg vsn m
+  case mbsrcpath of
+    Nothing -> return Nothing
+    Just (srcdir,_) -> do
+      path <- getCheckoutPath pkg vsn
       printDebugMessage opts "Computing path to icurry file..."
-      icurry <- icurryPath pkg vsn m
+      --icurry <- icurryPath opts pkg vsn m
+      let icurry = srcdir </> (curryInterfaceFileName m)
+
       printDebugMessage opts $ "Path to icurry file: " ++ icurry
       printDebugMessage opts "Checking whether icurry file exists..."
       b <- doesFileExist icurry
@@ -61,9 +60,6 @@ readInterface opts pkg vsn m = do
           printDebugMessage opts "Reading interface..."
           result <- readCurryInterfaceFile icurry
           return $ Just result
-    Nothing -> do
-      printDebugMessage opts "Checkout failed."
-      return Nothing
 
 -- This operation returns the declarations of the given interface.
 getDeclarations :: Interface -> [IDecl]

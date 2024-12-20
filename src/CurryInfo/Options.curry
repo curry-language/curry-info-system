@@ -16,7 +16,7 @@ import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, packagesPath, root )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage )
 import CurryInfo.Checkout  ( checkouts, getCheckoutPath )
-import CurryInfo.Helper (safeRead)
+import CurryInfo.Helper    ( quote, safeRead )
 
 import System.Console.GetOpt
 import System.Process (exitWith, system)
@@ -131,10 +131,6 @@ cleanDirectory opts obj = getDirectoryPath obj >>= deleteDirectory opts
 -- This action deletes the checkout directory of the given package and version.
 cleanCheckout :: Options -> Package -> Version -> IO ()
 cleanCheckout opts pkg vsn = getCheckoutPath pkg vsn >>= deleteDirectory opts
-
--- This operation puts single quotation marks around the given string.
-quote :: String -> String
-quote s = "'" ++ s ++ "'"
 
 -- This action deletes the entire directory used by this tool to store
 -- information locally.
