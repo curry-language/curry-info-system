@@ -138,17 +138,17 @@ getInfos opts qobj reqs = do
                              moduleConfiguration (CurryModule pkg vsn m)
     QueryType pkg vsn m t -> do
       printDetailMessage opts "Request is Type"
-      ifEntityExists pkg vsn m t qobj "types" "Type" $
+      ensureEntityExists pkg vsn m t qobj "types" "Type" $
         getInfosConfig opts qobj reqs
                        typeConfiguration (CurryType pkg vsn m t)
     QueryClass pkg vsn m c -> do
       printDetailMessage opts "Request is Class"
-      ifEntityExists pkg vsn m c qobj "classes" "Class" $
+      ensureEntityExists pkg vsn m c qobj "classes" "Class" $
         getInfosConfig opts qobj reqs
                        classConfiguration (CurryClass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
       printDetailMessage opts "Request is Operation."
-      ifEntityExists pkg vsn m o qobj "operations" "Operation" $
+      ensureEntityExists pkg vsn m o qobj "operations" "Operation" $
         getInfosConfig opts qobj reqs
                        operationConfiguration (CurryOperation pkg vsn m o)
  where
@@ -160,9 +160,8 @@ getInfos opts qobj reqs = do
   queryAllStoredEntities qo = do
     dir   <- getDirectoryPath qo
     exdir <- doesDirectoryExist dir
-    if exdir then do jsonfiles <- fmap (catMaybes . map jsonFile2Name)
-                                       (getDirectoryContents dir)
-                     return jsonfiles
+    if exdir then fmap (catMaybes . map jsonFile2Name)
+                       (getDirectoryContents dir)
              else return []
 
   -- Return all entities of the query object.
@@ -234,7 +233,7 @@ getInfos opts qobj reqs = do
                                (mbjson >>= Just  . snd >>= getExportedModules)
       return (elem m exportedmods)
 
-  ifEntityExists pkg vsn m e qentity ereq ename cont = do
+  ensureEntityExists pkg vsn m e qentity ereq ename cont = do
     jpath <- getJSONPath qentity
     exf <- doesFileExist jpath
     if exf

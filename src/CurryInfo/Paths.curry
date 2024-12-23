@@ -39,15 +39,9 @@ initializeStoreWithRealName opts qobj mn en =
 --- If the JSON already exists, it will remain unchanged.
 initializeStoreWith :: Options -> QueryObject -> [(String, JValue)] -> IO ()
 initializeStoreWith opts qobj fields = do
-  -- Create directory
-  dir <- getDirectoryPath qobj
-  createDirectoryIfMissing True dir
-
-  -- Find path to json file
-  jfile <- getJSONPath qobj
-
-  -- Check whether json file exists
-  b <- doesFileExist jfile
+  getDirectoryPath qobj >>= createDirectoryIfMissing True -- create directory
+  jfile <- getJSONPath qobj -- find path to JSON file
+  b <- doesFileExist jfile  -- check whether JSON file exists
   case b of
     -- Initialize new json file with "{}"
     False -> do let json = ppJSON (JObject fields)
@@ -80,29 +74,21 @@ getDirectoryPath (QueryOperation pkg vsn m _) = do
 
 --- Gets the path of the JSON file containing all information about an object.
 getJSONPath :: QueryObject -> IO String
-getJSONPath qo@(QueryPackage pkg) = do
+getJSONPath qo = do
   path <- getDirectoryPath qo
-  return (path </> pkg <.> "json")
-getJSONPath qo@(QueryVersion _ vsn) = do
-  path <- getDirectoryPath qo
-  return (path </> vsn <.> "json")
-getJSONPath qo@(QueryModule _ _ m) = do
-  path <- getDirectoryPath qo
-  return (path </> m <.> "json")
-getJSONPath qo@(QueryType _ _ _ t) = do
-  path <- getDirectoryPath qo
-  return (path </> t <.> "json")
-getJSONPath qo@(QueryClass _ _ _ c) = do
-  path <- getDirectoryPath qo
-  return (path </> c <.> "json")
-getJSONPath qo@(QueryOperation _ _ _ o) = do
-  path <- getDirectoryPath qo
-  let name = if isSimpleID o then o
-                             else '_': concatMap (intToHex . ord) o
-  return (path </> name <.> "json")
+  case qo of
+    QueryPackage pkg       -> return (path </> pkg <.> "json")
+    QueryVersion _ vsn     -> return (path </> vsn <.> "json")
+    QueryModule _ _ m      -> return (path </> m <.> "json")
+    QueryType _ _ _ t      -> return (path </> t <.> "json")
+    QueryClass _ _ _ c     -> return (path </> c <.> "json")
+    QueryOperation _ _ _ o -> do
+      let name = if isSimpleID o then o
+                                 else '_': concatMap (intToHex . ord) o
+      return (path </> name <.> "json")
  where
   isSimpleID []     = False
-  isSimpleID (x:xs) = isAlpha x && all (\c -> isAlphaNum c || c `elem` "_") xs
+  isSimpleID (x:xs) = isAlpha x && all (\c -> isAlphaNum c || c `elem` ".'_") xs
 
   intToHex i = reverse $ map (cs !!)
                               (map (flip mod 16)
