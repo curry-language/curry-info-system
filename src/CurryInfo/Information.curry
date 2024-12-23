@@ -7,7 +7,8 @@ module CurryInfo.Information ( getInfos, printResult ) where
 
 import CurryInfo.Configuration
 import CurryInfo.Paths     ( index, getDirectoryPath, getJSONPath
-                           , initializeStore, jsonFile2Name )
+                           , initializeStore, initializeStoreWithRealName
+                           , jsonFile2Name, realNameField )
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
@@ -16,14 +17,16 @@ import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage)
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
                            , readPackageModules)
-import CurryInfo.Helper    ( InformationResult(..), information, quote )
+import CurryInfo.Helper    ( InformationResult(..), fromQName, information
+                           , quote )
 
-import JSON.Pretty (ppJSON)
+import JSON.Convert        ( fromJSON )
 import JSON.Data
+import JSON.Pretty         ( ppJSON )
 
 import Data.Char   ( toLower )
 import Data.Either ( partitionEithers )
-import Data.List   ( isSuffixOf, union )
+import Data.List   ( find, isSuffixOf, union )
 import Data.Maybe  ( catMaybes, isJust )
 
 import System.Environment ( getArgs )
@@ -135,43 +138,20 @@ getInfos opts qobj reqs = do
                              moduleConfiguration (CurryModule pkg vsn m)
     QueryType pkg vsn m t -> do
       printDetailMessage opts "Request is Type"
-      result <- checkEntityExists pkg vsn m t (QueryType pkg vsn m t) "types"
-      case result of
-        False -> do
-          printDebugAndOutputError $ noExistMessage pkg vsn m "Type" t
-        True  -> do
-          printDetailMessage opts $
-            "Type " ++ quotePrettyObject qobj ++ " exists."
-          getInfosConfig opts qobj reqs
-                         typeConfiguration (CurryType pkg vsn m t)
+      ifEntityExists pkg vsn m t qobj "types" "Type" $
+        getInfosConfig opts qobj reqs
+                       typeConfiguration (CurryType pkg vsn m t)
     QueryClass pkg vsn m c -> do
       printDetailMessage opts "Request is Class"
-      result <- checkEntityExists pkg vsn m c (QueryClass pkg vsn m c) "classes"
-      case result of
-        False -> 
-          printDebugAndOutputError $ noExistMessage pkg vsn m "Class" c
-        True  -> do
-          printDetailMessage opts $
-            "Class " ++ quotePrettyObject qobj ++ " exists."
-          getInfosConfig opts qobj reqs
-                         classConfiguration (CurryClass pkg vsn m c)
+      ifEntityExists pkg vsn m c qobj "classes" "Class" $
+        getInfosConfig opts qobj reqs
+                       classConfiguration (CurryClass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
       printDetailMessage opts "Request is Operation."
-      result <- checkEntityExists pkg vsn m o (QueryOperation pkg vsn m o)
-                                  "operations"
-      case result of
-        False ->
-          printDebugAndOutputError $ noExistMessage pkg vsn m "Operation" o
-        True  -> do
-          printDetailMessage opts $
-            "Operation " ++ quotePrettyObject qobj ++ " exists."
-          getInfosConfig opts qobj reqs
-                         operationConfiguration (CurryOperation pkg vsn m o)
+      ifEntityExists pkg vsn m o qobj "operations" "Operation" $
+        getInfosConfig opts qobj reqs
+                       operationConfiguration (CurryOperation pkg vsn m o)
  where
-  noExistMessage pkg vsn m ek e = unwords
-    [ ek, quote e, "of module", quote m, "of version", quote vsn, "of package"
-    , quote pkg, "is not exported."]
-  
   printDebugAndOutputError err = do printDetailMessage opts err
                                     generateOutputError opts err
 
@@ -186,10 +166,16 @@ getInfos opts qobj reqs = do
              else return []
 
   -- Return all entities of the query object.
-  queryAllEntities pkg vsn m entqobj entreq = do
-    stnames <- queryAllStoredEntities entqobj
-    opnames <- query (QueryModule pkg vsn m) entreq
-    return (opnames >>= Just . union stnames)
+  queryAllEntities pkg vsn m entqobj entreq =
+    query (QueryModule pkg vsn m) entreq >>=
+      maybe (return Nothing)
+        (\opnames -> do
+           let qopnames = map fromQName opnames
+           mapM_ (\(mn,en) -> initializeStoreWithRealName opts
+                                (setEName entqobj en) mn en)
+                 (filter (not . null . fst) qopnames)
+           stnames <- queryAllStoredEntities entqobj
+           return $ Just $ union stnames $ map snd qopnames)
 
   query :: Read a => QueryObject -> String -> IO (Maybe a)
   query obj req = do
@@ -200,8 +186,8 @@ getInfos opts qobj reqs = do
     case res of
       -- OutputTerm [("obj", [("req", "res")])]
       OutputTerm [(_, x)] -> case lookup req (read x) of
-        Nothing -> return Nothing
-        Just y  -> return (Just (read y))
+                               Nothing -> return Nothing
+                               Just y  -> return (Just (read y))
       _                   -> return Nothing
 
   combineOutput :: [Output] -> Output
@@ -248,13 +234,30 @@ getInfos opts qobj reqs = do
                                (mbjson >>= Just  . snd >>= getExportedModules)
       return (elem m exportedmods)
 
-  checkEntityExists pkg vsn m e qentity ereq = do
+  ifEntityExists pkg vsn m e qentity ereq ename cont = do
     jpath <- getJSONPath qentity
-    whenFileDoesNotExist jpath $ do
-      res <- query (QueryModule pkg vsn m) ereq
-      case res of Nothing -> return False
-                  Just es -> return $ elem e es
-    
+    exf <- doesFileExist jpath
+    if exf
+      then msgCont
+      else do
+        res <- query (QueryModule pkg vsn m) ereq
+        case res of
+          Nothing -> returnError
+          Just es ->
+            if e `elem` es
+              then msgCont
+              else maybe returnError
+                         (\(mn,en) ->
+                            do initializeStoreWithRealName opts qentity mn en
+                               cont)
+                         (find ((== e) . snd) (map fromQName es))
+   where
+    msgCont = printDetailMessage opts
+                (ename ++ " " ++ quotePrettyObject qobj ++ " exists.") >> cont
+    returnError = printDebugAndOutputError $ unwords
+      [ ename, quote e, "of module", quote m, "of version", quote vsn
+      , "of package", quote pkg, "is not exported."]
+
 whenFileDoesNotExist :: FilePath -> IO Bool -> IO Bool
 whenFileDoesNotExist path act = do
   exf <- doesFileExist path
@@ -267,9 +270,7 @@ whenFileDoesNotExist path act = do
 getInfosConfig :: Show a => Options -> QueryObject -> [String]
                -> [RegisteredRequest a] -> a -> IO Output
 getInfosConfig opts queryobject reqs conf configobject = do
-  printDetailMessage opts $
-    "Initializing store for entity " ++ quotePrettyObject queryobject
-  initializeStore queryobject
+  initializeStore opts queryobject
   printDetailMessage opts $
     "Reading current information of entity " ++ quotePrettyObject queryobject
   mfields <- readObjectInformation opts queryobject
@@ -279,44 +280,55 @@ getInfosConfig opts queryobject reqs conf configobject = do
       return $ OutputError $ errorReadingObject queryobject
     Just fields -> do
       printDetailMessage opts "Reading information succeeded."
-      case optShowAll opts of
-        True -> do
-          printDetailMessage opts
-            "Returning all currently available information..."
-          let fieldNames = map fst fields
-          case mapM (flip lookupRequest conf) fieldNames of
-            Nothing -> do
-              return $ OutputError $
-                "One of the fields could not be found: " ++ show fieldNames
-            Just allReqs -> do
-              results <- zipWithM
-                           (\(_, _, extractor, _) fieldName ->
-                              fmap (\x -> (fieldName, x))
-                                   (extract opts extractor fields))
-                           allReqs
-                           fieldNames :: IO [(String, Maybe (JValue, String))]
-              let results' = map (\(r, mr) ->
-                                  (r,
-                                   maybe InformationExtractionFailed
-                                         (uncurry InformationResult) mr))
-                                 results
-              let output = createOutput queryobject results' :: Output
-              return output
-        False -> do
-          printDetailMessage opts
-            "Extracting/Generating requested information..."
-          results <- mapM (extractOrGenerate fields configobject
-                              (errorRequestObject queryobject))
-                          (map (map toLower) reqs)
-                            :: IO [(String, InformationResult)]
+      case lookup realNameField fields of
+       Just js -> maybe (return $ OutputError $
+                           "Illegal value in field " ++ quote realNameField ++
+                           " in entity " ++ quotePrettyObject queryobject)
+                        (\qn -> do  -- forward to real name of entity:
+                            printDetailMessage opts $
+                              "Get infos from real name '" ++ qn ++ "'..."
+                            let (mn,en) = fromQName qn
+                            getInfos opts (setModEName queryobject mn en) reqs)
+                        (fromJSON js)
+       Nothing ->
+        case optShowAll opts of
+          True -> do
+            printDetailMessage opts
+              "Returning all currently available information..."
+            let fieldNames = map fst fields
+            case mapM (flip lookupRequest conf) fieldNames of
+              Nothing -> do
+                return $ OutputError $
+                  "One of the fields could not be found: " ++ show fieldNames
+              Just allReqs -> do
+                results <- zipWithM
+                            (\(_, _, extractor, _) fieldName ->
+                                fmap (\x -> (fieldName, x))
+                                    (extract opts extractor fields))
+                            allReqs
+                            fieldNames :: IO [(String, Maybe (JValue, String))]
+                let results' = map (\(r, mr) ->
+                                    (r,
+                                    maybe InformationExtractionFailed
+                                          (uncurry InformationResult) mr))
+                                  results
+                let output = createOutput queryobject results' :: Output
+                return output
+          False -> do
+            printDetailMessage opts
+              "Extracting/Generating requested information..."
+            results <- mapM (extractOrGenerate fields configobject
+                                (errorRequestObject queryobject))
+                            (map (map toLower) reqs)
+                              :: IO [(String, InformationResult)]
 
-          let newInformation = createNewInformation results
-          printDebugMessage opts "Overwriting with updated information..."
-          writeObjectInformation queryobject (newInformation <+> fields)
-          printDetailMessage opts "Overwriting finished."
+            let newInformation = createNewInformation results
+            printDebugMessage opts "Overwriting with updated information..."
+            writeObjectInformation queryobject (newInformation <+> fields)
+            printDetailMessage opts "Overwriting finished."
 
-          let output = createOutput queryobject results :: Output
-          return output
+            let output = createOutput queryobject results :: Output
+            return output
  where  
   createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
   createNewInformation =

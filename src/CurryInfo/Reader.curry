@@ -19,21 +19,21 @@ import System.IOExts       ( readCompleteFile )
 --- that exist at the moment.
 readObjectInformation :: Options -> QueryObject -> IO (Maybe [(String, JValue)])
 readObjectInformation opts obj = do
-  printDebugMessage opts "Detemining path to json file..."
+  printDebugMessage opts "Detemining path to JSON file..."
   path <- getJSONPath obj
-  printDebugMessage opts $ "Path to json file: " ++ path
+  printDebugMessage opts $ "Path to JSON file: " ++ path
   b <- doesFileExist path
   case b of
     False -> do
-      printDebugMessage opts "json file does not exist.\nReading failed."
+      printDebugMessage opts "JSON file does not exist.\nReading failed."
       return Nothing
     True -> do
-      printDebugMessage opts "json file exists."
+      printDebugMessage opts "JSON file exists."
       jtext <- readCompleteFile path
-      printDebugMessage opts $ "Read complete json file.\n" ++ jtext
+      printDebugMessage opts $ "Read complete JSON file.\n" ++ jtext
       case parseJSON jtext of
         Just (JObject fields) -> do
-          printDebugMessage opts "Parsing json file succeeded."
+          printDebugMessage opts "Parsing JSON file succeeded."
           return $ Just fields
         Nothing -> do
           printDebugMessage opts "Parsing failed."

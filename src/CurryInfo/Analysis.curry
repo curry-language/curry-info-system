@@ -88,7 +88,7 @@ analyseWith anacmd opts pkg vsn m name analysis field constructor = do
     addInformation :: (String, String) -> IO ()
     addInformation (n, r) = do
       let obj = constructor n
-      initializeStore obj
+      initializeStore opts obj
       mfields <- readObjectInformation opts obj
       case mfields of
         Nothing -> do

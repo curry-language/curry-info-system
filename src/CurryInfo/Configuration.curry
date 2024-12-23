@@ -12,6 +12,7 @@ import CurryInfo.JConvert
 import CurryInfo.Verbosity
 import CurryInfo.Reader
 import CurryInfo.Paths
+import CurryInfo.Helper    ( quote )
 
 import JSON.Data
 import JSON.Pretty (ppJSON)
@@ -92,7 +93,8 @@ operationConfiguration =
   , registerRequest "failfree"             "\t\tVerification result: failing behavior of the operation"  gOperationFailFree            pOperationFailFree
   ]
 
-------------------------------------
+------------------------------------------------------------------------------
+-- Definition of types and operations used in the configuration specification.
 
 type Configuration a = [RegisteredRequest a]
 
@@ -115,46 +117,50 @@ lookupRequest req conf = do
   return (request rreq, description rreq, extraction rreq, generation rreq)
 
 registerRequest :: ConvertJSON b => String -> String
-               -> Generator a b -> Printer b -> RegisteredRequest a
+                -> Generator a b -> Printer b -> RegisteredRequest a
 registerRequest req desc generator printer =
-    RegisteredRequest req desc createExtraction createGeneration
-  where
-    createExtraction opts infos = do
-      printDebugMessage opts $ "Looking for information for request '" ++ req ++ "'..."
-      case lookup req infos of
-        Nothing -> do
-          printDebugMessage opts "Information not found."
-          return Nothing
-        Just jv -> do
-          printDebugMessage opts "Information found."
-          printDebugMessage opts "Reading information..."
-          case fromJSON jv of
-            Nothing -> do
-              printDebugMessage opts "Reading failed."
-              return Nothing
-            Just info -> do
-              printDebugMessage opts "Reading succeeded."
-              printDebugMessage opts "Creating output..."
-              output <- printer opts info
-              printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
-              return $ Just (jv, output)
+  RegisteredRequest req desc createExtraction createGeneration
+ where
+  createExtraction opts infos = do
+    printDebugMessage opts $
+      "Looking for information for request " ++ quote req ++ "..."
+    case lookup req infos of
+      Nothing -> do
+        printDebugMessage opts "Information not found."
+        return Nothing
+      Just jv -> do
+        printDebugMessage opts "Information found."
+        printDebugMessage opts "Reading information..."
+        case fromJSON jv of
+          Nothing -> do
+            printDebugMessage opts "Reading failed."
+            return Nothing
+          Just info -> do
+            printDebugMessage opts "Reading succeeded."
+            printDebugMessage opts "Creating output..."
+            output <- printer opts info
+            printDebugMessage opts $
+              "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+            return $ Just (jv, output)
 
-    createGeneration opts obj = do
-      printDebugMessage opts $ "Generating information for request '" ++ req ++ "'..."
-      res <- generator opts obj
-      case res of
-        Nothing -> do
-          printDebugMessage opts "Generating failed."
-          return Nothing
-        Just info -> do
-          printDebugMessage opts "Generating succeeded."
-          let jv = toJSON info
-          printDebugMessage opts "Creating output..."
-          output <- printer opts info
-          printDebugMessage opts $ "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
-          return $ Just (jv, output)
+  createGeneration opts obj = do
+    printDebugMessage opts $
+      "Generating information for request " ++ quote req ++ "..."
+    res <- generator opts obj
+    case res of
+      Nothing -> do
+        printDebugMessage opts "Generating failed."
+        return Nothing
+      Just info -> do
+        printDebugMessage opts "Generating succeeded."
+        let jv = toJSON info
+        printDebugMessage opts "Creating output..."
+        output <- printer opts info
+        printDebugMessage opts $
+          "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."
+        return $ Just (jv, output)
 
--- This operation returns a list of strings, each one being a request of the given
--- configuration with their descriptions.
+-- This operation returns a list of strings, each one being a request
+-- of the given configuration with their descriptions.
 listRequests :: Configuration a -> [String]
 listRequests = map (\r -> request r ++ ":" ++ description r)

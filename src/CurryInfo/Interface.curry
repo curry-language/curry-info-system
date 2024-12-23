@@ -24,9 +24,9 @@ import CurryInterface.Files  ( curryInterfaceFileName, readCurryInterfaceFile )
 import CurryInterface.Pretty ( defaultOptions, ppConstructor, ppNewConstructor
                              , ppType, ppMethodDecl, ppQualType )
 
-import Data.List (find)
+import Data.List             ( find, intercalate )
 
-import Text.Pretty (pPrint)
+import Text.Pretty           ( pPrint )
 
 -- This action tries to parse the respective .icurry file. If the file
 -- does not exist yet, the action will invoke 'cypm' and 'curry' to install
@@ -72,8 +72,8 @@ getDeclarations (Interface _ _ decls) = decls
 getAllTypes :: [IDecl] -> [IDecl]
 getAllTypes = filter isType
 
--- This operation returns True, if the given declaration is the declaration of a type.
--- Otherwise it returns False.
+--- This operation returns True, if the given declaration is the declaration
+--- of a type. Otherwise it returns False.
 isType :: IDecl -> Bool
 isType decl = case decl of
   IDataDecl _ _ _ _ _     -> True
@@ -83,52 +83,59 @@ isType decl = case decl of
 
 -- This operation finds the declaration of the given type.
 getTypeDecl :: String -> [IDecl] -> Maybe IDecl
-getTypeDecl t = find (\decl -> Just t == getTypeName decl)
+getTypeDecl t = find (\decl -> Just t == (getTypeQName decl >>= Just . snd))
 
--- This operation returns the name of the type of the given declaration. If the given
--- declaration is not of a type, Nothing is returned.
-getTypeName :: IDecl -> Maybe String
-getTypeName decl = case decl of
-  IDataDecl name _ _ _ _      -> Just $ idName $ qidIdent name
-  INewtypeDecl name _ _ _ _   -> Just $ idName $ qidIdent name
-  ITypeDecl name _ _ _        -> Just $ idName $ qidIdent name
+--- This operation returns the qualified name of the type of the given
+--- type declaration. The module name is the empty string if it is defined
+--- in the given module, otherwise it is re-exported and defined in another
+--- module.
+--- If the given declaration is not of a type, Nothing is returned.
+getTypeQName :: IDecl -> Maybe (String,String)
+getTypeQName decl = case decl of
+  IDataDecl name _ _ _ _      -> Just $ fromQId name
+  INewtypeDecl name _ _ _ _   -> Just $ fromQId name
+  ITypeDecl name _ _ _        -> Just $ fromQId name
   _                           -> Nothing
 
--- This operation returns the constructors of the given type declaration. If the declaration
--- is not of a type, Nothing is returned.
+--- This operation returns the constructors of the given type declaration.
+--- If the declaration is not of a type, Nothing is returned.
 getTypeConstructors :: IDecl -> Maybe [Constructor]
 getTypeConstructors decl = case decl of
-  IDataDecl _ _ _ constructors _      -> Just $ map (pPrint . ppConstructor defaultOptions) constructors
-  INewtypeDecl _ _ _ constructor _    -> Just [(pPrint . ppNewConstructor defaultOptions) constructor]
-  ITypeDecl _ _ _ t                   -> Just [(pPrint . ppType defaultOptions 0) t]
-  _                                   -> Nothing
+  IDataDecl _ _ _ cs _   -> Just $ map (pPrint . ppConstructor defaultOptions) cs
+  INewtypeDecl _ _ _ c _ -> Just [(pPrint . ppNewConstructor defaultOptions) c]
+  ITypeDecl _ _ _ t      -> Just [(pPrint . ppType defaultOptions 0) t]
+  _                      -> Nothing
 
--- This operation returns all declarations of types to be hidden.
+--- This operation returns all declarations of types to be hidden.
 getHiddenTypes :: [IDecl] -> [IDecl]
 getHiddenTypes = filter isHiddenType
 
--- This operation returns True, if the given declaration is the declaration of a hiding type.
--- Otherwise it returns False.
+--- This operation returns `True` if the given declaration is the declaration
+--- of a hiding type. Otherwise `False` is returned.
 isHiddenType :: IDecl -> Bool
 isHiddenType decl = case decl of
-  HidingDataDecl _ _ _    -> True
-  _                       -> False
+  HidingDataDecl _ _ _ -> True
+  _                    -> False
 
--- This operation returns the name of the type of the given hiding declaration. If the given
--- declaration is not of a hiding type, Nothing is returned.
-getHiddenTypeName :: IDecl -> Maybe String
-getHiddenTypeName decl = case decl of
-  HidingDataDecl name _ _ -> Just $ idName $ qidIdent name
+--- This operation returns the qualified name of the type of the given hiding
+--- declaration. The module name is the empty string if it is defined
+--- in the given module, otherwise it is re-exported and defined in another
+--- module.
+--- If the given declaration is not of a hiding type, Nothing is returned.
+getHiddenTypeQName :: IDecl -> Maybe (String,String)
+getHiddenTypeQName decl = case decl of
+  HidingDataDecl name _ _ -> Just $ fromQId name
   _                       -> Nothing
 
 -- TYPECLASS
 
--- This operations returns all type class declarations of the given list of declarations.
+--- This operations returns all type class declarations of the given list
+--- of declarations.
 getAllClasses :: [IDecl] -> [IDecl]
 getAllClasses = filter isClass
 
--- This operation returns True, if the given declaration declares a type class.
--- Otherwise it returns False.
+--- This operation returns True, if the given declaration declares a type class.
+--- Otherwise it returns False.
 isClass :: IDecl -> Bool
 isClass decl = case decl of
   IClassDecl _ _ _ _ _ _ _  -> True
@@ -136,13 +143,16 @@ isClass decl = case decl of
 
 -- This operation finds the declaration of the given type class.
 getClassDecl :: String -> [IDecl] -> Maybe IDecl
-getClassDecl c = find (\decl -> Just c == getClassName decl)
+getClassDecl c = find (\decl -> Just c == (getClassQName decl >>= Just . snd))
 
--- This operation returns the name of a type class from its declaration. If the given
--- declaration is not of a type class, Nothing is returned.
-getClassName :: IDecl -> Maybe String
-getClassName decl = case decl of
-  IClassDecl _ name _ _ _ _ _   -> Just $ idName $ qidIdent name
+--- This operation returns the qualified name of a type class from its
+--- declaration. The module name is the empty string if it is defined
+--- in the given module, otherwise it is re-exported and defined in another
+--- module.
+--- If the given declaration is not of a type class, Nothing is returned.
+getClassQName :: IDecl -> Maybe (String,String)
+getClassQName decl = case decl of
+  IClassDecl _ name _ _ _ _ _   -> Just $ fromQId name
   _                             -> Nothing
 
 -- This operation returns the methods of a type class from its declaration. If the given
@@ -163,12 +173,14 @@ isHiddenClass decl = case decl of
   HidingClassDecl _ _ _ _ _ -> True
   _                         -> False
 
--- This operation returns the name of a type class from a hiding class
--- declaration.
--- If the given declaration is not of a hiding class, Nothing is returned.
-getHiddenClassName :: IDecl -> Maybe String
-getHiddenClassName decl = case decl of
-  HidingClassDecl _ name _ _ _ -> Just $ idName $ qidIdent name
+--- This operation returns the qualified name of a type class from a hiding
+--- class declaration. The module name is the empty string if it is defined
+--- in the given module, otherwise it is re-exported and defined in another
+--- module.
+--- If the given declaration is not of a hiding class, Nothing is returned.
+getHiddenClassQName :: IDecl -> Maybe (String,String)
+getHiddenClassQName decl = case decl of
+  HidingClassDecl _ name _ _ _ -> Just $ fromQId name
   _                            -> Nothing
 
 -- OPERATION
@@ -187,13 +199,17 @@ isOperation decl = case decl of
 
 -- This operation finds the declaration of the given operation.
 getOperationDecl :: String -> [IDecl] -> Maybe IDecl
-getOperationDecl o = find (\decl -> Just o == getOperationName decl)
+getOperationDecl o =
+  find (\decl -> Just o == (getOperationQName decl >>= Just . snd))
 
--- This operation returns the name of the given operation declaration.
--- If the given declaration is not of an operation, Nothing is returned.
-getOperationName :: IDecl -> Maybe String
-getOperationName decl = case decl of
-  IFunctionDecl name _ _ _    -> Just $ idName $ qidIdent name
+--- This operation returns the qualified name of the given operation
+--- declaration. The module name is the empty string if it is defined
+--- in the given module, otherwise it is re-exported and defined in another
+--- module.
+--- If the given declaration is not of an operation, Nothing is returned.
+getOperationQName :: IDecl -> Maybe (String,String)
+getOperationQName decl = case decl of
+  IFunctionDecl name _ _ _    -> Just $ fromQId name
   _                           -> Nothing
 
 -- This operation returns the arity from the given operation declaration.
@@ -237,3 +253,12 @@ getOperationPrecedence :: IDecl -> Maybe CurryInfo.Types.Precedence
 getOperationPrecedence decl = case decl of
   IInfixDecl _ p _    -> Just p
   _                   -> Nothing
+  
+--- Extracts the qualified name from a given `QualIdent`.
+fromQId :: QualIdent -> (String,String)
+fromQId name =
+  let ename = idName $ qidIdent name
+  in maybe ("", ename)
+           (\mi -> (intercalate "." $ midQualifiers mi, ename))
+           (qidModule name)
+

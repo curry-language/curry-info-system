@@ -9,15 +9,15 @@ import CurryInfo.Paths
 import CurryInfo.JConvert
 import CurryInfo.Checkout ( toCheckout, getCheckoutPath, initializeCheckouts
                           , checkoutIfMissing)
-import CurryInfo.Interface 
+import CurryInfo.Interface
   ( readInterface
   , getDeclarations
-  , getOperations, getOperationName, getOperationDecl, getOperationSignature
-  , getInfixDecl, getOperationInfix
+  , getOperations, getOperationQName, getOperationDecl
+  , getOperationSignature, getInfixDecl, getOperationInfix
   , getOperationPrecedence
-  , getAllTypes, getTypeName, getHiddenTypes, getHiddenTypeName, getTypeDecl
+  , getAllTypes, getTypeQName, getHiddenTypes, getHiddenTypeQName, getTypeDecl
   , getTypeConstructors
-  , getAllClasses, getClassName, getHiddenClasses, getHiddenClassName
+  , getAllClasses, getClassQName, getHiddenClasses, getHiddenClassQName
   , getClassDecl, getClassMethods
   )
 import CurryInfo.Helper     ( isCurryID, quote )
@@ -41,10 +41,11 @@ import System.Directory ( doesDirectoryExist, doesFileExist
 import System.CurryPath ( curryModulesInDirectory )
 import System.FilePath  ( (</>), (<.>) )
 import System.IOExts    ( readCompleteFile )
+import Data.Either      ( partitionEithers )
 import Data.List        ( find, isPrefixOf, intersect, (\\) )
-import Data.Maybe       ( catMaybes )
+import Data.Maybe       ( catMaybes, maybeToList )
 
-import Control.Monad (when)
+import Control.Monad    ( unless, when )
 
 import DetParse (parse)
 
@@ -119,65 +120,96 @@ gModuleDocumentation opts x@(CurryModule pkg vsn m) = do
 
 gModuleSourceCode :: Generator CurryModule Reference
 gModuleSourceCode opts x@(CurryModule pkg vsn m) = do
-  printDetailMessage opts $ "Generating source code for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating source code for module '" ++ m ++ "' of version '" ++ vsn ++
+    "' of package '" ++ pkg ++ "'..."
   generateSourceCode opts x
 
 gModuleUnsafeModule :: Generator CurryModule String
 gModuleUnsafeModule opts (CurryModule pkg vsn m) = do
-  printDetailMessage opts $ "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating safe analysis for module '" ++ m ++ "' of version '" ++ vsn ++
+    "' of package '" ++ pkg ++ "'..."
   mres <- analyseUnsafeModuleWithCASS opts pkg vsn m
   processAnalysisResult opts mres
 
 gModuleClasses :: Generator CurryModule [String]
 gModuleClasses opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported classes for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    generateFromInterface pkg vsn m "classes" classesSelector opts
-  where
-    classesSelector interface =
-      let allClasses    = catMaybes $ map getClassName $ getAllClasses $ getDeclarations interface
-          hiddenClasses = catMaybes $ map getHiddenClassName $ getHiddenClasses $ getDeclarations interface
-      in Just (allClasses \\ hiddenClasses)
+  printDetailMessage opts $
+    "Generating exported classes for module '" ++ m ++ "' of version '" ++
+    vsn ++ "' of package '" ++ pkg ++ "'..."
+  mbns <- generateFromInterface pkg vsn m "classes" classesSelector opts
+  return (mbns >>= Just . map qName2String)
+ where
+  classesSelector interface =
+    let allClasses    = catMaybes $ map getClassQName $ getAllClasses $
+                          getDeclarations interface
+        hiddenClasses = catMaybes $ map getHiddenClassQName $ getHiddenClasses $
+                          getDeclarations interface
+    in Just (allClasses \\ hiddenClasses)
 
 gModuleTypes :: Generator CurryModule [String]
 gModuleTypes opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported types for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    generateFromInterface pkg vsn m "types" typesSelector opts
-  where
-    typesSelector interface =
-      let allTypes    = catMaybes $ map getTypeName $ getAllTypes $ getDeclarations interface
-          hiddenTypes = catMaybes $ map getHiddenTypeName $ getHiddenTypes $ getDeclarations interface
-      in Just (allTypes \\ hiddenTypes)
+  printDetailMessage opts $
+    "Generating exported types for module '" ++ m ++ "' of version '" ++
+    vsn ++ "' of package '" ++ pkg ++ "'..."
+  mbns <- generateFromInterface pkg vsn m "types" typesSelector opts
+  return (mbns >>= Just . map qName2String)
+ where
+  typesSelector interface =
+    let allTypes    = catMaybes $ map getTypeQName $ getAllTypes $
+                        getDeclarations interface
+        hiddenTypes = catMaybes $ map getHiddenTypeQName $ getHiddenTypes $
+                        getDeclarations interface
+    in Just (allTypes \\ hiddenTypes)
 
 gModuleOperations :: Generator CurryModule [String]
-gModuleOperations opts (CurryModule pkg vsn m) = do
-    printDetailMessage opts $ "Generating exported operations for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    generateFromInterface pkg vsn m "operations" operationsSelector opts
-  where
-    operationsSelector interface = Just (catMaybes $ map getOperationName $ getOperations $ getDeclarations interface)
+gModuleOperations opts (CurryModule pkg vsn mn) = do
+  printDetailMessage opts $
+    "Generating exported operations for module '" ++ mn ++ "' of version '" ++
+    vsn ++ "' of package '" ++ pkg ++ "'..."
+  mbns <- generateFromInterface pkg vsn mn "operations" operationsSelector opts
+  return (mbns >>= Just . map qName2String)
+ where
+  operationsSelector interface = Just $ catMaybes $
+    map getOperationQName $ getOperations $ getDeclarations interface
+
+qName2String :: (String,String) -> String
+qName2String (m,n) = if null m then n else m ++ "." ++ n
 
 -- TYPE
 
 gTypeName :: Generator CurryType String
 gTypeName opts (CurryType pkg vsn m t) = do
-  printDetailMessage opts $ "Generating name for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating name for type '" ++ t ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   printDebugMessage opts $ "Name is: " ++ t
   finishResult opts t
 
 gTypeDocumentation :: Generator CurryType Reference
 gTypeDocumentation opts x@(CurryType pkg vsn m t) = do
-  printDetailMessage opts $ "Generating documentation for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
+  printDetailMessage opts $
+    "Generating documentation for type '" ++ t ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
   generateDocumentation opts x
 
 gTypeConstructors :: Generator CurryType [String]
 gTypeConstructors opts (CurryType pkg vsn m t) = do
-    printDetailMessage opts $ "Generating constructors for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-    generateFromInterface pkg vsn m "constructors" constructorsSelector opts
-  where
-    constructorsSelector interface = getTypeDecl t (getAllTypes $ getDeclarations interface) >>= getTypeConstructors
+  printDetailMessage opts $
+    "Generating constructors for type '" ++ t ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  generateFromInterface pkg vsn m "constructors" constructorsSelector opts
+ where
+  constructorsSelector interface =
+    getTypeDecl t (getAllTypes $ getDeclarations interface)
+      >>= getTypeConstructors
 
 gTypeDefinition :: Generator CurryType Reference
 gTypeDefinition opts x@(CurryType pkg vsn m t) = do
-  printDetailMessage opts $ "Generating definition for type '" ++ t ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
+  printDetailMessage opts $
+    "Generating definition for type '" ++ t ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..." 
   generateSourceCode opts x
 
 -- TYPECLASS
@@ -312,8 +344,10 @@ generateFromPackageJSON desc selector opts (CurryVersion pkg vsn) = do
 --- Generator function to get information from an interface.
 --- The first three arguments are the package, the version and the module.
 --- The fourth argument is a description of the generated information.
---- The fifth argument is the operation, that looks for the information in the interface of the module.
-generateFromInterface :: Show b => Package -> Version -> Module -> String -> (Interface -> Maybe b) -> Options -> IO (Maybe b)
+--- The fifth argument is the operation, that looks for the information
+--- in the interface of the module.
+generateFromInterface :: Show b => Package -> Version -> Module -> String
+                      -> (Interface -> Maybe b) -> Options -> IO (Maybe b)
 generateFromInterface pkg vsn m desc selector opts = do
   minterface <- readInterface opts pkg vsn m
   case minterface of

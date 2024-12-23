@@ -1,9 +1,18 @@
 Adding Information Requests to CurryInfo
 ========================================
 
-This section explains the process of how to implement your own requests to CurryInfo. As the whole program is implemented using Curry, your additions also need to be implemented in Curry as you need to edit the existing code.
+This section explains the process of how to implement your own requests
+to CurryInfo. As the whole program is implemented using Curry,
+your additions also need to be implemented in Curry as you need
+to edit the existing code.
 
-Each request returns a piece of information about an object of a Curry Package and also saves this in a json file on the local machine. The objects are Package, Version, Module, Type, Typeclass and Operation. Each object has its own type with the names needed to find the exact object. For example a Module object would have three strings, one being the name of the package, another being the version number and the last being the name of the module itself.
+Each request returns a piece of information about an object of a Curry
+Package and also saves this in a json file on the local machine. The
+objects are Package, Version, Module, Type, Typeclass and
+Operation. Each object has its own type with the names needed to find
+the exact object. For example a Module object would have three
+strings, one being the name of the package, another being the version
+number and the last being the name of the module itself.
 
 When you wish to add your own request, you have to register it in the module
 `CurryInfo.Configuration`. For every type of object there is a separate
@@ -13,29 +22,36 @@ operation in some module. To register a new request, you have to add a new
 element by using the request generator operation
 
 ```
-registerRequest :: String        -- request name/identifier
+registerRequest :: ConvertJSON b -- to store infos in JSON format
+                => String        -- request name/identifier
                 -> String        -- short help description
                 -> Generator a b -- generator of requested information
-                -> JReader b     -- converting results from JSON
-                -> JShower b     -- converting results to JSON
                 -> Printer b     -- returns a user-friendly version of a result
                 -> RegisteredRequest a
 ```
 
 Thus, one has to provide two strings and four operations in order
 to implement a new request.
-The request is generic w.r.t. two types.
-`a` is the type of the object for which this request computes some
-information, like, `CurryPackage` for a package, `CurryType` for a
-type defined in a module, or `CurryOperation` for an operation
-defined in a Curry module.
-`b` is the type of results returned by the request, typically
-some standard type (e.g., `String`) or some type defined by the
-implementor of the request.
+The request is generic w.r.t. two types:
+
+* `a` is the type of the object for which this request computes some
+  information, like, `CurryPackage` for a package, `CurryType` for a
+  type defined in a module, or `CurryOperation` for an operation
+  defined in a Curry module.
+* `b` is the type of results returned by the request, typically
+  some standard type (e.g., `String`) or some type defined by the
+  implementor of the request.
+
+Since CurryInfo stores all information in JSON format, the result
+of request must be convertible into JSON data, as required
+by the type constraint `ConvertJSON b` (see module `JSON.Convert`
+of packate `json` for auxilary conversion operations).
 
 The first two arguments of `registerRequest` are the name and a short
 description of the request. The name is used as an argument when running
 the tool to specify the kind of information to be computed.
+Note that the name `_realname_` is used for internal purposes
+and should not be used as a regular request.
 The description is the explanation of this request which is shown
 to the user when they use the help option of the tool.
 
@@ -50,43 +66,12 @@ type Generator a b = Options -> a -> IO (Maybe b)
 The argument of type `Options` (defined in `CurryInfo.Types`) supports
 to access the options with which the user runs the tool.
 For instance, one can print specific messages depending on the verbosity level
-(see module `CurryInfo.Verbosity` for some helper functions w.r.t. verbosuty). 
+(see module `CurryInfo.Verbosity` for some helper functions w.r.t. verbosity). 
 As the generating of the information may fail and it usually requires
 access the outside world, like the file system, the result of
 a generator is of type `IO (Maybe b)`.
 
-CurryInfo stores all information in JSON format.
-Therefore, two linked operations have to be provided after the generator.
-The first operation reads the JSON representation of CurryInfo
-and returns the corresponding request value.
-The second operation is the inverse of the first, i.e.,
-it maps a request value into a JSON representation.
-One has to ensure that both these operations match each other,
-as the second is used to write the result into a JSON file and the first
-is used to read that result from this JSON file instead of always
-generating the information.
-
-The first operation is of type
-```
-type JReader b = JValue -> Maybe b
-```
-To avoid possible crashes because of unintended changes in the information
-files, the result is encapsulated in a `Maybe` structure.
-There are some helper functions (see module `CurryInfo.JReader`),
-making it easier to implement this operation.
-For instance, `jrMap` allows to convert a list into a JSON array,
-and `jrRead` allows to implicitly use the Read instance of the request value,
-if it has one.
-
-Since the second operation should map a value computed by a request
-into a JSON representation, it must be of type
-```
-type JShower b = b -> JValue
-```
-Thus, applying the show operation followed by a read should be equivalent
-to `Just`.
-
-Now there is only one operation left to be implemented. Its type is
+The fourth argument of `registerRequest` is of type
 ```
 type Printer b = Options -> b -> IO String
 ```

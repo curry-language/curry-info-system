@@ -11,7 +11,7 @@ import CurryInfo.Server.Server        (startServer)
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
  where
-  bannerText = "Curry Package Information System (Version of 16/12/24)"
+  bannerText = "Curry Package Information System (Version of 23/12/24)"
   bannerLine = take (length bannerText) (repeat '=')
 
 main :: IO ()

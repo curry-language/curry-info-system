@@ -47,8 +47,7 @@ getLinesUpTo = findLines []
                               else findLines (l:ls) h check
 
 -- This operation returns the line number of the contents of the given handle
--- (counted from the second argument)
--- in which a definition of an entitity ends.
+-- (counted from the second argument) in which a definition of an entitity ends.
 belongsLine :: Handle -> Checker -> Int -> IO Int
 belongsLine h belong lnum = do
   eof <- hIsEOF h
@@ -243,7 +242,8 @@ checkOperation o l = let
     equalIndex       = elemIndex "=" ls
     externalIndex    = elemIndex "external" ls
   in
-    if elem o ls && (elem "::" ls || elem "=" ls || elem "external" ls)
+    if (elem o ls || elem ("(" ++ o ++ ")") ls) &&
+       (elem "::" ls || elem "=" ls || elem "external" ls)
       then fromMaybe False ((<) <$> operationIndex   <*> typingIndex  ) ||
            fromMaybe False ((<) <$> operationIndex   <*> equalIndex   ) ||
            fromMaybe False ((<) <$> operationIndex   <*> externalIndex) ||

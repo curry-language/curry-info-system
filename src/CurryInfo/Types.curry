@@ -140,8 +140,9 @@ type Generator a b = Options -> a -> IO (Maybe b)
 type Printer b = Options -> b -> IO String
 
 ------------------------------------------------------------------------------
---- The different kinds of objects passed to `CurryInfo.Information.getInfos`
---- in order to query information about Curry entities.
+--- This data type represents the different kinds of objects passed to
+--- `CurryInfo.Information.getInfos` in order to query information
+--- about Curry entities.
 data QueryObject =
     QueryPackage   Package
   | QueryVersion   Package Version
@@ -149,6 +150,23 @@ data QueryObject =
   | QueryType      Package Version Module Type
   | QueryClass     Package Version Module Class
   | QueryOperation Package Version Module Operation
+
+--- Sets the entity name in a query object.
+setEName :: QueryObject -> String -> QueryObject
+setEName (QueryPackage _)         en = QueryPackage en
+setEName (QueryVersion p _)       en = QueryVersion p en
+setEName (QueryModule p v _)      en = QueryModule p v en
+setEName (QueryType      p v m _) en = QueryType p v m en
+setEName (QueryClass     p v m _) en = QueryClass p v m en
+setEName (QueryOperation p v m _) en = QueryOperation p v m en
+
+--- Sets the module and entity name in a type/class/operation query object.
+setModEName :: QueryObject -> Module -> String -> QueryObject
+setModEName qobject mn en = case qobject of
+  QueryType      p v _ _ -> QueryType p v mn en
+  QueryClass     p v _ _ -> QueryClass p v mn en
+  QueryOperation p v _ _ -> QueryOperation p v mn en
+  _                      -> qobject
 
 --- Transforms a query object into a pretty compact string representation.
 --- For instance, this is used for details and debug output.
