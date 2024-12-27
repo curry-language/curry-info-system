@@ -20,6 +20,7 @@ import CurryInfo.Helper    ( quote, safeRead )
 
 import System.Console.GetOpt
 import System.Process (exitWith, system)
+import System.CurryPath ( getPackageVersionOfModule )
 import System.Directory ( getDirectoryContents, doesFileExist
                         , doesDirectoryExist, removeFile, removeDirectory )
 import System.FilePath  ( (</>) )
@@ -31,9 +32,9 @@ printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 
 --- The default options used by the tool.
 defaultOptions :: Options
-defaultOptions =
+defaultOptions = 
   Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText ""
-          False False False Nothing False False False
+          False False False False Nothing False False False
 
 --- Options, with that nothing is printed by the tool (beyond the info results).
 silentOptions :: Options
@@ -54,12 +55,17 @@ processOptions banner argv = do
   let (funopts, args, opterrors) = getOpt Permute options argv
       opts = foldl (flip id) defaultOptions funopts
   unless (null opterrors)
-       (putStr (unlines opterrors) >> printUsage >> exitWith 1)
+    (putStr (unlines opterrors) >> printUsage >> exitWith 1)
   when (optHelp opts) (printUsage >> exitWith 0)
+  when (optCGI opts &&
+        (optServer opts || optClean opts || not (null (optOutFile opts))))
+    (putStrLn
+       "Options '--server', '--clean', or '--output' not allowed in CGI mode!"
+       >> exitWith 1)
   when (optClean opts) (getObject opts >>= cleanObject opts >> exitWith 0)
   return (opts, args)
-  where
-    printUsage = putStrLn (banner ++ "\n" ++ usageText)
+ where
+  printUsage = putStrLn (banner ++ "\n" ++ usageText)
 
 -- The usage text of the program.
 usageText :: String
@@ -75,13 +81,14 @@ usageText =
 
 -- This operation returns the requested object from the given options.
 getObject :: Options -> IO (Maybe QueryObject)
-getObject opts =
-  case catMaybes [ extractOpt "package"   (optPackage opts)
+getObject opts = do
+  let entopts = catMaybes [ extractOpt "package"   (optPackage opts)
                  , extractOpt "version"   (optVersion opts)
                  , extractOpt "module"    (optModule opts)
                  , extractOpt "type"      (optType opts)
                  , extractOpt "class"     (optClass opts)
-                 , extractOpt "operation" (optOperation opts) ] of
+                 , extractOpt "operation" (optOperation opts) ]
+  case entopts of
     [] -> return Nothing
     [("package", pkg)] -> return $ Just $ QueryPackage pkg
     [("package", pkg), ("version", vsn)] ->
@@ -94,11 +101,32 @@ getObject opts =
       return $ Just $ QueryClass pkg vsn m c
     [("package", pkg), ("version", vsn), ("module", m), ("operation", o)] ->
       return $ Just $ QueryOperation pkg vsn m o
-    obj -> do putStrLn $ "Options '" ++
-                intercalate " " (map (\(t,v) -> "--" ++ t ++ "=" ++ v) obj) ++
-                "'\ndo not match any request pattern!"
-              exitWith 1
+    [("module", m), ("type", t)] ->
+      getPackageVersionOfModule m >>=
+        maybe (exitWithOptError entopts)
+              (\(pkg,vsn) -> do printDetailMessage opts $ addPkgVsnMsg pkg vsn
+                                return $ Just $ QueryType pkg vsn m t)
+    [("module", m), ("class", c)] ->
+      getPackageVersionOfModule m >>=
+        maybe (exitWithOptError entopts)
+              (\(pkg,vsn) -> do printDetailMessage opts $ addPkgVsnMsg pkg vsn
+                                return $ Just $ QueryClass pkg vsn m c)
+    [("module", m), ("operation", o)] ->
+      getPackageVersionOfModule m >>=
+        maybe (exitWithOptError entopts)
+              (\(pkg,vsn) -> do printDetailMessage opts $ addPkgVsnMsg pkg vsn
+                                return $ Just $ QueryOperation pkg vsn m o)
+    _ -> exitWithOptError entopts
  where
+  addPkgVsnMsg pkg vsn =
+    "Add options '--package=" ++ pkg ++ " --version=" ++ vsn ++ "'"
+
+  exitWithOptError eopts = do
+    putStrLn $ "Options '" ++
+               intercalate " " (map (\(t,v) -> "--" ++ t ++ "=" ++ v) eopts) ++
+               "'\ndo not match any request pattern!"
+    exitWith 1
+
   extractOpt :: String -> Maybe String -> Maybe (String, String)
   extractOpt tag = fmap (\x -> (tag, x))
 
@@ -211,6 +239,9 @@ options =
   , Option "" ["showall"]
        (NoArg (\opts -> opts { optShowAll = True }))
        "show all available information (no generation)"
+  , Option "" ["cgi"] -- will be processed in `Main.main`
+       (NoArg (\opts -> opts { optCGI = True }))
+       "run the tool in CGI mode"
   , Option "" ["server"]
        (NoArg (\opts -> opts { optServer = True }))
        "run the tool in server mode"

@@ -29,6 +29,7 @@ data Options = Options
   , optOutFile        :: String       -- posible file name to store output
   , optClean          :: Bool         -- clean up information
   , optShowAll        :: Bool         -- show all currently available information
+  , optCGI            :: Bool         -- run the tool in CGI mode
   , optServer         :: Bool         -- run the tool in server mode
   , optPort           :: Maybe Int    -- the port used in server mode
   , optAllTypes       :: Bool         -- process requests for all types

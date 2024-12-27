@@ -18,7 +18,11 @@ The tool itself can be simply installed by
 
 This install the executable `curry-info` which organizes the generation of
 and access to various information about Curry module contained in packages.
-For instance, the following command outputs the list of
+
+Usage
+-----
+
+The following command outputs the list of
 all operations defined in the module `Data.List` of package `base`
 with version `3.3.0`:
 
@@ -31,7 +35,16 @@ package `base` with version `3.3.0`), respectively:
     > curry-info -p base -x 3.3.0 -m Prelude -c Ord definition
     > curry-info -p base -x 3.3.0 -m Prelude -o lines signature
     > curry-info -p base -x 3.3.0 -m Prelude -o lines definition
-    
+
+The package and version options can be omitted if the module is part
+of a package which can be found in the current load path.
+For instance, the previous commands can be shortened as follows
+(provided that the Curry system is based `base` package with version `3.3.0`):
+
+    > curry-info -m Prelude -c Ord definition
+    > curry-info -m Prelude -o lines signature
+    > curry-info -m Prelude -o lines definition
+
 To show more results about the analysis and verification of operations,
 the tool uses other analysis and verification tools which exists for
 Curry. If they are not installed, you cannot generate and access
