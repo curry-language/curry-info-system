@@ -38,7 +38,9 @@ showconfig:
 	@echo "CALLTYPES: $(CALLTYPES)"
 
 .PHONY: install
-install: $(TARGETDIR)/bin/curry-info $(TARGETDIR)/run.cgi $(TARGETDIR)/bin/cypm $(TARGETDIR)/bin/cass $(TARGETDIR)/bin/curry-calltypes
+install: $(TARGETDIR)/bin/curry-info $(TARGETDIR)/run.cgi $(TARGETDIR)/bin/cypm\
+         $(TARGETDIR)/bin/cass $(TARGETDIR)/bin/curry-calltypes
+	chmod 755 $(TARGETDIR)
 
 $(TARGETDIR)/bin/curry-info: $(CURRYINFO)
 	mkdir -p $(@D)
