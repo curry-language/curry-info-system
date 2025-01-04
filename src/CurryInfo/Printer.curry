@@ -6,7 +6,7 @@ module CurryInfo.Printer where
 
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage )
+                           , printDebugMessage, printErrorMessage )
 import CurryInfo.Helper    ( readSliceFromFile, parenthesize )
 
 import System.Directory    ( doesFileExist )
@@ -32,7 +32,7 @@ pVersionDocumentation opts path = do
   b <- doesFileExist path
   case b of
     False -> do
-      printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
+      printErrorMessage $ "File '" ++ path ++ "' does not exist."
       return "FAILED DUE TO FILE NOT EXISTING"
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
@@ -148,7 +148,7 @@ printFromReference opts (Reference path start end) = do
   b <- doesFileExist path
   case b of
     False -> do
-      printDebugMessage opts $ "File '" ++ path ++ "' does not exist."
+      printErrorMessage $ "File '" ++ path ++ "' does not exist."
       return "FAILED DUE TO FILE NOT EXISTING"
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
