@@ -120,23 +120,17 @@ getReducedDirectoryContents path =
   fmap (filter (\p -> p /= "." && p /= "..")) (getDirectoryContents path)
 
 --- This action returns the path to the index of the package manager.
-index :: IO String
-index = do
-  home <- getHomeDirectory
-  return (home </> ".cpm" </> "index")
+getCPMIndex :: IO FilePath
+getCPMIndex = fmap (</> ".cpm" </> "index") getHomeDirectory
 
 --- This action returns the path to the root of the local cache.
-root :: IO String
-root = do
-  home <- getHomeDirectory
-  return (home </> ".curry_info_cache")
+getRoot :: IO FilePath
+getRoot = fmap (</> ".curry_info_cache") getHomeDirectory
 
 --- This action returns the path to the packages directory where
 --- the tool stores all information in form of JSON files.
-packagesPath :: IO String
-packagesPath = do
-  path <- root
-  return (path </> "packages")
+packagesPath :: IO FilePath
+packagesPath = fmap (</> "packages") getRoot
 
 --- The name of the field identifying re-exported names by their
 --- fully qualified name.

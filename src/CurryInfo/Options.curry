@@ -12,7 +12,8 @@ import Numeric (readNat)
 
 import CurryInfo.Types
 import CurryInfo.Configuration
-import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, packagesPath, root )
+import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, getRoot
+                           , packagesPath )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage )
 import CurryInfo.Checkout  ( checkouts, getCheckoutPath )
@@ -34,7 +35,7 @@ printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 defaultOptions :: Options
 defaultOptions = 
   Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText ""
-          False False False False Nothing False False False
+          False False False False Nothing False False False False
 
 --- Options, with that nothing is printed by the tool (beyond the info results).
 silentOptions :: Options
@@ -57,10 +58,9 @@ processOptions banner argv = do
   unless (null opterrors)
     (putStr (unlines opterrors) >> printUsage >> exitWith 1)
   when (optHelp opts) (printUsage >> exitWith 0)
-  when (optCGI opts &&
-        (optServer opts || optClean opts || not (null (optOutFile opts))))
+  when (optCGI opts && (optServer opts || not (null (optOutFile opts))))
     (putStrLn
-       "Options '--server', '--clean', or '--output' not allowed in CGI mode!"
+       "Options '--server' or '--output' not allowed in CGI mode!"
        >> exitWith 1)
   when (optClean opts) (getObject opts >>= cleanObject opts >> exitWith 0)
   return (opts, args)
@@ -134,9 +134,9 @@ getObject opts = do
 -- including subdirectories.
 cleanObject :: Options -> Maybe QueryObject -> IO ()
 cleanObject opts mbobj = case mbobj of
-  Nothing  -> cleanAll opts
+  Nothing  -> checkNotCGI >> cleanAll opts
   Just obj -> cleanJSON opts obj >> case obj of
-    QueryPackage _             -> cleanDirectory opts obj
+    QueryPackage _             -> checkNotCGI >> cleanDirectory opts obj
     QueryVersion pkg vsn       -> cleanDirectory opts obj >>
                                   cleanCheckout opts pkg vsn
     QueryModule pkg vsn _      -> cleanDirectory opts obj >>
@@ -144,6 +144,12 @@ cleanObject opts mbobj = case mbobj of
     QueryType pkg vsn _ _      -> cleanCheckout opts pkg vsn
     QueryClass pkg vsn _ _     -> cleanCheckout opts pkg vsn
     QueryOperation pkg vsn _ _ -> cleanCheckout opts pkg vsn
+ where
+  checkNotCGI =
+    when (optCGI opts)
+      (putStrLn
+         "Option '--clean' for all package versions not allowed in CGI mode!"
+       >> exitWith 1)
 
 -- This action deletes the json file containing the stored information
 -- of the given object.
@@ -163,7 +169,7 @@ cleanCheckout opts pkg vsn = getCheckoutPath pkg vsn >>= deleteDirectory opts
 -- This action deletes the entire directory used by this tool to store
 -- information locally.
 cleanAll :: Options -> IO ()
-cleanAll opts = root >>= deleteDirectory opts
+cleanAll opts = getRoot >>= deleteDirectory opts
 
 -- This action deletes the given file using a Boolean function to determine it
 -- being the correct kind of file.
@@ -225,6 +231,15 @@ options =
   , Option "o" ["operation"]
        (ReqArg (\args opts -> opts { optOperation = Just args }) "<o>")
        "requested operation"
+  , Option "" ["alltypes"]
+       (NoArg (\opts -> opts { optAllTypes = True }))
+       "process requests for all types in module"
+  , Option "" ["allclasses"]
+       (NoArg (\opts -> opts { optAllClasses = True }))
+       "process requests for all type classes in module"
+  , Option "" ["alloperations"]
+       (NoArg (\opts -> opts { optAllOperations = True }))
+       "process requests for all operations in module"
   , Option "" ["format"]
        (ReqArg (\args opts -> opts { optOutFormat =
                                        maybe OutText id (safeRead args) })
@@ -248,15 +263,9 @@ options =
   , Option "" ["port"]
        (ReqArg (\args opts -> opts { optPort = safeRead args }) "<port>")
        "the port used in server mode"
-  , Option "" ["alltypes"]
-       (NoArg (\opts -> opts { optAllTypes = True }))
-       "process requests for all types in module"
-  , Option "" ["allclasses"]
-       (NoArg (\opts -> opts { optAllClasses = True }))
-       "process requests for all type classes in module"
-  , Option "" ["alloperations"]
-       (NoArg (\opts -> opts { optAllOperations = True }))
-       "process requests for all operations in module"
+  , Option "" ["update"]
+       (NoArg (\opts -> opts { optUpdate = True }))
+       "update package index (by 'cypm update')"
   ]
   where
     safeReadNat opttrans s opts = case readNat s of

@@ -8,13 +8,14 @@ module CurryInfo.SourceCode where
 import CurryInfo.Helper    ( quote )
 import CurryInfo.Types
 import CurryInfo.Checkout  ( checkoutIfMissing )
-import CurryInfo.Commands  ( cmdCPMPath, runCmd )
+import CurryInfo.Commands  ( cmdCPMPath, runCmd, cmdCPMInstall
+                           , getPackageLoadPath )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )
 
 import System.CurryPath ( lookupModuleSource )
 import System.Directory ( doesFileExist )
-import System.FilePath  ( (</>), (<.>), splitSearchPath )
+import System.FilePath  ( (</>), (<.>) )
 import System.IO
 
 import Data.List  ( isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex )
@@ -59,19 +60,6 @@ belongsLine h belong lnum = do
 -- This operation determines whether a line belongs to a definition.
 belongs :: String -> Bool
 belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
-
---- Gets the Curry load path of a package stored in the given path
---- by CPM.
-getPackageLoadPath :: Options -> FilePath -> IO (Maybe [String])
-getPackageLoadPath opts path = do
-  printDetailMessage opts $ "Get load path of package in '" ++ path ++ "'..."
-  (ec,out,err) <- runCmd opts $ cmdCPMPath opts path
-  if ec > 0
-    then do printErrorMessage "Getting package load path failed!"
-            printErrorMessage $ "Outputs:\n" ++ out ++ err
-            return Nothing
-    else do let ls = lines out
-            return $ Just $ if null ls then [] else splitSearchPath (head ls)
 
 --- This operation returns the directory and the actual path of the source file
 --- of the given module.
@@ -185,10 +173,13 @@ instance SourceCode CurryModule where
 -- This operation returns a checker that looks for the definition
 -- of the given type.
 checkType :: Type -> Checker
-checkType t l =
-  isPrefixOf ("data " ++ t) l ||
-  isPrefixOf ("type " ++ t) l ||
-  isPrefixOf ("newtype " ++ t) l
+checkType t l = checkTypeWords (words l)
+ where
+  checkTypeWords ws = case ws of
+    x:y:zs -> (x == "external" && checkTypeWords (y:zs)) ||
+              (x `elem` ["data", "type", "newtype"] &&
+               t == takeWhile isAlphaNum y)
+    _      -> False
 
 instance SourceCode CurryType where
   readSourceCode opts (CurryType pkg vsn m t) = do

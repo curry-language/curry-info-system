@@ -63,7 +63,7 @@ gPackageVersions :: Generator CurryPackage [String]
 gPackageVersions opts (CurryPackage pkg) = do
   printDetailMessage opts $ "Generating versions for package '" ++ pkg ++ "'..."
   printDetailMessage opts "Looking for package directory in index of package manager..."
-  i <- index
+  i <- getCPMIndex
   let packageDir = i </> pkg
   printDetailMessage opts $ "Directory in index is: " ++ packageDir
   printDetailMessage opts "Reading content of directory..."
@@ -302,11 +302,13 @@ gOperationCASSDemand =
 
 gOperationCASSIndeterministic :: Generator CurryOperation String
 gOperationCASSIndeterministic =
-  generateOperationAnalysisWithCASS "indeterministic" analyseIndeterministicWithCASS
+  generateOperationAnalysisWithCASS "indeterministic"
+    analyseIndeterministicWithCASS
 
 gOperationCASSSolComplete :: Generator CurryOperation String
 gOperationCASSSolComplete =
-  generateOperationAnalysisWithCASS "solution completeness" analyseSolCompleteWithCASS
+  generateOperationAnalysisWithCASS "solution completeness"
+    analyseSolCompleteWithCASS
 
 gOperationCASSTerminating :: Generator CurryOperation String
 gOperationCASSTerminating =

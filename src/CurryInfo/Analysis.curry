@@ -8,7 +8,7 @@ module CurryInfo.Analysis where
 import CurryInfo.Types
 import CurryInfo.Commands
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage)
+                           , printDebugMessage, printErrorMessage )
 import CurryInfo.Paths
 import CurryInfo.Checkout
 import CurryInfo.Writer
@@ -31,7 +31,7 @@ analyseWith :: (FilePath -> String -> Module
                     -> (String, IO (Int, String, String)))
                 -> Options -> Package -> Version -> Module -> String -> String
                 -> String -> (String -> QueryObject) -> IO (Maybe String)
-analyseWith anacmd opts pkg vsn m name analysis field constructor = do
+analyseWith anacmd opts pkg vsn m ename analysis field constructor = do
     printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
     mpath <- checkoutIfMissing opts pkg vsn
     case mpath of
@@ -56,10 +56,10 @@ analyseWith anacmd opts pkg vsn m name analysis field constructor = do
 
                 printDebugMessage opts
                   "Results found. Looking for requested result..."
-                case lookup name results of
+                case lookup ename results of
                   Nothing -> do
                     printDebugMessage opts $
-                      "Could not find entry with name '" ++ name ++ "'."
+                      "Could not find entry with name '" ++ ename ++ "'."
                     printDetailMessage opts "Analysis failed."
                     return Nothing
                   Just result -> do
@@ -68,10 +68,12 @@ analyseWith anacmd opts pkg vsn m name analysis field constructor = do
 
                     return (Just result)
           _ -> do
-            printDebugMessage opts "Could not parse output. Expected json."
-            printDebugMessage opts "Output:"
-            printDebugMessage opts output
-            printDetailMessage opts "Analysis failed."
+            printErrorMessage $
+              "Could not parse JSON output of analysis '" ++ analysis ++
+              "' of module '" ++ m ++ "'!"
+            printErrorMessage "Analysis output:"
+            printErrorMessage output
+            printDetailMessage opts $ "Analysis'" ++ analysis ++ "' failed."
             return Nothing
   where
     getJsonResults :: [JValue] -> Maybe [(String, String)]
@@ -83,7 +85,7 @@ analyseWith anacmd opts pkg vsn m name analysis field constructor = do
         n <- lookup "name" fields >>= fromJSON
         r <- lookup "result" fields >>= fromJSON
         return (n, r)
-      _ -> Nothing
+      _              -> Nothing
 
     addInformation :: (String, String) -> IO ()
     addInformation (n, r) = do

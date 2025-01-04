@@ -5,13 +5,14 @@
 module CurryInfo.Commands where
 
 import Control.Monad       ( when )
-import CurryInfo.Types
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage )
-
 import System.IOExts    ( evalCmd )
 import System.Directory ( setCurrentDirectory, getCurrentDirectory )
+import System.FilePath  ( splitSearchPath )
 import System.Path      ( fileInPath )
+
+import CurryInfo.Types
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage, printErrorMessage )
 
 -- This action runs the given command call and returns the result.
 -- Additionaly it also prints messages to the output depending on the exit code
@@ -76,12 +77,13 @@ cmdCurryLoad opts path m =
 
 -- This action calls CASS to compute the given analysis for the given module
 -- in the given path.
-cmdCASS :: Options -> String -> String -> Module
+cmdCASS :: Options -> FilePath -> String -> Module
         -> (String, IO (Int, String, String))
 cmdCASS opts path analysis m =
-  let x@(cmd:args) = ["cypm", "exec", "cass", "-q", "-f", "JSONTerm"
+  let x@(cmd:args) = [ "cypm", "exec", "cass", "-q", "-f", "JSONTerm"
                      , analysis, m]
-      action = evalCmdInDirectory opts path cmd args ""
+      action = do getPackageLoadPath opts path -- maybe install package...
+                  evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- This action calls `curry-calltypes` to compute results for the `failfree`
@@ -91,7 +93,8 @@ cmdCallTypes :: Options -> FilePath -> String -> Module
 cmdCallTypes opts path _ m =
   let x@(cmd:args) = [ "cypm", "exec", "curry-calltypes", "-v1"
                      , "--format=json", m]
-      action = evalCmdInDirectory opts path cmd args ""
+      action = do getPackageLoadPath opts path -- maybe install package...
+                  evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
 
 -- Run `evalCmd` in a given directory.
@@ -107,3 +110,36 @@ evalCmdInDirectory opts path cmd args inp = do
             setCurrentDirectory current
             return (exitCode, output, err)
     else return (1, "", "Binary '" ++ cmd ++ "' not found in PATH!")
+
+------------------------------------------------------------------------------
+--- Gets the Curry load path of a package stored in the given path
+--- by CPM.
+getPackageLoadPath :: Options -> FilePath -> IO (Maybe [String])
+getPackageLoadPath opts path = do
+  printDetailMessage opts $ "Get load path of package in '" ++ path ++ "'..."
+  (ec1,out1,_) <- runCmd opts $ cmdCPMPath opts path
+  if ec1 == 0
+    then returnOut out1
+    else do
+      printDetailMessage opts $ "Getting load path failed, thus, " ++
+        "installing package in '" ++ path ++ "'..."
+      (ec2,out2,err2) <- runCmd opts $ cmdCPMInstall opts path
+      if ec2 > 0
+        then do printErrorMessage "Installing package failed!"
+                printErrorMessage $ "Outputs:\n" ++ out2 ++ err2
+                return Nothing
+        else do
+          printDetailMessage opts $
+            "Get load path of package in '" ++ path ++ "'..."
+          (ec3,out3,err3) <- runCmd opts $ cmdCPMPath opts path
+          if ec3 > 0
+            then do printErrorMessage "Getting package load path failed!"
+                    printErrorMessage $ "Outputs:\n" ++ out3 ++ err3
+                    return Nothing
+            else returnOut out3
+ where
+  returnOut out = do
+    let ls = lines out
+    return $ Just $ if null ls then [] else splitSearchPath (head ls)
+
+------------------------------------------------------------------------------

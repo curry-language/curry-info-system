@@ -6,7 +6,7 @@
 module CurryInfo.Information ( getInfos, printResult ) where
 
 import CurryInfo.Configuration
-import CurryInfo.Paths     ( index, getDirectoryPath, getJSONPath
+import CurryInfo.Paths     ( getCPMIndex, getDirectoryPath, getJSONPath
                            , initializeStore, initializeStoreWithRealName
                            , jsonFile2Name, realNameField )
 import CurryInfo.Types
@@ -211,7 +211,7 @@ getInfos opts qobj reqs = do
   checkPackageExists pkg = do
     jpath <- getJSONPath (QueryPackage pkg)
     whenFileDoesNotExist jpath $do
-      path <- index
+      path <- getCPMIndex
       printDebugMessage opts $ "Looking for package in index..."
       doesDirectoryExist (path </> pkg)
 
@@ -219,7 +219,7 @@ getInfos opts qobj reqs = do
   checkVersionExists pkg vsn = do
     jpath <- getJSONPath (QueryVersion pkg vsn)
     whenFileDoesNotExist jpath $ do
-      path <- index
+      path <- getCPMIndex
       printDebugMessage opts $ "Looking for version in index..."
       doesDirectoryExist (path </> pkg </> vsn)
 

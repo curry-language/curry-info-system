@@ -5,7 +5,7 @@
 
 module CurryInfo.Server.Configuration where
 
-import CurryInfo.Paths (root)
+import CurryInfo.Paths  ( getRoot )
 
 import Control.Monad (when)
 
@@ -17,7 +17,7 @@ import System.IOExts    (readCompleteFile)
 --- This action returns the path to the server port file.
 getServerPortFileName :: IO String
 getServerPortFileName = do
-  path <- root
+  path <- getRoot
   return (path </> ".curryinfo.port")
 
 --- This action stores the given port in the server port file.

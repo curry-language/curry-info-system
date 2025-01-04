@@ -1,0 +1,3 @@
+#!/bin/sh
+# call CPM with .cpm in current $HOME
+XXXCYPMXXX -d REPOSITORY_PATH=$HOME/.cpm/index -d PACKAGE_INSTALL_PATH=$HOME/.cpm/packages -d BIN_INSTALL_PATH=$HOME/.cpm/bin "$@"

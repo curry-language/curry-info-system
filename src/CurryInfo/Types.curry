@@ -33,8 +33,9 @@ data Options = Options
   , optServer         :: Bool         -- run the tool in server mode
   , optPort           :: Maybe Int    -- the port used in server mode
   , optAllTypes       :: Bool         -- process requests for all types
-  , optAllClasses     :: Bool         -- Process requests for all type classes
-  , optAllOperations  :: Bool         -- Process requests for all operations
+  , optAllClasses     :: Bool         -- process requests for all type classes
+  , optAllOperations  :: Bool         -- process requests for all operations
+  , optUpdate         :: Bool         -- update package index (by `cypm update`)
   }
   deriving Show 
 
