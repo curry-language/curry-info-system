@@ -3,7 +3,10 @@
 --- source code files.
 ------------------------------------------------------------------------------
 
-module CurryInfo.SourceCode where
+module CurryInfo.SourceCode
+  ( getSourceFilePath, SourceCode(..), readSourceCode, readDocumentation
+  , getSourceCodeRef )
+ where
 
 import CurryInfo.Helper    ( quote )
 import CurryInfo.Types
@@ -136,11 +139,11 @@ getDocumentationRef opts check path hdl = do
       printDebugMessage opts "Could not find definition."
       return Nothing
     Just ls -> do
-      let stop = length ls
-      case reverse (takeWhile (isPrefixOf "--") (reverse ls)) of
-        [] -> do
-          printDebugMessage opts "Could not find documentation."
-          return Nothing
+      let rls  = dropWhile (all isSpace) (reverse ls)
+          stop = length rls
+      case takeWhile (isPrefixOf "--") rls of
+        [] -> do printDebugMessage opts "Could not find documentation."
+                 return Nothing
         gs -> return (Just (Reference path (stop - length gs) stop))
 
 ------------------------------------------------------------------------------

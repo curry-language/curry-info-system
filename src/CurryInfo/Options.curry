@@ -5,10 +5,10 @@
 module CurryInfo.Options where
 
 
-import Control.Monad (when, unless, filterM)
-import Data.List  (intercalate)
-import Data.Maybe (catMaybes)
-import Numeric (readNat)
+import Control.Monad ( when, unless, filterM )
+import Data.List     ( intercalate )
+import Data.Maybe    ( catMaybes )
+import Numeric       ( readNat )
 
 import CurryInfo.Types
 import CurryInfo.Configuration

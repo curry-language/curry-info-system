@@ -385,7 +385,8 @@ createInfoGeneratorWith anadescr anafun opts (CurryOperation pkg vsn m o) = do
 
 --- Generator function to get a reference information.
 --- The first argument is the operation, that generates the reference.
-generateReference :: SourceCode a => (Options -> a -> IO (Maybe Reference)) -> Generator a Reference
+generateReference :: SourceCode a => (Options -> a -> IO (Maybe Reference))
+                  -> Generator a Reference
 generateReference fun opts obj = do
   mres <- fun opts obj
   case mres of
