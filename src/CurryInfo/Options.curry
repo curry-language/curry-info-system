@@ -137,7 +137,7 @@ cleanObject opts mbobj = case mbobj of
   Nothing  -> checkNotCGI >> cleanAll opts
   Just obj -> cleanJSON opts obj >> case obj of
     QueryPackage _             -> checkNotCGI >> cleanDirectory opts obj
-    QueryVersion pkg vsn       -> cleanDirectory opts obj >>
+    QueryVersion pkg vsn       -> checkNotCGI >> cleanDirectory opts obj >>
                                   cleanCheckout opts pkg vsn
     QueryModule pkg vsn _      -> cleanDirectory opts obj >>
                                   cleanCheckout opts pkg vsn
@@ -148,7 +148,7 @@ cleanObject opts mbobj = case mbobj of
   checkNotCGI =
     when (optCGI opts)
       (putStrLn
-         "Option '--clean' for all package versions not allowed in CGI mode!"
+         "Option '--clean' for package versions not allowed in CGI mode!"
        >> exitWith 1)
 
 -- This action deletes the json file containing the stored information
@@ -158,7 +158,7 @@ cleanJSON opts obj = do
   getJSONPath obj >>= deleteFile opts
 
 -- This action deletes the directory, in which the information of the
--- given object art stored.
+-- given object is stored.
 cleanDirectory :: Options -> QueryObject -> IO ()
 cleanDirectory opts obj = getDirectoryPath obj >>= deleteDirectory opts
 
