@@ -8,7 +8,7 @@ module CurryInfo.Information ( getInfos, printResult ) where
 import Control.Monad      ( unless, when, zipWithM)
 import Data.Char          ( toLower )
 import Data.Either        ( partitionEithers )
-import Data.List          ( find, isSuffixOf, union )
+import Data.List          ( find, isSuffixOf, sort, union )
 import Data.Maybe         ( catMaybes, isJust )
 import System.Environment ( getArgs )
 
@@ -295,7 +295,7 @@ getInfosConfig opts queryobject reqs conf configobject = do
           True -> do
             printDetailMessage opts
               "Returning all currently available information..."
-            let fieldNames = map fst fields
+            let fieldNames = sort (map fst fields)
             case mapM (flip lookupRequest conf) fieldNames of
               Nothing -> do
                 return $ OutputError $

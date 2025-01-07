@@ -46,13 +46,13 @@ For instance, the previous commands can be shortened as follows
     > curry-info -m Prelude -o lines definition
 
 To show more results about the analysis and verification of operations,
-the tool uses other analysis and verification tools which exists for
+`curry-info` uses other analysis and verification tools which exists for
 Curry. If they are not installed, you cannot generate and access
 this information, but only show some basic information about operations,
 like their signature and definition as shown above.
 
-In order to install the analysis and verification tools used by `curry-info`,
-use the following commands:
+In order to install the analysis and verification tools currently
+supported and used by `curry-info`, run the following commands:
 
     > cypm install cass              # installs executable cass
     > cypm install verify-non-fail   # installs executable curry-calltypes
@@ -63,6 +63,6 @@ Technical notes
 
 - `curry-info` maintains a file cache with all available information.
   These files are stored in the directory `~/.curry_info_cache`
-  (this constant is defined in `CurryInfo.Paths.root`).
+  (this constant is defined in `CurryInfo.Paths.getRoot`).
 
 
