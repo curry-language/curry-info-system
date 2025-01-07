@@ -5,6 +5,22 @@
 
 module CurryInfo.Information ( getInfos, printResult ) where
 
+import Control.Monad      ( unless, when, zipWithM)
+import Data.Char          ( toLower )
+import Data.Either        ( partitionEithers )
+import Data.List          ( find, isSuffixOf, union )
+import Data.Maybe         ( catMaybes, isJust )
+import System.Environment ( getArgs )
+
+import JSON.Convert        ( fromJSON )
+import JSON.Data
+import JSON.Pretty         ( ppJSON )
+import System.Console.ANSI.Codes
+import System.Directory    ( doesDirectoryExist, doesFileExist
+                           , getDirectoryContents )
+import System.FilePath     ( (</>), (<.>) )
+
+
 import CurryInfo.Configuration
 import CurryInfo.Paths     ( getCPMIndex, getDirectoryPath, getJSONPath
                            , initializeStore, initializeStoreWithRealName
@@ -12,7 +28,7 @@ import CurryInfo.Paths     ( getCPMIndex, getDirectoryPath, getJSONPath
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
-import CurryInfo.Options   ( queryOptions )
+import CurryInfo.Options   ( queryOptions, withColor )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage)
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
@@ -20,21 +36,6 @@ import CurryInfo.Generator ( readPackageJSON, getExportedModules
 import CurryInfo.Helper    ( InformationResult(..), fromQName, information
                            , quote )
 
-import JSON.Convert        ( fromJSON )
-import JSON.Data
-import JSON.Pretty         ( ppJSON )
-
-import Data.Char   ( toLower )
-import Data.Either ( partitionEithers )
-import Data.List   ( find, isSuffixOf, union )
-import Data.Maybe  ( catMaybes, isJust )
-
-import System.Environment ( getArgs )
-import System.FilePath    ( (</>), (<.>) )
-import System.Directory   ( doesDirectoryExist, doesFileExist
-                          , getDirectoryContents )
-
-import Control.Monad (unless, zipWithM, when)
 
 --- This action prints the given output to stdout and also returns
 --- the string as result.
@@ -343,8 +344,8 @@ getInfosConfig opts queryobject reqs conf configobject = do
     OutText -> OutputText $ unlines $
                  (if outputSingleEntity then []
                                         else [object2StringTuple obj]) ++
-                 map (\(r, ir) -> r ++ ": " ++ 
-                        information "?" id (flip const) ir)
+                 map (\(r, ir) -> withColor opts green r ++ ": " ++ 
+                        information (withColor opts red "?") id (flip const) ir)
                     results
     OutJSON -> OutputJSON $ JObject
                   [("object", (JString . object2StringTuple) obj),

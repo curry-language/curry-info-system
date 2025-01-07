@@ -28,6 +28,7 @@ data Options = Options
   , optOutFormat      :: OutFormat    -- the output format
   , optOutFile        :: String       -- posible file name to store output
   , optClean          :: Bool         -- clean up information
+  , optColor          :: Bool         -- use colors in text output
   , optShowAll        :: Bool         -- show all currently available information
   , optCGI            :: Bool         -- run the tool in CGI mode
   , optServer         :: Bool         -- run the tool in server mode

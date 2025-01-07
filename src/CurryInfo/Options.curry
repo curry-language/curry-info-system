@@ -31,11 +31,15 @@ import System.FilePath  ( (</>) )
 printRequests :: String -> Configuration a -> String
 printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 
+--- Use some coloring (from System.Console.ANSI.Codes) if color option is on.
+withColor :: Options -> (String -> String) -> String -> String
+withColor opts coloring = if optColor opts then coloring else id
+
 --- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions = 
   Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText ""
-          False False False False Nothing False False False False
+          False False False False False Nothing False False False False
 
 --- Options, with that nothing is printed by the tool (beyond the info results).
 silentOptions :: Options
@@ -251,6 +255,9 @@ options =
   , Option "" ["clean"]
        (NoArg (\opts -> opts { optClean = True }))
        "clean requested object or all information"
+  , Option "" ["color"]
+       (NoArg (\opts -> opts { optColor = True }))
+       "use colors in text output"
   , Option "" ["showall"]
        (NoArg (\opts -> opts { optShowAll = True }))
        "show all available information (no generation)"
