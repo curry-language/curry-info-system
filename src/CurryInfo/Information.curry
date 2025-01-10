@@ -234,23 +234,25 @@ getInfos opts qobj reqs = do
                                (mbjson >>= Just  . snd >>= getExportedModules)
       return (elem m exportedmods)
 
-  ensureEntityExists pkg vsn m e qentity ereq ename cont = do
-    jpath <- getJSONPath qentity
-    exf <- doesFileExist jpath
-    if exf
-      then msgCont
-      else do
-        res <- query (QueryModule pkg vsn m) ereq
-        case res of
-          Nothing -> returnError
-          Just es ->
-            if e `elem` es
-              then msgCont
-              else maybe returnError
-                         (\(mn,en) ->
-                            do initializeStoreWithRealName opts qentity mn en
-                               cont)
-                         (find ((== e) . snd) (map fromQName es))
+  ensureEntityExists pkg vsn m e qo ereq ename cont
+    | isDummyObject qo = cont
+    | otherwise
+    = do
+      jpath <- getJSONPath qo
+      exf <- doesFileExist jpath
+      if exf
+        then msgCont
+        else do
+          res <- query (QueryModule pkg vsn m) ereq
+          case res of
+            Nothing -> returnError
+            Just es ->
+              if e `elem` es
+                then msgCont
+                else maybe returnError
+                          (\(mn,en) ->
+                             initializeStoreWithRealName opts qo mn en >> cont)
+                          (find ((== e) . snd) (map fromQName es))
    where
     msgCont = printDetailMessage opts
                 (ename ++ " " ++ quotePrettyObject qobj ++ " exists.") >> cont
@@ -269,7 +271,17 @@ whenFileDoesNotExist path act = do
 --- returns the output for the requests.
 getInfosConfig :: Show a => Options -> QueryObject -> [String]
                -> [RegisteredRequest a] -> a -> IO Output
-getInfosConfig opts queryobject reqs conf configobject = do
+getInfosConfig opts queryobject reqs conf configobject
+ | isDummyObject queryobject && optForce opts == 0
+ = return $ createOutput opts queryobject []
+ | isDummyObject queryobject
+ = do -- run only the generator
+   printDetailMessage opts "Generating requested information..."
+   mapM_ (generateRequest configobject (errorRequestObject queryobject))
+         (map (map toLower) reqs)
+   return $ createOutput opts queryobject []
+ | otherwise
+ = do
   initializeStore opts queryobject
   printDetailMessage opts $
     "Reading current information of entity " ++ quotePrettyObject queryobject
@@ -312,8 +324,7 @@ getInfosConfig opts queryobject reqs conf configobject = do
                                     maybe InformationExtractionFailed
                                           (uncurry InformationResult) mr))
                                   results
-                let output = createOutput queryobject results' :: Output
-                return output
+                return $ createOutput opts queryobject results'
           False -> do
             printDetailMessage opts
               "Extracting/Generating requested information..."
@@ -326,47 +337,32 @@ getInfosConfig opts queryobject reqs conf configobject = do
             printDebugMessage opts "Overwriting with updated information..."
             writeObjectInformation queryobject (newInformation <+> fields)
             printDetailMessage opts "Overwriting finished."
-
-            let output = createOutput queryobject results :: Output
-            return output
+            return $ createOutput opts queryobject results
  where  
   createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
   createNewInformation =
     foldr (\(r, ir) acc ->
               information acc (const acc) (\jv _ -> (r, jv):acc) ir) []
 
-  -- generate output for a single entity?
-  outputSingleEntity = not
-    (optAllTypes opts || optAllClasses opts || optAllOperations opts)
-  
-  createOutput :: QueryObject -> [(String, InformationResult)] -> Output
-  createOutput obj results = case optOutFormat opts of
-    OutText -> OutputText $ unlines $
-                 (if outputSingleEntity then []
-                                        else [object2StringTuple obj]) ++
-                 map (\(r, ir) -> withColor opts green r ++ ": " ++ 
-                        information (withColor opts red "?") id (flip const) ir)
-                    results
-    OutJSON -> OutputJSON $ JObject
-                  [("object", (JString . object2StringTuple) obj),
-                   ("results",
-                    JObject (map (\(r, ir) ->
-                                    (r, information JNull JString
-                                          (\_ s -> JString s) ir))
-                                results))]
-    OutTerm -> OutputTerm
-                  [(object2StringTuple obj,
-                    show (map (\(r, ir) ->
-                                  (r, information "?" id (flip const) ir))
-                              results))]
+  -- generate information for request only (used for dummy objects)
+  generateRequest obj reqerrormsg req = do
+    printDetailMessage opts $ "\nProcessing request '" ++ req ++ "'..."
+    case lookupRequest req conf of
+      Nothing -> printStatusMessage opts $ reqerrormsg req
+      Just (_, _, _, generator) -> do
+        printDetailMessage opts "Request found in configuration"
+        generationResult <- generate opts generator obj
+        case generationResult of
+          Nothing -> printStatusMessage opts "Executing request failed!"
+          Just _  -> printDetailMessage opts "Executing request succeeded"
 
+  -- extract or generating (depending on force) information for request
   extractOrGenerate fields obj reqerrormsg req = do
     printDetailMessage opts $
       "\nProcessing request '" ++ req ++ "' for " ++ show obj ++ "..."
     case lookupRequest req conf of
       Nothing -> do
-        let msg = reqerrormsg req
-        printDetailMessage opts $ msg
+        printDetailMessage opts $ reqerrormsg req
         return (req, InformationError "REQUEST DOES NOT EXIST IN CONFIGURATION")
       Just (_, _, extractor, generator) -> do
         printDetailMessage opts
@@ -441,4 +437,32 @@ generate opts generator obj = do
     Just (jv, output) -> do
       printDetailMessage opts "Generation succeeded."
       return $ Just (jv, output)
-    
+
+-- Creates output of the info fields of an object w.r.t. the desired
+-- output format.
+createOutput :: Options -> QueryObject -> [(String, InformationResult)]
+             -> Output
+createOutput opts obj results = case optOutFormat opts of
+  OutText -> OutputText $ unlines $
+                (if outputSingleEntity then []
+                                      else [object2StringTuple obj]) ++
+                map (\(r, ir) -> withColor opts green r ++ ": " ++ 
+                      information (withColor opts red "?") id (flip const) ir)
+                  results
+  OutJSON -> OutputJSON $ JObject
+                [("object", (JString . object2StringTuple) obj),
+                  ("results",
+                  JObject (map (\(r, ir) ->
+                                  (r, information JNull JString
+                                        (\_ s -> JString s) ir))
+                              results))]
+  OutTerm -> OutputTerm
+                [(object2StringTuple obj,
+                  show (map (\(r, ir) ->
+                                (r, information "?" id (flip const) ir))
+                            results))]
+ where
+  -- generate output for a single entity?
+  outputSingleEntity = not
+    (optAllTypes opts || optAllClasses opts || optAllOperations opts)
+  

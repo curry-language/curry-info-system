@@ -32,72 +32,73 @@ analyseWith :: (FilePath -> String -> Module
                 -> Options -> Package -> Version -> Module -> String -> String
                 -> String -> (String -> QueryObject) -> IO (Maybe String)
 analyseWith anacmd opts pkg vsn m ename analysis field constructor = do
-    printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
-    mpath <- checkoutIfMissing opts pkg vsn
-    case mpath of
+  printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
+  mpath <- checkoutIfMissing opts pkg vsn
+  case mpath of
+    Nothing -> do
+      printDetailMessage opts "Analysis failed."
+      return Nothing
+    Just path -> do
+      (_, output, _) <- runCmd opts (anacmd path analysis m)
+      printDetailMessage opts "Analysis finished."
+      printDebugMessage opts "Parsing analysis output..."
+      case parseJSON output of
+        Just (JArray jvs) -> do
+          printDebugMessage opts "Looking for results..."
+          case getJsonResults jvs of
+            Nothing -> do
+              printDebugMessage opts "Could not find analysis results."
+              printDetailMessage opts "Analysis failed."
+              return Nothing
+            Just results -> do
+              printDebugMessage opts "Writing all results in files..."
+              mapM addInformation results
+              if null ename -- dummy object?
+                then return (Just "")
+                else lookupResultForEntity results
+        _ -> do
+          printErrorMessage $
+            "Could not parse JSON output of analysis '" ++ analysis ++
+            "' of module '" ++ m ++ "'!"
+          printErrorMessage "Analysis output:"
+          printErrorMessage output
+          printDetailMessage opts $ "Analysis'" ++ analysis ++ "' failed."
+          return Nothing
+ where
+  getJsonResults :: [JValue] -> Maybe [(String, String)]
+  getJsonResults = mapM elemToResult
+
+  elemToResult :: JValue -> Maybe (String, String)
+  elemToResult jv = case jv of
+    JObject fields -> do
+      n <- lookup "name" fields >>= fromJSON
+      r <- lookup "result" fields >>= fromJSON
+      return (n, r)
+    _              -> Nothing
+
+  addInformation :: (String, String) -> IO ()
+  addInformation (n, r) = do
+    let obj = constructor n
+    initializeStore opts obj
+    mfields <- readObjectInformation opts obj
+    case mfields of
+      Nothing     -> printDebugMessage opts $ errorReadingObject obj
+      Just fields -> do
+        let newInformation = [(field, toJSON r)] <+> fields
+        writeObjectInformation obj newInformation
+
+  lookupResultForEntity results = do
+    printDebugMessage opts "Results found. Looking for requested result..."
+    case lookup ename results of
       Nothing -> do
+        printDebugMessage opts $
+         "Could not find entry with name '" ++ ename ++ "' in analysis results."
         printDetailMessage opts "Analysis failed."
         return Nothing
-      Just path -> do
-        (_, output, _) <- runCmd opts (anacmd path analysis m)
-        printDetailMessage opts "Analysis finished."
-        printDebugMessage opts "Parsing analysis output..."
-        case parseJSON output of
-          Just (JArray jvs) -> do
-            printDebugMessage opts "Looking for results..."
-            case getJsonResults jvs of
-              Nothing -> do
-                printDebugMessage opts "Could not find analysis results."
-                printDetailMessage opts "Analysis failed."
-                return Nothing
-              Just results -> do
-                printDebugMessage opts "Writing all results in files..."
-                mapM addInformation results
-
-                printDebugMessage opts
-                  "Results found. Looking for requested result..."
-                case lookup ename results of
-                  Nothing -> do
-                    printDebugMessage opts $
-                      "Could not find entry with name '" ++ ename ++ "'."
-                    printDetailMessage opts "Analysis failed."
-                    return Nothing
-                  Just result -> do
-                    printDetailMessage opts "Analysis succeeded."
-                    printDebugMessage opts $ "Result found: " ++ show result
-
-                    return (Just result)
-          _ -> do
-            printErrorMessage $
-              "Could not parse JSON output of analysis '" ++ analysis ++
-              "' of module '" ++ m ++ "'!"
-            printErrorMessage "Analysis output:"
-            printErrorMessage output
-            printDetailMessage opts $ "Analysis'" ++ analysis ++ "' failed."
-            return Nothing
-  where
-    getJsonResults :: [JValue] -> Maybe [(String, String)]
-    getJsonResults = mapM elemToResult
-
-    elemToResult :: JValue -> Maybe (String, String)
-    elemToResult jv = case jv of
-      JObject fields -> do
-        n <- lookup "name" fields >>= fromJSON
-        r <- lookup "result" fields >>= fromJSON
-        return (n, r)
-      _              -> Nothing
-
-    addInformation :: (String, String) -> IO ()
-    addInformation (n, r) = do
-      let obj = constructor n
-      initializeStore opts obj
-      mfields <- readObjectInformation opts obj
-      case mfields of
-        Nothing -> do
-          printDebugMessage opts $ errorReadingObject obj
-        Just fields -> do
-          let newInformation = [(field, toJSON r)] <+> fields
-          writeObjectInformation obj newInformation
+      Just result -> do
+        printDetailMessage opts "Analysis succeeded."
+        printDebugMessage opts $ "Result found: " ++ show result
+        return (Just result)
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis
 -- for the given module in the given path.

@@ -154,6 +154,17 @@ data QueryObject =
   | QueryClass     Package Version Module Class
   | QueryOperation Package Version Module Operation
 
+--- Is the query object a dummy object, i.e., a type, class, or operation
+--- without a name? Dummy objects are used to analyze modules having
+--- no exported objects of this kind, since such module might have
+--- implicitly generated objects (e.g., class operations).
+isDummyObject :: QueryObject -> Bool
+isDummyObject qo = case qo of
+  QueryType      _ _ _ n -> null n
+  QueryClass     _ _ _ n -> null n
+  QueryOperation _ _ _ n -> null n
+  _                      -> False
+
 --- Sets the entity name in a query object.
 setEName :: QueryObject -> String -> QueryObject
 setEName (QueryPackage _)         en = QueryPackage en

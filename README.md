@@ -45,8 +45,8 @@ For instance, the previous commands can be shortened as follows
     > curry-info -m Prelude -o lines signature
     > curry-info -m Prelude -o lines definition
 
-To show more results about the analysis and verification of operations,
-`curry-info` uses other analysis and verification tools which exists for
+To show results about the operational behavior of operations,
+`curry-info` uses other analysis and verification tools which exist for
 Curry. If they are not installed, you cannot generate and access
 this information, but only show some basic information about operations,
 like their signature and definition as shown above.
@@ -65,4 +65,13 @@ Technical notes
   These files are stored in the directory `~/.curry_info_cache`
   (this constant is defined in `CurryInfo.Paths.getRoot`).
 
+- The name of a module entity (operation, type, class) can also be
+  an empty string. In this case,   the analysis is performed
+  (if the value of the `force` option is non-zero)
+  but a result is not shown. This is useful for program analyses
+  which compute at once information about all operations of a module,
+  as the analysis and verification tools `cass` and `verify-non-fail`.
+  For instance, the following command generates determinism information
+  for all operations of the prelude:
 
+      > curry-info -f2 -p base -x 3.3.0 -m Prelude -o '' cass-deterministic

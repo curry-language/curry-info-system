@@ -4,12 +4,13 @@
 
 module CurryInfo.Commands where
 
-import Control.Monad       ( when )
+import Control.Monad    ( when )
 import System.IOExts    ( evalCmd )
 import System.Directory ( setCurrentDirectory, getCurrentDirectory )
 import System.FilePath  ( splitSearchPath )
 import System.Path      ( fileInPath )
 
+import CurryInfo.Helper    ( quote )
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )
@@ -20,7 +21,7 @@ import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
 runCmd :: Options -> (String, IO (Int, String, String))
        -> IO (Int, String, String)
 runCmd opts (cmd, action) = do
-  printDetailMessage opts $ "Running command '" ++ cmd ++ "'..."
+  printDetailMessage opts $ "Running command " ++ quote cmd ++ "..."
   (ecode, output, err) <- action
   when (ecode > 0) $ do
     printStatusMessage opts $ "COMMAND: " ++ cmd ++ "\n" ++
@@ -109,20 +110,20 @@ evalCmdInDirectory opts path cmd args inp = do
             (exitCode, output, err) <- evalCmd cmd args inp
             setCurrentDirectory current
             return (exitCode, output, err)
-    else return (1, "", "Binary '" ++ cmd ++ "' not found in PATH!")
+    else return (1, "", "Binary " ++ quote cmd ++ " not found in PATH!")
 
 ------------------------------------------------------------------------------
 --- Gets the Curry load path of a package stored in the given path
 --- by CPM.
 getPackageLoadPath :: Options -> FilePath -> IO (Maybe [String])
 getPackageLoadPath opts path = do
-  printDetailMessage opts $ "Get load path of package in '" ++ path ++ "'..."
+  printDetailMessage opts $ "Get load path of package " ++ quote path ++ "..."
   (ec1,out1,_) <- runCmd opts $ cmdCPMPath opts path
   if ec1 == 0
     then returnOut out1
     else do
       printDetailMessage opts $ "Getting load path failed, thus, " ++
-        "installing package in '" ++ path ++ "'..."
+        "installing package in " ++ quote path ++ "..."
       (ec2,out2,err2) <- runCmd opts $ cmdCPMInstall opts path
       if ec2 > 0
         then do printErrorMessage "Installing package failed!"
@@ -130,7 +131,7 @@ getPackageLoadPath opts path = do
                 return Nothing
         else do
           printDetailMessage opts $
-            "Get load path of package in '" ++ path ++ "'..."
+            "Get load path of package " ++ quote path ++ "..."
           (ec3,out3,err3) <- runCmd opts $ cmdCPMPath opts path
           if ec3 > 0
             then do printErrorMessage "Getting package load path failed!"
