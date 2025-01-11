@@ -109,13 +109,17 @@ gVersionDependencies =
 
 gModuleName :: Generator CurryModule String
 gModuleName opts (CurryModule pkg vsn m) = do
-  printDetailMessage opts $ "Generating name for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating name for module '" ++ m ++ "' of version '" ++ vsn ++
+    "' of package '" ++ pkg ++ "'..."
   printDebugMessage opts $ "Name is: " ++ m
   finishResult opts m
 
 gModuleDocumentation :: Generator CurryModule Reference
 gModuleDocumentation opts x@(CurryModule pkg vsn m) = do
-  printDetailMessage opts $ "Generating documentation for module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating documentation for module '" ++ m ++ "' of version '" ++ vsn ++
+    "' of package '" ++ pkg ++ "'..."
   generateDocumentation opts x
 
 gModuleSourceCode :: Generator CurryModule Reference
@@ -216,38 +220,52 @@ gTypeDefinition opts x@(CurryType pkg vsn m t) = do
 
 gClassName :: Generator CurryClass String
 gClassName opts (CurryClass pkg vsn m c) = do
-  printDetailMessage opts $ "Generating name of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating name of class '" ++ c ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   printDebugMessage opts $ "Name is: " ++ c
   finishResult opts c
 
 gClassDocumentation :: Generator CurryClass Reference
 gClassDocumentation opts x@(CurryClass pkg vsn m c) = do
-  printDetailMessage opts $ "Generating documentation of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating documentation of class '" ++ c ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   generateDocumentation opts x
 
 gClassMethods :: Generator CurryClass [String]
 gClassMethods opts (CurryClass pkg vsn m c) = do
-    printDetailMessage opts $ "Generating methods of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+    printDetailMessage opts $
+      "Generating methods of class '" ++ c ++ "' of module '" ++ m ++
+      "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
     generateFromInterface pkg vsn m "methods" methodsSelector opts
   where
-    methodsSelector interface = getClassDecl c (getAllClasses $ getDeclarations interface) >>= getClassMethods
+    methodsSelector interface =
+      getClassDecl c (getAllClasses $ getDeclarations interface)
+        >>= getClassMethods
 
 gClassDefinition :: Generator CurryClass Reference
 gClassDefinition opts x@(CurryClass pkg vsn m c) = do
-  printDetailMessage opts $ "Generating definition of class '" ++ c ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating definition of class '" ++ c ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   generateSourceCode opts x
 
 -- OPERATION
 
 gOperationName :: Generator CurryOperation String
 gOperationName opts (CurryOperation pkg vsn m o) = do
-  printDetailMessage opts $ "Generating name of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating name of operation '" ++ o ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   printDebugMessage opts $ "Name is: " ++ o
   finishResult opts o
 
 gOperationDocumentation :: Generator CurryOperation Reference
 gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
-  printDetailMessage opts $ "Generating documentation of operation '" ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating documentation of operation '" ++ o ++ "' of module '" ++ m ++
+    "' of version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
   generateDocumentation opts x
 
 gOperationSourceCode :: Generator CurryOperation Reference
@@ -525,4 +543,4 @@ packageREADMEPath opts pkg vsn = do
     Nothing  -> return ""
     Just dir -> do
       dconts <- getDirectoryContents dir
-      return $ maybe "" id (find ("README" `isPrefixOf`) dconts)
+      return $ maybe "" (dir </>) (find ("README" `isPrefixOf`) dconts)

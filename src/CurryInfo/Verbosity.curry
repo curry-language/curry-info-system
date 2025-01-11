@@ -37,7 +37,7 @@ isDebug opts = optVerb opts >= debugVerbosity
 --- This action prints a message to stderr if the Boolean function returns
 --- True on the options.
 printMessage :: (Options -> Bool) -> Options -> String -> IO ()
-printMessage checker opts msg = when (checker opts) (putStrLn msg)
+printMessage checker opts msg = when (checker opts) (printErrorMessage msg)
 
 --- This action prints a Status message if the verbosity level is high enough.
 printStatusMessage :: Options -> String -> IO ()

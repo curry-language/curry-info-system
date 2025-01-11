@@ -14,6 +14,7 @@ import CurryInfo.Options         ( processOptions, getObject )
 import CurryInfo.Paths           ( getRoot )
 import CurryInfo.Server.Server   ( startServer )
 import CurryInfo.Types
+import CurryInfo.Verbosity       ( printErrorMessage )
 
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
@@ -40,7 +41,8 @@ main = do
   if optServer opts
     then startServer opts
     else getObject opts >>=
-         maybe (putStrLn "Package name is required (use --help)" >> exitWith 1)
+         maybe (printErrorMessage "Package name is required (use --help)"
+                  >> exitWith 1)
                (\obj -> do res <- getInfos opts obj margs
                            printResult opts res
                            return ())
