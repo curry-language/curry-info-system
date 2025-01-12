@@ -11,6 +11,7 @@ import JSON.Data
 
 import CurryInfo.Helper    ( readSliceFromFile, parenthesize )
 import CurryInfo.Paths     ( addRootPath, getRoot )
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )
@@ -20,12 +21,12 @@ import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
 pPackageName :: Printer String
 pPackageName _ s = return s
 
-pPackageVersions :: Printer [String]
+pPackageVersions :: Printer [Version]
 pPackageVersions _ vsns = return (show vsns)
 
 -- VERSION
 
-pVersionVersion :: Printer String
+pVersionVersion :: Printer Version
 pVersionVersion _ vsn = return vsn
 
 pVersionDocumentation :: Printer String
@@ -41,7 +42,7 @@ pVersionDocumentation opts vpath = do
       content <- readCompleteFile path
       return $ (if optOutFormat opts == OutText then "\n" else "") ++ content
 
-pVersionCategories :: Printer [String]
+pVersionCategories :: Printer [Category]
 pVersionCategories _ cats = return (show cats)
 
 pVersionModules :: Printer [String]
@@ -95,7 +96,7 @@ pClassName _ name = return name
 pClassDocumentation :: Printer Reference
 pClassDocumentation opts ref = printFromReference opts ref
 
-pClassMethods :: Printer [String]
+pClassMethods :: Printer [Method]
 pClassMethods _ ms = return (show ms)
 
 pClassDefinition :: Printer Reference
@@ -138,6 +139,11 @@ pOperationCASSTerminating _ t = return t
 
 pOperationCASSTotal :: Printer String
 pOperationCASSTotal _ t = return t
+
+pOperationCASSValues :: Printer String
+pOperationCASSValues opts t
+  | optOutFormat opts == OutText = return $ prettyAType (read t)
+  | otherwise                    = return t
 
 pOperationFailFree :: Printer String
 pOperationFailFree _ t = return t

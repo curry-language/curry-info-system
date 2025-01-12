@@ -4,7 +4,7 @@
 
 module CurryInfo.Parser where
 
-import CurryInfo.Types
+import CurryInfo.RequestTypes
 
 import Data.List (init, find, intercalate, intersperse)
 

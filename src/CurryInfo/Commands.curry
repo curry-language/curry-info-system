@@ -11,6 +11,7 @@ import System.FilePath  ( splitSearchPath )
 import System.Path      ( fileInPath )
 
 import CurryInfo.Helper    ( quote )
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )

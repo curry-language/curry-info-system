@@ -1,17 +1,17 @@
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --- This modules defines the types used by the rest.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
 module CurryInfo.Types where
 
-import CurryInfo.Helper ( parenthesize, quote )
-
-import Text.Pretty (Doc)
-
-import JSON.Data (JValue)
-
 import Data.Char (toLower)
 import Data.List (intercalate)
+
+import JSON.Data (JValue)
+import Text.Pretty (Doc)
+
+import CurryInfo.Helper       ( parenthesize, quote )
+import CurryInfo.RequestTypes
 
 -- Options Type
 
@@ -87,11 +87,6 @@ data CurryOperation = CurryOperation Package Version Module Operation
 
 -- HELPER TYPES
 
-data Infix = Infix | InfixL | InfixR
-  deriving (Read, Show)
-
-type Precedence = Int
-
 type Constructor = String
 
 type Operation = String
@@ -102,37 +97,7 @@ type Class = String
 
 type Signature = String
 
-type Version = String
-
 type Module = String
-
-type Category = String
-
-type Package = String
-
-type Method = String
-
-data Reference = Reference String Int Int
-  deriving (Show, Read)
-
--- Dependency
-
-data VersionConstraint
-    = VExact Version
-    | VGt Version
-    | VLt Version
-    | VGte Version
-    | VLte Version
-    | VMinCompatible Version
-    | VMajCompatible Version
-  deriving (Eq, Show, Read)
-
-type Conjunction = [VersionConstraint]
-
-type Disjunction = [Conjunction]
-
-data Dependency = Dependency Package Disjunction
-  deriving (Eq, Show, Read)
 
 --------------------------
 

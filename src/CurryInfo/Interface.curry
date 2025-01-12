@@ -19,6 +19,7 @@ import System.FrontendExec  ( FrontendTarget (..), callFrontend )
 import System.CurryPath     ( currySubdir )
 import System.FilePath      ( (</>), (<.>) )
 
+import CurryInfo.RequestTypes
 import CurryInterface.Types
 import CurryInterface.Files  ( curryInterfaceFileName, readCurryInterfaceFile )
 import CurryInterface.Pretty ( defaultOptions, ppConstructor, ppNewConstructor
@@ -239,17 +240,17 @@ getInfixName decl = case decl of
 
 -- This operation returns the infix of the given infix declaration. If the given
 -- declaration is not of an infix, Nothing is returned.
-getOperationInfix :: IDecl -> Maybe CurryInfo.Types.Infix
+getOperationInfix :: IDecl -> Maybe CurryInfo.RequestTypes.Infix
 getOperationInfix decl = case decl of
   IInfixDecl i _ _    -> case i of
-    CurryInterface.Types.Infix  -> Just CurryInfo.Types.Infix
-    CurryInterface.Types.InfixL -> Just CurryInfo.Types.InfixL
-    CurryInterface.Types.InfixR -> Just CurryInfo.Types.InfixR
+    CurryInterface.Types.Infix  -> Just CurryInfo.RequestTypes.Infix
+    CurryInterface.Types.InfixL -> Just CurryInfo.RequestTypes.InfixL
+    CurryInterface.Types.InfixR -> Just CurryInfo.RequestTypes.InfixR
   _                   -> Nothing
 
 -- This operation returns the precedence of the given infix declaration.
 -- If the given declaration ii not of an infix, Nothing is returned.
-getOperationPrecedence :: IDecl -> Maybe CurryInfo.Types.Precedence
+getOperationPrecedence :: IDecl -> Maybe CurryInfo.RequestTypes.Precedence
 getOperationPrecedence decl = case decl of
   IInfixDecl _ p _    -> Just p
   _                   -> Nothing

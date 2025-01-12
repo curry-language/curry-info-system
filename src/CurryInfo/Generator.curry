@@ -4,6 +4,7 @@
 
 module CurryInfo.Generator where
 
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Paths
 import CurryInfo.JConvert
@@ -334,6 +335,10 @@ gOperationCASSTerminating =
 gOperationCASSTotal :: Generator CurryOperation String
 gOperationCASSTotal =
   generateOperationAnalysisWithCASS "totally defined" analyseTotalWithCASS
+
+gOperationCASSValues :: Generator CurryOperation String
+gOperationCASSValues =
+  generateOperationAnalysisWithCASS "top result values" analyseValuesWithCASS
 
 gOperationFailFree :: Generator CurryOperation String
 gOperationFailFree =

@@ -17,6 +17,7 @@ import System.FilePath  ( (</>), (<.>) )
 import System.IO
 
 import CurryInfo.Helper    ( quote )
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Checkout  ( checkoutIfMissing )
 import CurryInfo.Commands  ( cmdCPMPath, runCmd, cmdCPMInstall

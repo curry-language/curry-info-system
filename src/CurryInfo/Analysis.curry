@@ -5,20 +5,21 @@
 
 module CurryInfo.Analysis where
 
-import CurryInfo.Types
-import CurryInfo.Commands
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage, printErrorMessage )
-import CurryInfo.Paths
-import CurryInfo.Checkout
-import CurryInfo.Writer
-import CurryInfo.Reader
-
 import JSON.Data
 import JSON.Parser (parseJSON)
 import JSON.Convert
 
 import XML
+
+import CurryInfo.Checkout
+import CurryInfo.Commands
+import CurryInfo.Paths
+import CurryInfo.RequestTypes
+import CurryInfo.Types
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage, printErrorMessage )
+import CurryInfo.Writer
+import CurryInfo.Reader
 
 -- Analysis
 
@@ -155,6 +156,14 @@ analyseTotalWithCASS :: Options -> Package -> Version -> Module
 analyseTotalWithCASS opts pkg vsn m o =
   analyseWith (cmdCASS opts) opts pkg vsn m o
     "Total" "cass-total" (QueryOperation pkg vsn m)
+
+-- This action initiates a call to CASS to compute the 'Total' analysis
+-- for the given module in the given path.
+analyseValuesWithCASS :: Options -> Package -> Version -> Module
+                     -> Operation -> IO (Maybe String)
+analyseValuesWithCASS opts pkg vsn m o =
+  analyseWith (cmdCASS opts) opts pkg vsn m o
+    "Values" "cass-values" (QueryOperation pkg vsn m)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.

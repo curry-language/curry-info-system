@@ -4,7 +4,7 @@
 
 module CurryInfo.JConvert where
 
-import CurryInfo.Types
+import CurryInfo.RequestTypes
 
 import JSON.Convert
 import JSON.Data

@@ -4,16 +4,17 @@
 
 module CurryInfo.Checkout where
 
-import CurryInfo.Types
-import CurryInfo.Paths     ( getRoot )
-import CurryInfo.Commands  ( runCmd, cmdCheckout )
-import CurryInfo.Helper    ( quote )
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage, printErrorMessage )
-
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
 import System.FilePath ((</>))
+
+import CurryInfo.Commands     ( runCmd, cmdCheckout )
+import CurryInfo.Helper       ( quote )
+import CurryInfo.Paths        ( getRoot )
+import CurryInfo.RequestTypes
+import CurryInfo.Types
+import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
+                              , printDebugMessage, printErrorMessage )
 
 -- This functions generates the directory name for a given package and version. It is used for
 -- checkout.

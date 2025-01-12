@@ -25,6 +25,7 @@ import CurryInfo.Configuration
 import CurryInfo.Paths     ( getCPMIndex, getDirectoryPath, getJSONPath
                            , initializeStore, initializeStoreWithRealName
                            , jsonFile2Name, realNameField )
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer

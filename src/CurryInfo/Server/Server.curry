@@ -4,6 +4,13 @@
 
 module CurryInfo.Server.Server where
 
+import Network.Socket ( Socket(..), listenOn, listenOnFresh
+                      , close, waitForSocketAccept)
+
+import System.Process (system, sleep)
+import System.IO (Handle, hIsEOF, hClose, hFlush, hPutStrLn, hGetChar)
+
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Options
 import CurryInfo.Verbosity
@@ -12,12 +19,6 @@ import CurryInfo.Configuration
 import CurryInfo.Helper (safeRead)
 import CurryInfo.Server.Configuration
 
-import System.Process (system, sleep)
-import System.IO (Handle, hIsEOF, hClose, hFlush, hPutStrLn, hGetChar)
-
-import Network.Socket (Socket(..), listenOn, listenOnFresh
-            , close, waitForSocketAccept)
-
 type Force = Int
 
 data SingleOrAll = Single | AllTypes | AllClasses | AllOperations
@@ -25,14 +26,14 @@ data SingleOrAll = Single | AllTypes | AllClasses | AllOperations
 data InfoServerMessage
   = GetRequests (Maybe String)
   | GetCommands
-  | RequestPackageInformation (Maybe OutFormat) (Maybe Force) Package [String]
-  | RequestVersionInformation (Maybe OutFormat) (Maybe Force) Package Version [String]
-  | RequestModuleInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
-  | RequestTypeInformation (Maybe OutFormat) (Maybe Force) Package Version Module Type [String]
-  | RequestClassInformation (Maybe OutFormat) (Maybe Force) Package Version Module Class [String]
-  | RequestOperationInformation (Maybe OutFormat) (Maybe Force) Package Version Module Operation [String]
-  | RequestAllTypesInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
-  | RequestAllClassesInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
+  | RequestPackageInformation       (Maybe OutFormat) (Maybe Force) Package [String]
+  | RequestVersionInformation       (Maybe OutFormat) (Maybe Force) Package Version [String]
+  | RequestModuleInformation        (Maybe OutFormat) (Maybe Force) Package Version Module [String]
+  | RequestTypeInformation          (Maybe OutFormat) (Maybe Force) Package Version Module Type [String]
+  | RequestClassInformation         (Maybe OutFormat) (Maybe Force) Package Version Module Class [String]
+  | RequestOperationInformation     (Maybe OutFormat) (Maybe Force) Package Version Module Operation [String]
+  | RequestAllTypesInformation      (Maybe OutFormat) (Maybe Force) Package Version Module [String]
+  | RequestAllClassesInformation    (Maybe OutFormat) (Maybe Force) Package Version Module [String]
   | RequestAllOperationsInformation (Maybe OutFormat) (Maybe Force) Package Version Module [String]
   | StopServer
   | ParseError
