@@ -4,14 +4,14 @@
 
 module CurryInfo.Paths where
 
-import Data.List        ( isSuffixOf )
+import Data.List        ( isPrefixOf, isSuffixOf )
 import Numeric          ( readHex )
 
 import JSON.Pretty      ( ppJSON )
 import JSON.Data
 import System.Directory ( createDirectoryIfMissing, getDirectoryContents
                         , getHomeDirectory, doesFileExist )
-import System.FilePath  ( (</>), (<.>) )
+import System.FilePath  ( (</>), (<.>), isAbsolute, joinPath, splitDirectories )
 
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printDebugMessage)
@@ -126,6 +126,25 @@ getCPMIndex = fmap (</> ".cpm" </> "index") getHomeDirectory
 --- This action returns the path to the root of the local cache.
 getRoot :: IO FilePath
 getRoot = fmap (</> ".curry_info_cache") getHomeDirectory
+
+--- Transform a relative file path into an absolute path by adding
+--- the `getRoot` path.
+addRootPath :: FilePath -> IO FilePath
+addRootPath f =
+  if isAbsolute f
+    then return f
+    else fmap (</> f) getRoot
+
+--- Transform an absolute file path into a relative path by removing
+--- a leading `getRoot` path, if possible.
+stripRootPath :: FilePath -> IO FilePath
+stripRootPath f = do
+  root <- getRoot
+  let rdirs = splitDirectories root
+      fdirs = splitDirectories f
+  if rdirs `isPrefixOf` fdirs
+    then return $ joinPath (drop (length rdirs) fdirs)
+    else return f
 
 --- This action returns the path to the packages directory where
 --- the tool stores all information in form of JSON files.

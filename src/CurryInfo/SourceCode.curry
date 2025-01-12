@@ -8,21 +8,22 @@ module CurryInfo.SourceCode
   , getSourceCodeRef )
  where
 
-import CurryInfo.Helper    ( quote )
-import CurryInfo.Types
-import CurryInfo.Checkout  ( checkoutIfMissing )
-import CurryInfo.Commands  ( cmdCPMPath, runCmd, cmdCPMInstall
-                           , getPackageLoadPath )
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage, printErrorMessage )
+import Data.List  ( isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex )
+import Data.Maybe ( fromMaybe )
 
 import System.CurryPath ( lookupModuleSource )
 import System.Directory ( doesFileExist )
 import System.FilePath  ( (</>), (<.>) )
 import System.IO
 
-import Data.List  ( isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex )
-import Data.Maybe ( fromMaybe )
+import CurryInfo.Helper    ( quote )
+import CurryInfo.Types
+import CurryInfo.Checkout  ( checkoutIfMissing )
+import CurryInfo.Commands  ( cmdCPMPath, runCmd, cmdCPMInstall
+                           , getPackageLoadPath )
+import CurryInfo.Paths     ( stripRootPath )
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage, printErrorMessage )
 
 type Checker = String -> Bool
 
@@ -108,7 +109,8 @@ getSourceFileHandle opts pkg vsn m = do
         True -> do
           printDebugMessage opts $ "Opening source file " ++ quote path ++ "..."
           hdl <- openFile path ReadMode
-          return (Just (path, hdl))
+          relpath <- stripRootPath path
+          return (Just (relpath, hdl))
 
 -- This operation looks for the part of the source code that corresponds to
 -- the given checker and returns a reference to that part.

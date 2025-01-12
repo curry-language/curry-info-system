@@ -84,10 +84,9 @@ gVersionVersion opts (CurryVersion pkg vsn) = do
 gVersionDocumentation :: Generator CurryVersion String
 gVersionDocumentation opts (CurryVersion pkg vsn) = do
   printDetailMessage opts $ "Generating documentation for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
-  path <- packageREADMEPath opts pkg vsn
-  let res = path
+  path <- packageREADMEPath opts pkg vsn >>= stripRootPath
   printDetailMessage opts "Generating finished successfully."
-  return $ Just res
+  return $ Just path
 
 gVersionCategories :: Generator CurryVersion [String]
 gVersionCategories =

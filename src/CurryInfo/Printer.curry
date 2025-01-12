@@ -4,15 +4,16 @@
 
 module CurryInfo.Printer where
 
-import CurryInfo.Types
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage, printErrorMessage )
-import CurryInfo.Helper    ( readSliceFromFile, parenthesize )
-
 import System.Directory    ( doesFileExist )
 import System.IOExts       ( readCompleteFile )
 
 import JSON.Data
+
+import CurryInfo.Helper    ( readSliceFromFile, parenthesize )
+import CurryInfo.Paths     ( addRootPath, getRoot )
+import CurryInfo.Types
+import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
+                           , printDebugMessage, printErrorMessage )
 
 -- PACKAGE
 
@@ -28,7 +29,8 @@ pVersionVersion :: Printer String
 pVersionVersion _ vsn = return vsn
 
 pVersionDocumentation :: Printer String
-pVersionDocumentation opts path = do
+pVersionDocumentation opts vpath = do
+  path <- addRootPath vpath
   b <- doesFileExist path
   case b of
     False -> do
@@ -37,7 +39,7 @@ pVersionDocumentation opts path = do
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
       content <- readCompleteFile path
-      return content
+      return $ (if optOutFormat opts == OutText then "\n" else "") ++ content
 
 pVersionCategories :: Printer [String]
 pVersionCategories _ cats = return (show cats)
@@ -144,7 +146,8 @@ pOperationFailFree _ t = return t
 
 -- This action returns the content of the file the given reference points to.
 printFromReference :: Options -> Reference -> IO String
-printFromReference opts (Reference path start end) = do
+printFromReference opts (Reference rpath start end) = do
+  path <- addRootPath rpath
   b <- doesFileExist path
   case b of
     False -> do
