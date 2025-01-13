@@ -13,8 +13,7 @@ import Text.Pretty (Doc)
 import CurryInfo.Helper       ( parenthesize, quote )
 import CurryInfo.RequestTypes
 
--- Options Type
-
+--- The type of tool options.
 data Options = Options
   { optVerb           :: Int          -- verbosity level
   , optHelp           :: Bool         -- show usage info?
@@ -83,21 +82,6 @@ data CurryClass = CurryClass Package Version Module Class
 
 data CurryOperation = CurryOperation Package Version Module Operation
   deriving (Eq, Show, Read)
-
-
--- HELPER TYPES
-
-type Constructor = String
-
-type Operation = String
-
-type Type = String
-
-type Class = String
-
-type Signature = String
-
-type Module = String
 
 --------------------------
 

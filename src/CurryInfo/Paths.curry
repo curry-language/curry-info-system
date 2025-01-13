@@ -13,6 +13,7 @@ import System.Directory ( createDirectoryIfMissing, getDirectoryContents
                         , getHomeDirectory, doesFileExist )
 import System.FilePath  ( (</>), (<.>), isAbsolute, joinPath, splitDirectories )
 
+import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printDebugMessage)
 

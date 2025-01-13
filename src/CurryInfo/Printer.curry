@@ -1,6 +1,7 @@
------------------------------------------------------------------------------------------
---- This modules defines operations to create output for the requests.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--- This modules defines operations to create output for requests
+--- w.r.t. some options.
+------------------------------------------------------------------------------
 
 module CurryInfo.Printer where
 
@@ -9,16 +10,16 @@ import System.IOExts       ( readCompleteFile )
 
 import JSON.Data
 
-import CurryInfo.Helper    ( readSliceFromFile, parenthesize )
-import CurryInfo.Paths     ( addRootPath, getRoot )
+import CurryInfo.Helper       ( readSliceFromFile, parenthesize, safeRead )
+import CurryInfo.Paths        ( addRootPath, getRoot )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage, printErrorMessage )
+import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
+                              , printDebugMessage, printErrorMessage )
 
 -- PACKAGE
 
-pPackageName :: Printer String
+pPackageName :: Printer Package
 pPackageName _ s = return s
 
 pPackageVersions :: Printer [Version]
@@ -53,7 +54,7 @@ pVersionDependencies _ deps = return (show deps)
   
 -- MODULE
 
-pModuleName :: Printer String
+pModuleName :: Printer Module
 pModuleName _ name = return name
 
 pModuleDocumentation :: Printer Reference
@@ -65,24 +66,24 @@ pModuleSourceCode opts ref = printFromReference opts ref
 pModuleUnsafeModule :: Printer String
 pModuleUnsafeModule _ safe = return safe
 
-pModuleClasses :: Printer [String]
+pModuleClasses :: Printer [Class]
 pModuleClasses _ cs = return (show cs)
 
-pModuleTypes :: Printer [String]
+pModuleTypes :: Printer [Type]
 pModuleTypes _ ts = return (show ts)
 
-pModuleOperations :: Printer [String]
+pModuleOperations :: Printer [Operation]
 pModuleOperations _ os = return (show os)
 
 -- TYPE
 
-pTypeName :: Printer String
+pTypeName :: Printer Type
 pTypeName _ name = return name
 
 pTypeDocumentation :: Printer Reference
 pTypeDocumentation opts ref = printFromReference opts ref
 
-pTypeConstructors :: Printer [String]
+pTypeConstructors :: Printer [Constructor]
 pTypeConstructors _ cons = return (show cons)
 
 pTypeDefinition :: Printer Reference
@@ -90,7 +91,7 @@ pTypeDefinition opts ref = printFromReference opts ref
 
 -- TYPECLASS
 
-pClassName :: Printer String
+pClassName :: Printer Class
 pClassName _ name = return name
 
 pClassDocumentation :: Printer Reference
@@ -104,7 +105,7 @@ pClassDefinition opts ref = printFromReference opts ref
 
 -- OPERATION
 
-pOperationName :: Printer String
+pOperationName :: Printer Operation
 pOperationName _ name = return name
 
 pOperationDocumentation :: Printer Reference
@@ -141,14 +142,18 @@ pOperationCASSTotal :: Printer String
 pOperationCASSTotal _ t = return t
 
 pOperationCASSValues :: Printer String
-pOperationCASSValues opts t
-  | optOutFormat opts == OutText = return $ prettyAType (read t)
-  | otherwise                    = return t
+pOperationCASSValues opts s
+  | optOutFormat opts == OutText = return $ maybeRead s prettyAType s
+  | otherwise                    = return s
 
 pOperationFailFree :: Printer String
-pOperationFailFree _ t = return t
+pOperationFailFree _ s = case s of
+  c1:c2:cs | [c1,c2] == "0:" -> return $ maybeRead cs showACallType cs
+           | [c1,c2] == "1:" -> return $ maybeRead cs showFuncDeclAsLambda cs
+  _                          -> return s
 
--- HELPER
+------------------------------------------------------------------------------
+-- Auxililiaries.
 
 -- This action returns the content of the file the given reference points to.
 printFromReference :: Options -> Reference -> IO String
@@ -163,3 +168,11 @@ printFromReference opts (Reference rpath start end) = do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
       slice <- readSliceFromFile path start end
       return $ (if optOutFormat opts == OutText then "\n" else "") ++ slice
+
+-- Reads a string and apply the function (second argument) to the value.
+-- If there is a read error, return the third argument.
+maybeRead :: Read a => String -> (a -> b) -> b -> b
+maybeRead s f x = case reads s of [(v,"")] -> f v
+                                  _        -> x
+
+------------------------------------------------------------------------------
