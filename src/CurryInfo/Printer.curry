@@ -17,6 +17,18 @@ import CurryInfo.Types
 import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
                               , printDebugMessage, printErrorMessage )
 
+------------------------------------------------------------------------------
+-- Types to specify printers of CurryInfo.
+
+--- A `Printer` is an operation to show information stored in CurryInfo
+--- in a human-friendly string representation.
+--- The `Options` parameter allows to print status/debug messages
+--- to inform the user about the progress,
+--- and the second argument of type `b` is the CurryInfo information
+--- to be printed.
+type Printer b = Options -> b -> IO String
+
+------------------------------------------------------------------------------
 -- PACKAGE
 
 pPackageName :: Printer Package

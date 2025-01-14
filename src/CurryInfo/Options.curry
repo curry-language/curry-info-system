@@ -22,10 +22,11 @@ import CurryInfo.Types
 import CurryInfo.Configuration
 import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, getRoot
                            , packagesPath )
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage )
+import CurryInfo.Verbosity ( printDetailMessage, printDebugMessage )
 import CurryInfo.Checkout  ( checkouts, getCheckoutPath )
 import CurryInfo.Helper    ( quote, safeRead )
+
+------------------------------------------------------------------------------
 
 -- This operation returns a string representing the requests of the given
 -- configuration using the given string as prefix.
@@ -289,3 +290,5 @@ options =
       if n >= 0 && n <= 2
         then opts { optForce = n }
         else error "Illegal force level (try '-h' for help)"
+
+------------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import Text.Pretty (Doc)
 import CurryInfo.Helper       ( parenthesize, quote )
 import CurryInfo.RequestTypes
 
+------------------------------------------------------------------------------
 --- The type of tool options.
 data Options = Options
   { optVerb           :: Int          -- verbosity level
@@ -38,9 +39,9 @@ data Options = Options
   , optUpdate         :: Bool         -- update package index (by `cypm update`)
   }
   deriving Show 
+------------------------------------------------------------------------------
 
--- OUTPUT TYPE
-
+--- The type of output data in various formats.
 data Output
   = OutputText String
   | OutputJSON JValue
@@ -48,6 +49,7 @@ data Output
   | OutputError String
   deriving Show
 
+--- The type of output formats.
 data OutFormat = OutText | OutJSON | OutTerm
   deriving Eq
 
@@ -82,14 +84,6 @@ data CurryClass = CurryClass Package Version Module Class
 
 data CurryOperation = CurryOperation Package Version Module Operation
   deriving (Eq, Show, Read)
-
---------------------------
-
--- Request Types
-
-type Generator a b = Options -> a -> IO (Maybe b)
-
-type Printer b = Options -> b -> IO String
 
 ------------------------------------------------------------------------------
 --- This data type represents the different kinds of objects passed to

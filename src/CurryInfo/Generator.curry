@@ -52,6 +52,33 @@ import DetParse (parse)
 
 import CurryInterface.Types (Interface)
 
+------------------------------------------------------------------------------
+-- Types to specify generators of CurryInfo.
+
+--- A `Generator` is an operation to process some information produced
+--- by some tool for Curry, e.g., an analysis or verification tool,
+--- and transform this information so that it can be stored in CurryInfo.
+--- `a` is the type of the object for which this request computes some
+--- information, like, `CurryPackage` for a package, `CurryType` for a
+--- type defined in a module, or `CurryOperation` for an operation
+--- defined in a Curry module (these types are defined in `CurryInfo.Types`).
+--- `b` is the type of results returned by the request, typically
+--- some standard type (e.g., `String`) or some type defined by the
+--- implementor of the request.
+--- Since CurryInfo stores all information in JSON format, the result
+--- of request must be convertible into JSON data, as required
+--- by the type constraint `ConvertJSON b` (see module `JSON.Convert`
+--- of packate `json` for auxiliary conversion operations).
+---
+--- The argument of type `Options` supports to access the tool options.
+--- For instance, one can print specific messages depending on the verbosity
+--- level.
+--- As the generating of the information may fail and usually requires
+--- access the outside world, the result of a generator has type `IO (Maybe b)`.
+type Generator a b = Options -> a -> IO (Maybe b)
+
+------------------------------------------------------------------------------
+
 -- PACKAGE
 
 gPackageName :: Generator CurryPackage String

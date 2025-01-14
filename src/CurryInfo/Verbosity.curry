@@ -4,11 +4,11 @@
 
 module CurryInfo.Verbosity where
 
-import CurryInfo.Types
+import Control.Monad (when)
 
 import System.IO (stderr, hPutStrLn)
 
-import Control.Monad (when)
+import CurryInfo.Types ( Options(..) )
 
 statusVerbosity :: Int
 statusVerbosity = 1

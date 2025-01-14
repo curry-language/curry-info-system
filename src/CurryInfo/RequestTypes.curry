@@ -1,10 +1,11 @@
 ------------------------------------------------------------------------------
---- This modules defines some types occurring as results of various requests.
+--- This modules defines some types related to specify and implement
+--- requests in CurryInfo.
 ------------------------------------------------------------------------------
 
 module CurryInfo.RequestTypes where
 
-import Data.List ( intercalate )
+import Data.List         ( intercalate )
 
 import FlatCurry.Goodies ( funcRule, ruleArgs, ruleBody )
 import FlatCurry.Pretty
