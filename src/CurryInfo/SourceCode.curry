@@ -142,12 +142,14 @@ getDocumentationRef opts check path hdl = do
       printDebugMessage opts "Could not find definition."
       return Nothing
     Just ls -> do
-      let rls  = dropWhile (all isSpace) (reverse ls)
+      let rls  = dropWhile isSpaceOrPPLine (reverse ls)
           stop = length rls
       case takeWhile (isPrefixOf "--") rls of
         [] -> do printDebugMessage opts "Could not find documentation."
                  return Nothing
         gs -> return (Just (Reference path (stop - length gs) stop))
+ where
+  isSpaceOrPPLine s = all isSpace s || take 1 s == "#"
 
 ------------------------------------------------------------------------------
 
@@ -228,26 +230,36 @@ instance SourceCode CurryClass where
       Nothing       -> return Nothing
       Just (path,h) -> getDocumentationRef opts (checkClass c) path h
 
--- This operation returns a checker that look for the definition of the
--- given operation.
-checkOperation :: Operation -> Checker
-checkOperation o l = let
-    ls = words l
+-- A checker which is satisfied if the given line of the source code
+-- is the start of the definition of the given operation, i.e., the operation
+-- occurs as the first token in the line.
+-- In case of operations used as infix operator, the checker assumes
+-- an occurrence in parentheses, which is usually the case in type signatures.
+checkOperationStart :: Operation -> Checker
+checkOperationStart o l = o `isPrefixOf` l || ("(" ++ o ++ ")") `isPrefixOf` l
+
+-- A checker which is satisfied if the given line of the source code
+-- belongs to the definition of the given operation.
+-- Since the operation might be used as an infix operator,
+-- it is checked whether the operation occurs before an equal or external token.
+checkOperationDefinition :: Operation -> Checker
+checkOperationDefinition o l = let
+    ls               = words l
     operationIndex   = elemIndex o ls
     paranthesisIndex = elemIndex ("(" ++ o ++ ")") ls
     typingIndex      = elemIndex "::" ls
     equalIndex       = elemIndex "=" ls
     externalIndex    = elemIndex "external" ls
-  in
-    if (elem o ls || elem ("(" ++ o ++ ")") ls) &&
-       (elem "::" ls || elem "=" ls || elem "external" ls)
-      then fromMaybe False ((<) <$> operationIndex   <*> typingIndex  ) ||
-           fromMaybe False ((<) <$> operationIndex   <*> equalIndex   ) ||
-           fromMaybe False ((<) <$> operationIndex   <*> externalIndex) ||
-           fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex  ) ||
-           fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex   ) ||
-           fromMaybe False ((<) <$> paranthesisIndex <*> externalIndex)
-      else False
+  in checkOperationStart o l ||
+     if (elem o ls || elem ("(" ++ o ++ ")") ls) &&
+        (elem "::" ls || elem "=" ls || elem "external" ls)
+       then fromMaybe False ((<) <$> operationIndex   <*> typingIndex  ) ||
+            fromMaybe False ((<) <$> operationIndex   <*> equalIndex   ) ||
+            fromMaybe False ((<) <$> operationIndex   <*> externalIndex) ||
+            fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex  ) ||
+            fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex   ) ||
+            fromMaybe False ((<) <$> paranthesisIndex <*> externalIndex)
+       else False
 
 instance SourceCode CurryOperation where
   readSourceCode opts (CurryOperation pkg vsn m o) = do
@@ -255,12 +267,13 @@ instance SourceCode CurryOperation where
     case mresult of
       Nothing          -> return Nothing
       Just (path, hdl) -> do
-        getSourceCodeRef opts (checkOperation o)
-          (\l -> belongs l || checkOperation o l || isPrefixOf "#" l)
+        getSourceCodeRef opts (checkOperationStart o)
+          (\l -> belongs l || checkOperationDefinition o l || isPrefixOf "#" l)
           path hdl
   
   readDocumentation opts (CurryOperation pkg vsn m o) = do
     mresult <- getSourceFileHandle opts pkg vsn m
     case mresult of
       Nothing          -> return Nothing
-      Just (path, hdl) -> getDocumentationRef opts (checkOperation o) path hdl
+      Just (path, hdl) -> getDocumentationRef opts (checkOperationStart o)
+                                              path hdl
