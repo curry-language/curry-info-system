@@ -91,7 +91,7 @@ operationConfiguration =
   , registerRequest "cass-terminating"     "\tAnalysis: operation always terminating?"            gOperationCASSTerminating     pOperationCASSTerminating
   , registerRequest "cass-total"           "\t\tAnalysis: operation totally defined?"             gOperationCASSTotal           pOperationCASSTotal
   , registerRequest "cass-values"          "\t\tAnalysis: result values (top construcotrs)"       gOperationCASSValues          pOperationCASSValues
-  , registerRequest "failfree"             "\t\tVerification: failing behavior of the operation"  gOperationFailFree            pOperationFailFree
+  , registerRequest "failfree"             "\t\tVerification: non-fail conditions on arguments"   gOperationFailFree            pOperationFailFree
   ]
 
 ------------------------------------------------------------------------------
@@ -117,6 +117,13 @@ lookupRequest req conf = do
   rreq <- find (\x -> request x == req) conf
   return (request rreq, description rreq, extraction rreq, generation rreq)
 
+--- Operation to create a `RegisteredRequest` from a generator and a printer.
+--- The first argument is the name of the request which is used
+--- as an request identifier when CurryInfo is invoked.
+--- The second argument is a short description of the request.
+--- The further arguments are operations to generate and print request
+--- information of type `b`. In order to persistently store this information
+--- CurryInfo, `b` must be convertible to JSON.
 registerRequest :: ConvertJSON b => String -> String
                 -> Generator a b -> Printer b -> RegisteredRequest a
 registerRequest req desc generator printer =

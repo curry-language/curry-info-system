@@ -92,7 +92,9 @@ prettyAType :: AType -> String
 prettyAType AAny       = "_"
 prettyAType (ACons cs) = "{" ++ intercalate "," (map snd cs) ++ "}"
 
-
+--- The call type of some operation is either `Nothing` (always failing)
+--- or `Just cts`, where `cts` is the list of abstract types
+--- describing the conditions on arguments so that the operation does not fail.
 type ACallType = Maybe [AType]
 
 --- Shows an abstract call type (as computed by `curry-calltypes`)

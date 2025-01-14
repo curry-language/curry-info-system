@@ -53,7 +53,6 @@ import DetParse (parse)
 import CurryInterface.Types (Interface)
 
 ------------------------------------------------------------------------------
--- Types to specify generators of CurryInfo.
 
 --- A `Generator` is an operation to process some information produced
 --- by some tool for Curry, e.g., an analysis or verification tool,
@@ -66,7 +65,7 @@ import CurryInterface.Types (Interface)
 --- some standard type (e.g., `String`) or some type defined by the
 --- implementor of the request.
 --- Since CurryInfo stores all information in JSON format, the result
---- of request must be convertible into JSON data, as required
+--- of a request must be convertible into JSON data, as required
 --- by the type constraint `ConvertJSON b` (see module `JSON.Convert`
 --- of packate `json` for auxiliary conversion operations).
 ---
@@ -90,7 +89,8 @@ gPackageName opts (CurryPackage pkg) = do
 gPackageVersions :: Generator CurryPackage [String]
 gPackageVersions opts (CurryPackage pkg) = do
   printDetailMessage opts $ "Generating versions for package '" ++ pkg ++ "'..."
-  printDetailMessage opts "Looking for package directory in index of package manager..."
+  printDetailMessage opts
+    "Looking for package directory in index of package manager..."
   i <- getCPMIndex
   let packageDir = i </> pkg
   printDetailMessage opts $ "Directory in index is: " ++ packageDir
@@ -105,13 +105,17 @@ gPackageVersions opts (CurryPackage pkg) = do
 
 gVersionVersion :: Generator CurryVersion String
 gVersionVersion opts (CurryVersion pkg vsn) = do
-  printDetailMessage opts $ "Generating version number for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating version number for version '" ++ vsn ++ "' of package '" ++
+    pkg ++ "'..."
   printDebugMessage opts $ "Version number is: " ++ vsn
   finishResult opts vsn
 
 gVersionDocumentation :: Generator CurryVersion String
 gVersionDocumentation opts (CurryVersion pkg vsn) = do
-  printDetailMessage opts $ "Generating documentation for version '" ++ vsn ++ "' of package '" ++ pkg ++ "'..."
+  printDetailMessage opts $
+    "Generating documentation for version '" ++ vsn ++ "' of package '" ++
+    pkg ++ "'..."
   path <- packageREADMEPath opts pkg vsn >>= stripRootPath
   printDetailMessage opts "Generating finished successfully."
   return $ Just path
@@ -530,6 +534,8 @@ convertDependency (pkg, jv) = do
   disj <- parseVersionConstraints vcs
   return (Dependency pkg disj)
 
+--- Return the list Curry module names contained in the source directories
+--- of the given package.
 readPackageModules :: Options -> Package -> Version -> IO [Module]
 readPackageModules opts pkg vsn = do
   mbdirjson <- readPackageJSON opts pkg vsn

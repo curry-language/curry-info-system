@@ -18,13 +18,13 @@ import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
                               , printDebugMessage, printErrorMessage )
 
 ------------------------------------------------------------------------------
--- Types to specify printers of CurryInfo.
 
 --- A `Printer` is an operation to show information stored in CurryInfo
 --- in a human-friendly string representation.
 --- The `Options` parameter allows to print status/debug messages
---- to inform the user about the progress,
---- and the second argument of type `b` is the CurryInfo information
+--- to inform the user about the progress, or to produce different
+--- output strings according to the output format.
+--- The second argument of type `b` is the information stored by CurryInfo
 --- to be printed.
 type Printer b = Options -> b -> IO String
 
@@ -76,7 +76,14 @@ pModuleSourceCode :: Printer Reference
 pModuleSourceCode opts ref = printFromReference opts ref
 
 pModuleUnsafeModule :: Printer String
-pModuleUnsafeModule _ safe = return safe
+pModuleUnsafeModule opts safe
+  | optOutFormat opts == OutText = return $ maybeRead safe showUnsafeMods safe
+  | otherwise                    = return safe
+ where
+  showUnsafeMods ms =
+    if null ms then "safe"
+               else "unsafe due to module" ++
+                    (if length ms > 1 then "s " else " ") ++ unwords ms
 
 pModuleClasses :: Printer [Class]
 pModuleClasses _ cs = return (show cs)
