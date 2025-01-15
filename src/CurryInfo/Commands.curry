@@ -52,8 +52,7 @@ cmdCheckout _ path pkg vsn =
 cmdCPMInstall :: Options -> String -> (String, IO (Int, String, String))
 cmdCPMInstall opts path = 
   let x@(cmd:args) = ["cypm", "install", "--noexec"]
-      action = evalCmdInDirectory opts path cmd args ""
-  in (unwords x, action)
+  in (unwords x, evalCmdInDirectory opts path cmd args "")
 
 --- Generate command to compute the load path of the package stored
 ---in the given path.
@@ -66,8 +65,7 @@ cmdCPMPath opts path =
 cmdCPMUpdate :: Options -> String -> (String, IO (Int, String, String))
 cmdCPMUpdate opts path =
   let x@(cmd:args) = ["cypm", "update"]
-      action = evalCmdInDirectory opts path cmd args ""
-  in (unwords x, action)
+  in (unwords x, evalCmdInDirectory opts path cmd args "")
 
 -- This action calls curry to load a specific module and immediatly quits again.
 -- This is done to initiate the compiler to generate files for the module

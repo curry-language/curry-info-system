@@ -23,7 +23,7 @@ import CurryInfo.Configuration
 import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, getRoot
                            , packagesPath )
 import CurryInfo.Verbosity ( printDetailMessage, printDebugMessage )
-import CurryInfo.Checkout  ( checkouts, getCheckoutPath )
+import CurryInfo.Checkout  ( getCheckoutPath )
 import CurryInfo.Helper    ( quote, safeRead )
 
 ------------------------------------------------------------------------------

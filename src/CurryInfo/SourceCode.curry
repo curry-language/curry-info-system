@@ -20,8 +20,7 @@ import CurryInfo.Helper    ( quote )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Checkout  ( checkoutIfMissing )
-import CurryInfo.Commands  ( cmdCPMPath, runCmd, cmdCPMInstall
-                           , getPackageLoadPath )
+import CurryInfo.Commands  ( cmdCPMPath, runCmd, getPackageLoadPath )
 import CurryInfo.Paths     ( stripRootPath )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )

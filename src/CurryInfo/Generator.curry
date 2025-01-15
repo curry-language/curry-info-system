@@ -97,9 +97,8 @@ gPackageVersions opts (CurryPackage pkg) = do
   printDetailMessage opts "Reading content of directory..."
   contents <- getReducedDirectoryContents packageDir
   printDebugMessage opts $ "Versions found: " ++ show contents
-  let res = contents
   printDetailMessage opts "Generating finished successfully."
-  return $ Just res
+  return $ Just contents
 
 -- VERSION
 
@@ -134,7 +133,8 @@ gVersionModules opts x@(CurryVersion pkg vsn) = do
 
 gVersionDependencies :: Generator CurryVersion [Dependency]
 gVersionDependencies =
-  generateFromPackageJSON "dependencies" (\jv -> maybe [] id (getDependencies jv))
+  generateFromPackageJSON "dependencies"
+     (\jv -> maybe [] id (getDependencies jv))
 
 -- MODULE
 

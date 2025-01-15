@@ -408,7 +408,7 @@ getInfosConfig opts queryobject reqs conf configobject
                 printDetailMessage opts "Executing request succeeded."
                 return (req, InformationResult jv output)
           v -> do
-            let msg = "INVALID FORCE OPTION: " ++ show v
+            let msg = "ERROR: INVALID FORCE OPTION: " ++ show v
             printDebugMessage opts msg
             return (req, InformationError msg)
 

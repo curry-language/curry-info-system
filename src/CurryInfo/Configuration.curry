@@ -152,17 +152,18 @@ registerRequest req desc generator printer =
             return $ Just (jv, output)
 
   createGeneration opts obj = do
-    printDebugMessage opts $
-      "Generating information for request " ++ quote req ++ "..."
+    let genmsg = "Generating information for request " ++ quote req
+    printDebugMessage opts $ genmsg ++ "..."
     res <- generator opts obj
     case res of
       Nothing -> do
-        printDebugMessage opts "Generating failed."
+        printDebugMessage opts $ genmsg ++ " failed!"
         return Nothing
       Just info -> do
-        printDebugMessage opts "Generating succeeded."
+        printDebugMessage opts $ genmsg ++ " succeeded."
         let jv = toJSON info
-        printDebugMessage opts "Creating output..."
+        printDebugMessage opts $
+          "Creating output for request " ++ quote req ++ "..."
         output <- printer opts info
         printDebugMessage opts $
           "Finished with (" ++ ppJSON jv ++ ", " ++ output ++ ")."

@@ -8,7 +8,7 @@ import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.IOExts (evalCmd)
 import System.FilePath ((</>))
 
-import CurryInfo.Commands     ( runCmd, cmdCheckout )
+import CurryInfo.Commands     ( runCmd, cmdCheckout, cmdCPMInstall )
 import CurryInfo.Helper       ( quote )
 import CurryInfo.Paths        ( getRoot )
 import CurryInfo.RequestTypes
@@ -22,21 +22,21 @@ toCheckout :: Package -> Version -> String
 toCheckout pkg vsn = pkg ++ "-" ++ vsn
 
 -- This actions returns the path to the directory used for checkouts.
-checkouts :: IO String
-checkouts = fmap (</> "checkouts") getRoot
+getCheckoutRoot :: IO String
+getCheckoutRoot = fmap (</> "getCheckoutRoot") getRoot
 
 -- This action returns the path to the directory, in which the checkout
 -- of the given version of the given package is stored or will be stored.
 getCheckoutPath :: Package -> Version -> IO String
 getCheckoutPath pkg vsn = do
   initializeCheckouts
-  path <- checkouts
+  path <- getCheckoutRoot
   return (path </> toCheckout pkg vsn)
 
 -- This action creates a checkouts directory if it is missing.
 initializeCheckouts :: IO ()
 initializeCheckouts = do
-  path <- checkouts
+  path <- getCheckoutRoot
   createDirectoryIfMissing True path
 
 {-
@@ -68,6 +68,7 @@ checkoutIfMissing opts pkg vsn = do
       printDetailMessage opts "Directory does not exist. Checkout necessary."
       printDetailMessage opts $ "Creating checkout..."
       runCmd opts $ cmdCheckout opts path pkg vsn
+      runCmd opts $ cmdCPMInstall opts path
       b <- doesDirectoryExist path
       case b of
         True  -> do printDetailMessage opts "Checkout created."

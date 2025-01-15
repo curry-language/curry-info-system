@@ -1,6 +1,7 @@
------------------------------------------------------------------------------------------
---- This modules defines an operation to read already generated information from the local cache.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--- This modules defines an operation to read already generated information
+--- from the local cache.
+------------------------------------------------------------------------------
 
 module CurryInfo.Reader where
 

@@ -5,12 +5,7 @@
 
 module CurryInfo.Interface where
 
-import CurryInfo.Checkout   ( getCheckoutPath, checkoutIfMissing )
-import CurryInfo.SourceCode ( getSourceFilePath )
-import CurryInfo.Types
-import CurryInfo.Commands   ( runCmd, cmdCPMInstall, cmdCurryLoad )
-import CurryInfo.Verbosity  ( printStatusMessage, printDetailMessage
-                            , printDebugMessage )
+import Data.List             ( find, intercalate )
 
 import System.Directory     ( doesFileExist, getCurrentDirectory
                             , setCurrentDirectory )
@@ -18,16 +13,20 @@ import System.IOExts        ( evalCmd )
 import System.FrontendExec  ( FrontendTarget (..), callFrontend )
 import System.CurryPath     ( currySubdir )
 import System.FilePath      ( (</>), (<.>) )
+import Text.Pretty          ( pPrint )
+
+import CurryInfo.Checkout   ( getCheckoutPath )
+import CurryInfo.SourceCode ( getSourceFilePath )
+import CurryInfo.Types
+import CurryInfo.Commands   ( runCmd, cmdCPMInstall, cmdCurryLoad )
+import CurryInfo.Verbosity  ( printStatusMessage, printDetailMessage
+                            , printDebugMessage, printDebugString )
 
 import CurryInfo.RequestTypes
 import CurryInterface.Types
 import CurryInterface.Files  ( curryInterfaceFileName, readCurryInterfaceFile )
 import CurryInterface.Pretty ( defaultOptions, ppConstructor, ppNewConstructor
                              , ppType, ppMethodDecl, ppQualType )
-
-import Data.List             ( find, intercalate )
-
-import Text.Pretty           ( pPrint )
 
 -- This action tries to parse the respective .icurry file. If the file
 -- does not exist yet, the action will invoke 'cypm' and 'curry' to install
@@ -40,27 +39,21 @@ readInterface opts pkg vsn m = do
     Nothing -> return Nothing
     Just (srcdir,_) -> do
       path <- getCheckoutPath pkg vsn
-      printDebugMessage opts "Computing path to icurry file..."
-      --icurry <- icurryPath opts pkg vsn m
+      printDebugMessage opts "Path to icurry file is:"
       let icurry = srcdir </> (curryInterfaceFileName m)
-
-      printDebugMessage opts $ "Path to icurry file: " ++ icurry
-      printDebugMessage opts "Checking whether icurry file exists..."
+      printDebugMessage opts icurry
+      printDebugString opts "Checking whether icurry file exists..."
       b <- doesFileExist icurry
       case b of
-        True -> do
-          printDebugMessage opts "icurry file exists."
-          printDebugMessage opts "Reading interface..."
-          result <- readCurryInterfaceFile icurry
-          return $ Just result
+        True  -> printDebugMessage opts "ok"
         False -> do
-          printDebugMessage opts "icurry file does not exist."
+          printDebugMessage opts "File does not exist!"
           printDebugMessage opts "Generating icurry file..."
           runCmd opts (cmdCPMInstall opts path)
           runCmd opts (cmdCurryLoad opts path m)
-          printDebugMessage opts "Reading interface..."
-          result <- readCurryInterfaceFile icurry
-          return $ Just result
+          return ()
+      printDebugMessage opts "Reading interface..."
+      fmap Just (readCurryInterfaceFile icurry)
 
 -- This operation returns the declarations of the given interface.
 getDeclarations :: Interface -> [IDecl]

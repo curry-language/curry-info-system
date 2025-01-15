@@ -25,8 +25,8 @@ type Category = String
 
 --- Type for references to a part of a file.
 --- The file path is usually local to `getRoot`.
---- The further arguments are the first and last line of the slice
---- to which this reference refers.
+--- The further arguments are the first line of the slice and
+--- the line after the slice to which this reference refers.
 data Reference = Reference FilePath Int Int
   deriving (Show, Read)
 
