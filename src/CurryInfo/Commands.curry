@@ -88,11 +88,11 @@ cmdCASS opts path analysis m =
 
 -- This action calls `curry-calltypes` to compute results for the `failfree`
 -- analysis on the given module in the given path.
-cmdCallTypes :: Options -> FilePath -> String -> Module
+cmdCallTypes :: Options -> [String] -> FilePath -> String -> Module
              -> (String, IO (Int, String, String))
-cmdCallTypes opts path _ m =
-  let x@(cmd:args) = [ "cypm", "exec", "curry-calltypes", "-v1"
-                     , "--format=json", m]
+cmdCallTypes opts ctopts path _ m =
+  let x@(cmd:args) = [ "cypm", "exec", "curry-calltypes", "--format=json"] ++
+                     ctopts ++ [m]
       action = do getPackageLoadPath opts path -- maybe install package...
                   evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)

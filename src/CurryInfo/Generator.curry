@@ -345,6 +345,9 @@ gOperationFailFree :: Generator CurryOperation String
 gOperationFailFree =
   createInfoGeneratorWith "fail-free analysis" analyseFailFree
 
+gOperationIOType :: Generator CurryOperation String
+gOperationIOType = createInfoGeneratorWith "in/out types" analyseIOTypes
+
 --------------------------------------------------------------------------
 
 --- Generator function to create an information generator for package versions.

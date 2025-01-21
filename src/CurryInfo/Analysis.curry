@@ -168,8 +168,15 @@ analyseValuesWithCASS opts pkg vsn m o =
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.
 analyseFailFree :: Options -> Package -> Version -> Module -> Operation
-        -> IO (Maybe String)
+                -> IO (Maybe String)
 analyseFailFree opts pkg vsn m o =
-  analyseWith (cmdCallTypes opts) opts pkg vsn m o "FailFree" "failfree"
-              (QueryOperation pkg vsn m)
- 
+  analyseWith (cmdCallTypes opts ["-v1"]) opts pkg vsn m o
+              "FailFree" "failfree" (QueryOperation pkg vsn m)
+
+-- This action initiates a call to the non-fail verification tool to compute
+-- the in/out types for the given module.
+analyseIOTypes :: Options -> Package -> Version -> Module -> Operation
+               -> IO (Maybe String)
+analyseIOTypes opts pkg vsn m o =
+  analyseWith (cmdCallTypes opts ["-v0", "--iotypes"]) opts pkg vsn m o
+               "IOTypes" "iotypes" (QueryOperation pkg vsn m)

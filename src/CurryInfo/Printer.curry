@@ -166,10 +166,19 @@ pOperationCASSValues opts s
   | otherwise                    = return s
 
 pOperationFailFree :: Printer String
-pOperationFailFree _ s = case s of
-  c1:c2:cs | [c1,c2] == "0:" -> return $ maybeRead cs showACallType cs
-           | [c1,c2] == "1:" -> return $ maybeRead cs showFuncDeclAsLambda cs
-  _                          -> return s
+pOperationFailFree opts s
+  | optOutFormat opts == OutText
+  = case s of
+     c1:c2:cs | [c1,c2] == "0:" -> return $ maybeRead cs showACallType cs
+              | [c1,c2] == "1:" -> return $ maybeRead cs showFuncDeclAsLambda cs
+     _                          -> return s
+  | otherwise
+  = return s
+
+pOperationIOType :: Printer String
+pOperationIOType opts s
+  | optOutFormat opts == OutText = return $ maybeRead s showIOT s
+  | otherwise                    = return s
 
 ------------------------------------------------------------------------------
 -- Auxililiaries.

@@ -116,3 +116,18 @@ showFuncDeclAsLambda fdecl =
   showExp = pPrint . ppExp defaultOptions { qualMode = QualNone}
 
 ------------------------------------------------------------------------------
+
+--- An InOutType is a disjunction, represented as a list,
+--- of input/output type pairs.
+--- It is parameterized over the abstract term domain.
+data InOutType a = IOT [([a],a)]
+  deriving (Eq, Show, Read)
+
+--- Shows an `InOutType` in prettier syntax.
+showIOT :: InOutType AType -> String
+showIOT (IOT iots) = "{" ++ intercalate " || " (map showIOType iots) ++ "}"
+ where
+  showIOType (ict,oct) = "(" ++ intercalate "," (map prettyAType ict) ++ ")" ++
+                         " |-> " ++ prettyAType oct
+
+------------------------------------------------------------------------------

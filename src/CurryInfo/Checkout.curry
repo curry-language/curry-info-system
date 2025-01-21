@@ -23,7 +23,7 @@ toCheckout pkg vsn = pkg ++ "-" ++ vsn
 
 -- This actions returns the path to the directory used for checkouts.
 getCheckoutRoot :: IO String
-getCheckoutRoot = fmap (</> "getCheckoutRoot") getRoot
+getCheckoutRoot = fmap (</> "checkouts") getRoot
 
 -- This action returns the path to the directory, in which the checkout
 -- of the given version of the given package is stored or will be stored.
