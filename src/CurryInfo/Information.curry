@@ -141,18 +141,18 @@ getInfos opts qobj reqs = do
     QueryType pkg vsn m t -> do
       printDetailMessage opts "Request is Type"
       ensureEntityExists pkg vsn m t qobj "types" "Type" $
-        getInfosConfig opts qobj reqs
-                       typeConfiguration (CurryType pkg vsn m t)
+        getInfosConfig opts qobj reqs typeConfiguration
+                       (CurryType pkg vsn m t)
     QueryClass pkg vsn m c -> do
       printDetailMessage opts "Request is Class"
       ensureEntityExists pkg vsn m c qobj "classes" "Class" $
-        getInfosConfig opts qobj reqs
-                       classConfiguration (CurryClass pkg vsn m c)
+        getInfosConfig opts qobj reqs classConfiguration
+                       (CurryClass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
       printDetailMessage opts "Request is Operation."
       ensureEntityExists pkg vsn m o qobj "operations" "Operation" $
-        getInfosConfig opts qobj reqs
-                       operationConfiguration (CurryOperation pkg vsn m o)
+        getInfosConfig opts qobj reqs operationConfiguration
+                       (CurryOperation pkg vsn m o)
  where
   printDebugAndOutputError err = do printDetailMessage opts err
                                     generateOutputError opts err
@@ -317,13 +317,13 @@ getInfosConfig opts queryobject reqs conf configobject
                 results <- zipWithM
                             (\(_, _, extractor, _) fieldName ->
                                 fmap (\x -> (fieldName, x))
-                                    (extract opts extractor fields))
+                                     (extract opts extractor fields))
                             allReqs
                             fieldNames :: IO [(String, Maybe (JValue, String))]
                 let results' = map (\(r, mr) ->
                                     (r,
-                                    maybe InformationExtractionFailed
-                                          (uncurry InformationResult) mr))
+                                     maybe InformationExtractionFailed
+                                           (uncurry InformationResult) mr))
                                   results
                 return $ createOutput opts queryobject results'
           False -> do
