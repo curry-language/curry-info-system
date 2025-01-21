@@ -20,7 +20,8 @@ import System.IOExts       ( readCompleteFile )
 --- that exist at the moment.
 readObjectInformation :: Options -> QueryObject -> IO (Maybe [(String, JValue)])
 readObjectInformation opts obj = do
-  printDebugMessage opts "Detemining path to JSON file..."
+  printDebugMessage opts $
+    "Determining path to JSON file of object " ++ quotePrettyObject obj ++ "..."
   path <- getJSONPath obj
   printDebugMessage opts $ "Path to JSON file: " ++ path
   b <- doesFileExist path

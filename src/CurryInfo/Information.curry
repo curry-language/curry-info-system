@@ -312,7 +312,7 @@ getInfosConfig opts queryobject reqs conf configobject
             case mapM (flip lookupRequest conf) fieldNames of
               Nothing -> do
                 return $ OutputError $
-                  "One of the fields could not be found: " ++ show fieldNames
+                  "One of the fields is not a request: " ++ show fieldNames
               Just allReqs -> do
                 results <- zipWithM
                             (\(_, _, extractor, _) fieldName ->

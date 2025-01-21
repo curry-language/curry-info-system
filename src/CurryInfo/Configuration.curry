@@ -92,7 +92,7 @@ operationConfiguration =
   , registerRequest "cass-total"           "\t\tAnalysis: operation totally defined?"             gOperationCASSTotal           pOperationCASSTotal
   , registerRequest "cass-values"          "\t\tAnalysis: result values (top construcotrs)"       gOperationCASSValues          pOperationCASSValues
   , registerRequest "failfree"             "\t\tVerification: non-fail conditions on arguments"   gOperationFailFree            pOperationFailFree
-  , registerRequest "iotypes"              "\t\tInference: in/out type of the operation"          gOperationIOType              pOperationIOType  
+  , registerRequest "iotype"               "\t\tInference: in/out type of the operation"          gOperationIOType              pOperationIOType  
   ]
 
 ------------------------------------------------------------------------------

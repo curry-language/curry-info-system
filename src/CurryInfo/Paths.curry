@@ -47,7 +47,8 @@ initializeStoreWith opts qobj fields = do
     -- Initialize new json file with "{}"
     False -> do let json = ppJSON (JObject fields)
                 printDebugMessage opts $ "Initializing store of entity " ++
-                  quotePrettyObject qobj ++ " with contents:\n" ++ json
+                  quotePrettyObject qobj ++ " with contents:\n" ++ json ++
+                  "\ninto file " ++ jfile
                 writeFile jfile json
     -- Do nothing
     True -> return ()

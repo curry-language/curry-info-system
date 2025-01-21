@@ -179,4 +179,4 @@ analyseIOTypes :: Options -> Package -> Version -> Module -> Operation
                -> IO (Maybe String)
 analyseIOTypes opts pkg vsn m o =
   analyseWith (cmdCallTypes opts ["-v0", "--iotypes"]) opts pkg vsn m o
-               "IOTypes" "iotypes" (QueryOperation pkg vsn m)
+               "IOType" "iotype" (QueryOperation pkg vsn m)
