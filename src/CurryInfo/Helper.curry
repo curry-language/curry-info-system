@@ -35,16 +35,18 @@ data InformationResult =
   | InformationExtractionFailed
   deriving Eq
 
---- This operation returns the result of the matching functions of the
---- three given ones.
---- The first function is for the constructor `InformationExtractionFailed`.
---- The second function is for the constructor `InformationError`.
---- The third function is for the constructor `InformationResult`.
-information :: a -> (String -> a) -> (JValue -> String -> a)
-            -> InformationResult -> a
-information ext _ _ InformationExtractionFailed = ext
-information _ err _ (InformationError s) = err s
-information _ _ res (InformationResult jv s) = res jv s
+--- This operation transforms an `InformationResult` into some other type
+--- according to mappings for the three kinds of `InformationResult`
+--- constructors.
+--- The first argument defines the result for the constructor
+--- `InformationExtractionFailed`.
+--- The second argument maps the constructor `InformationError` to a result.
+--- The third argument maps the constructor `InformationResult` to a result.
+fromInformationResult :: a -> (String -> a) -> (JValue -> String -> a)
+                      -> InformationResult -> a
+fromInformationResult ext _ _ InformationExtractionFailed = ext
+fromInformationResult _ err _ (InformationError s)        = err s
+fromInformationResult _ _ res (InformationResult jv s)    = res jv s
 
 --- This operation puts single quotation marks around the given string.
 quote :: String -> String

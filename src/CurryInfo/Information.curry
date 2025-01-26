@@ -31,11 +31,11 @@ import CurryInfo.Reader
 import CurryInfo.Writer
 import CurryInfo.Options   ( queryOptions, withColor )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage)
+                           , printDebugMessage, printErrorMessage )
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
                            , readPackageModules)
-import CurryInfo.Helper    ( InformationResult(..), fromQName, information
-                           , quote )
+import CurryInfo.Helper    ( InformationResult(..), fromQName
+                           , quote, fromInformationResult )
 
 
 --- This action prints the given output to stdout and also returns
@@ -289,7 +289,8 @@ getInfosConfig opts queryobject reqs conf configobject
   mfields <- readObjectInformation opts queryobject
   case mfields of
     Nothing -> do
-      printDetailMessage opts "Reading information failed."
+      printErrorMessage $
+        "READING INFORMATION FAILED FOR " ++ quotePrettyObject queryobject
       return $ OutputError $ errorReadingObject queryobject
     Just fields -> do
       printDetailMessage opts "Reading information succeeded."
@@ -343,7 +344,7 @@ getInfosConfig opts queryobject reqs conf configobject
   createNewInformation :: [(String, InformationResult)] -> [(String, JValue)]
   createNewInformation =
     foldr (\(r, ir) acc ->
-              information acc (const acc) (\jv _ -> (r, jv):acc) ir) []
+            fromInformationResult acc (const acc) (\jv _ -> (r, jv):acc) ir) []
 
   -- generate information for request only (used for dummy objects)
   generateRequest obj reqerrormsg req = do
@@ -354,7 +355,8 @@ getInfosConfig opts queryobject reqs conf configobject
         printDetailMessage opts "Request found in configuration"
         generationResult <- generate opts generator obj
         case generationResult of
-          Nothing -> printStatusMessage opts "Executing request failed!"
+          Nothing -> printErrorMessage $
+                       "EXECUTING REQUEST '" ++ req ++ "' FAILED!"
           Just _  -> printDetailMessage opts "Executing request succeeded"
 
   -- extract or generating (depending on force) information for request
@@ -363,7 +365,7 @@ getInfosConfig opts queryobject reqs conf configobject
       "\nProcessing request '" ++ req ++ "' for " ++ show obj ++ "..."
     case lookupRequest req conf of
       Nothing -> do
-        printDetailMessage opts $ reqerrormsg req
+        printErrorMessage $ reqerrormsg req
         return (req, InformationError "REQUEST DOES NOT EXIST IN CONFIGURATION")
       Just (_, _, extractor, generator) -> do
         printDetailMessage opts
@@ -374,7 +376,7 @@ getInfosConfig opts queryobject reqs conf configobject
             extractionResult <- extract opts extractor fields
             case extractionResult of
               Nothing -> do
-                printDetailMessage opts "Executing request failed"
+                printErrorMessage "EXECUTING REQUEST FAILED"
                 return (req, InformationExtractionFailed)
               Just (jv, output) -> do
                 printDetailMessage opts "Executing request succeeded."
@@ -388,7 +390,7 @@ getInfosConfig opts queryobject reqs conf configobject
                 generationResult <- generate opts generator obj
                 case generationResult of
                   Nothing -> do
-                    printDetailMessage opts "Executing request failed."
+                    printErrorMessage "EXECUTING REQUEST FAILED"
                     return (req,
                             InformationError "EXTRACTING AND GENERATING FAILED")
                   Just (jv, output) -> do
@@ -402,14 +404,14 @@ getInfosConfig opts queryobject reqs conf configobject
             generationResult <- generate opts generator obj
             case generationResult of
               Nothing -> do
-                printDetailMessage opts "Executing request failed"
+                printErrorMessage "EXECUTING REQUEST FAILED"
                 return (req, InformationError "GENERATING FAILED")
               Just (jv, output) -> do
                 printDetailMessage opts "Executing request succeeded."
                 return (req, InformationResult jv output)
           v -> do
             let msg = "ERROR: INVALID FORCE OPTION: " ++ show v
-            printDebugMessage opts msg
+            printErrorMessage msg
             return (req, InformationError msg)
 
 extract :: Options -> (Options -> [(String, JValue)]
@@ -420,7 +422,7 @@ extract opts extractor fields = do
   extractionResult <- extractor opts fields
   case extractionResult of
     Nothing -> do
-      printDetailMessage opts "Extraction failed: no such request in entity"
+      printErrorMessage "EXTRACTION FAILED: no such request in entity"
       return Nothing
     Just (jv, output) -> do
       printDetailMessage opts "Extraction succeeded."
@@ -433,7 +435,7 @@ generate opts generator obj = do
   generationResult <- generator opts obj
   case generationResult of
     Nothing -> do
-      printDetailMessage opts "Generation failed."
+      printErrorMessage "GENERATION FAILED"
       return Nothing
     Just (jv, output) -> do
       printDetailMessage opts "Generation succeeded."
@@ -448,19 +450,19 @@ createOutput opts obj results = case optOutFormat opts of
                 (if outputSingleEntity then []
                                       else [object2StringTuple obj]) ++
                 map (\(r, ir) -> withColor opts green r ++ ": " ++ 
-                      information (withColor opts red "?") id (flip const) ir)
+                      fromInformationResult (withColor opts red "?") id (flip const) ir)
                   results
   OutJSON -> OutputJSON $ JObject
                 [("object", (JString . object2StringTuple) obj),
                   ("results",
                   JObject (map (\(r, ir) ->
-                                  (r, information JNull JString
+                                  (r, fromInformationResult JNull JString
                                         (\_ s -> JString s) ir))
                               results))]
   OutTerm -> OutputTerm
                 [(object2StringTuple obj,
                   show (map (\(r, ir) ->
-                                (r, information "?" id (flip const) ir))
+                                (r, fromInformationResult "?" id (flip const) ir))
                             results))]
  where
   -- generate output for a single entity?
