@@ -27,26 +27,25 @@ safeRead s = case readsPrec 0 s of
     [(x, "")] -> Just x
     _         -> Nothing
 
---- This type is used to differentiate between a request failing because of
---- missing information and other errors.
-data InformationResult =
-    InformationError String
-  | InformationResult JValue String
-  | InformationExtractionFailed
+--- This type represents a result of a request computed for some object.
+--- It differentiates between a regular result, an (yet) unknown request,
+--- and some other error.
+data RequestResult =
+    RequestResult JValue String
+  | RequestUnknown
+  | RequestError String
   deriving Eq
 
---- This operation transforms an `InformationResult` into some other type
---- according to mappings for the three kinds of `InformationResult`
---- constructors.
---- The first argument defines the result for the constructor
---- `InformationExtractionFailed`.
---- The second argument maps the constructor `InformationError` to a result.
---- The third argument maps the constructor `InformationResult` to a result.
-fromInformationResult :: a -> (String -> a) -> (JValue -> String -> a)
-                      -> InformationResult -> a
-fromInformationResult ext _ _ InformationExtractionFailed = ext
-fromInformationResult _ err _ (InformationError s)        = err s
-fromInformationResult _ _ res (InformationResult jv s)    = res jv s
+--- This operation transforms an `RequestResult` into some other type
+--- according to mappings for the three kinds of `RequestResult` constructors.
+--- The first argument defines the result for `RequestUnknown`.
+--- The second argument maps the constructor `RequestError` to a result.
+--- The third argument maps the constructor `RequestResult` to a result.
+fromRequestResult :: a -> (String -> a) -> (JValue -> String -> a)
+                      -> RequestResult -> a
+fromRequestResult ext _ _ RequestUnknown       = ext
+fromRequestResult _ err _ (RequestError s)     = err s
+fromRequestResult _ _ res (RequestResult jv s) = res jv s
 
 --- This operation puts single quotation marks around the given string.
 quote :: String -> String

@@ -98,8 +98,8 @@ data QueryObject =
   | QueryOperation Package Version Module Operation
 
 --- Is the query object a dummy object, i.e., a type, class, or operation
---- without a name? Dummy objects are used to analyze modules having
---- no exported objects of this kind, since such module might have
+--- without a name? Dummy objects are used to analyze modules which might have
+--- no explicitly exported objects of this kind, since such module might have
 --- implicitly generated objects (e.g., class operations).
 isDummyObject :: QueryObject -> Bool
 isDummyObject qo = case qo of
