@@ -80,14 +80,8 @@ analyseWith anacmd opts pkg vsn m ename analysis field constructor = do
   addInformation :: (String, String) -> IO ()
   addInformation (n, r) = do
     let obj = constructor n
-    initializeStore opts obj
-    mfields <- readObjectInformation opts obj
-    case mfields of
-      Nothing     -> printDebugMessage opts $ errorReadingObject obj
-      Just fields -> do
-        let newInformation = [(field, toJSON r)] <+> fields
-        writeObjectInformation obj newInformation
-
+    updateObjectInformation opts obj [(field, toJSON r)]
+  
   lookupResultForEntity results = do
     printDebugMessage opts "Results found. Looking for requested result..."
     case lookup ename results of

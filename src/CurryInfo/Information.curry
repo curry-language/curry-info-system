@@ -52,12 +52,14 @@ printAndReturn opts s =
   in (if null ofile then putStrLn else writeFile ofile) s >> return s
 
 --- This action returns a failed output with the given error message.
+--- In case of a Curry `OutTerm`, we generate an error message so that
+--- a possible clients gets an error when parsing the output.
 generateOutputError :: Options -> String -> IO Output
 generateOutputError opts err = do
   printDetailMessage opts err
   return $ case optOutFormat opts of OutText -> OutputText err
                                      OutJSON -> OutputJSON (JString err)
-                                     OutTerm -> OutputTerm []
+                                     OutTerm -> OutputError err
 
 --- This action process the given requests for the given query object and
 --- returns the output for the requests.
@@ -67,7 +69,7 @@ getInfos opts qobj reqs = do
     "Checking structure of request " ++ quotePrettyObject qobj
   case qobj of
     QueryPackage pkg -> do
-      printDetailMessage opts "Request is Package."
+      printDetailMessage opts "Request is for Package entity."
       result <- checkPackageExists pkg
       case result of
         False ->
@@ -76,7 +78,7 @@ getInfos opts qobj reqs = do
           printDebugMessage opts "Package exists."
           getInfosConfig opts qobj reqs packageConfiguration (CurryPackage pkg)
     QueryVersion pkg vsn -> do
-      printDetailMessage opts "Request is Version."
+      printDetailMessage opts "Request is for Version entity."
       result <- checkVersionExists pkg vsn
       case result of
         False ->
@@ -87,10 +89,10 @@ getInfos opts qobj reqs = do
           getInfosConfig opts qobj reqs
                          versionConfiguration (CurryVersion pkg vsn)
     QueryModule pkg vsn m -> do
-      printDetailMessage opts "Request is Module."
+      printDetailMessage opts "Request is for Module entity."
       result <- checkModuleExists pkg vsn m
       case result of
-        False -> do
+        False ->
           printDebugAndOutputError $ "Module '" ++ m ++ "' of version '" ++
             vsn ++ "' of package '" ++ pkg ++ "' is not exported."
         True  -> do
@@ -126,6 +128,13 @@ getInfos opts qobj reqs = do
               case mos of
                 Nothing ->
                   generateOutputError opts "Could not find operations."
+                Just [] -> do
+                  printDetailMessage opts "No operations found in module."
+                  outs <- mapM (checkDummyAndGetInfosConfig
+                                  operationConfiguration
+                                  (QueryOperation pkg vsn m "")
+                                  (CurryOperation pkg vsn m "")) reqs
+                  return $ combineOutput outs
                 Just os -> do
                   outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
                                              operationConfiguration o)
@@ -136,21 +145,52 @@ getInfos opts qobj reqs = do
               getInfosConfig opts qobj reqs
                              moduleConfiguration (CurryModule pkg vsn m)
     QueryType pkg vsn m t -> do
-      printDetailMessage opts "Request is Type"
+      printDetailMessage opts "Request is for Type entity."
       ensureEntityExists pkg vsn m t qobj "types" "Type" $
         getInfosConfig opts qobj reqs typeConfiguration
                        (CurryType pkg vsn m t)
     QueryClass pkg vsn m c -> do
-      printDetailMessage opts "Request is Class"
+      printDetailMessage opts "Request is for Class entity."
       ensureEntityExists pkg vsn m c qobj "classes" "Class" $
         getInfosConfig opts qobj reqs classConfiguration
                        (CurryClass pkg vsn m c)
     QueryOperation pkg vsn m o -> do
-      printDetailMessage opts "Request is Operation."
+      printDetailMessage opts "Request is for Operation entity."
       ensureEntityExists pkg vsn m o qobj "operations" "Operation" $
         getInfosConfig opts qobj reqs operationConfiguration
                        (CurryOperation pkg vsn m o)
  where
+  -- Check whether the _DUMMY_ entity contains the request. If not,
+  -- compute the requested information with `getInfosConfig`.
+  -- This is necessary since a module might not contain explicitly
+  -- exported operations but have operations which are generated and exported
+  -- (e.g., operations for class instances).
+  checkDummyAndGetInfosConfig entityconfig dqo emptyent req = do
+    let dummyqo = setDummyEntityName dqo
+    mfields <- readObjectInformation opts dummyqo
+    case mfields of
+      Nothing -> do
+        printDetailMessage opts $
+          "Entity " ++ quote dummyEntityName ++ " does not exist."
+        getInfosConfig opts dqo reqs entityconfig emptyent
+      Just fields -> do
+        printDetailMessage opts "Reading DUMMY object information succeeded."
+        case lookup req fields of
+          Just js -> maybe (return $ OutputError $
+                              "Illegal value in field " ++ quote req ++
+                              " in entity " ++ quotePrettyObject dummyqo)
+                           (\qn -> do
+                               printDetailMessage opts $ "Request " ++
+                                  quote req ++ " exists in entity " ++
+                                  quotePrettyObject dummyqo ++
+                                  "Get infos from real name '" ++ qn ++ "'..."
+                               return $ combineOutput [])
+                           (fromJSON js)
+          Nothing -> do
+            printDetailMessage opts $ "Entity " ++ quotePrettyObject dummyqo ++
+              " does not contain field " ++ quote req
+            getInfosConfig opts dqo reqs entityconfig emptyent
+
   printDebugAndOutputError err = do printDetailMessage opts err
                                     generateOutputError opts err
 
@@ -173,7 +213,8 @@ getInfos opts qobj reqs = do
                                 (setEName entqobj en) mn en)
                  (filter (not . null . fst) qopnames)
            stnames <- queryAllStoredEntities entqobj
-           return $ Just $ union stnames $ map snd qopnames)
+           return $ Just $ 
+             filter (/= dummyEntityName) $ union stnames $ map snd qopnames)
 
   query :: Read a => QueryObject -> String -> IO (Maybe a)
   query obj req = do
@@ -195,16 +236,19 @@ getInfos opts qobj reqs = do
     OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
   
   fromOutputText :: Output -> String
-  fromOutputText out = case out of OutputText txt -> txt
-                                   _              -> error "fromOutputText"
+  fromOutputText out = case out of
+    OutputText txt -> txt
+    _              -> "ERROR IN TEXT OUTPUT FORMAT: " ++ show out
 
   fromOutputJSON :: Output -> JValue
-  fromOutputJSON out = case out of OutputJSON jv -> jv
-                                   _             -> error "fromOutputJSON"
+  fromOutputJSON out = case out of
+    OutputJSON jv -> jv
+    _             -> JString $ "ERROR IN JSON OUTPUT FORMAT: " ++ show out
 
   fromOutputTerm :: Output -> [(String, String)]
-  fromOutputTerm out = case out of OutputTerm ts -> ts
-                                   _             -> error "fromOutputTerm"
+  fromOutputTerm out = case out of
+    OutputTerm ts -> ts
+    _             -> [("ERROR", "ERROR IN TERM OUTPUT FORMAT: " ++ show out)]
 
   checkPackageExists :: Package -> IO Bool
   checkPackageExists pkg = do
@@ -226,11 +270,8 @@ getInfos opts qobj reqs = do
   checkModuleExists pkg vsn m = do
     jpath <- getJSONPath (QueryModule pkg vsn m)
     whenFileDoesNotExist jpath $ do
-      allMods <- readPackageModules opts pkg vsn
-      mbjson  <- readPackageJSON opts pkg vsn
-      let exportedmods = maybe allMods id
-                               (mbjson >>= Just  . snd >>= getExportedModules)
-      return (elem m exportedmods)
+      allmods <- readPackageModules opts pkg vsn
+      return (elem m allmods)
 
   ensureEntityExists pkg vsn m e qo ereq ename cont
     | isDummyObject qo = cont
@@ -275,7 +316,7 @@ getInfosConfig opts queryobject reqs conf configobject
  | isDummyObject queryobject
  = do -- run only the generator without considering the query object
    printDetailMessage opts "Generating requested information..."
-   mapM_ (generateDummyRequest configobject (errorRequestObject queryobject))
+   mapM_ (generateDummyRequest configobject)
          (map (map toLower) reqs)
    return $ createOutput opts queryobject []
  | otherwise
@@ -286,8 +327,7 @@ getInfosConfig opts queryobject reqs conf configobject
   mfields <- readObjectInformation opts queryobject
   case mfields of
     Nothing -> do
-      printErrorMessage $
-        "READING INFORMATION FAILED FOR " ++ quotePrettyObject queryobject
+      printErrorMessage $ errorReadingObject queryobject
       return $ OutputError $ errorReadingObject queryobject
     Just fields -> do
       printDetailMessage opts "Reading information succeeded."
@@ -334,10 +374,8 @@ getInfosConfig opts queryobject reqs conf configobject
                               :: IO [(String, RequestResult)]
 
             let newInformation = createNewInformation results
-            unless (null newInformation) $ do
-              printDebugMessage opts "Overwriting with updated information..."
-              writeObjectInformation queryobject (newInformation <+> fields)
-              printDetailMessage opts "Overwriting finished."
+            unless (null newInformation) $
+              updateObjectInformation opts queryobject newInformation
             return $ createOutput opts queryobject results
  where
   -- translate successfully computed information into corresponding fields
@@ -347,7 +385,8 @@ getInfosConfig opts queryobject reqs conf configobject
             fromRequestResult acc (const acc) (\jv _ -> (r, jv):acc) ir) []
 
   -- generate information for request only (used for dummy objects)
-  generateDummyRequest obj reqerrormsg req = do
+  generateDummyRequest obj req = do
+    let reqerrormsg = errorRequestObject queryobject
     printDetailMessage opts $ "\nProcessing request '" ++ req ++ "'..."
     case lookupRequest req conf of
       Nothing -> printStatusMessage opts $ reqerrormsg req
@@ -357,7 +396,10 @@ getInfosConfig opts queryobject reqs conf configobject
         case generationResult of
           Nothing -> printErrorMessage $
                        "EXECUTING REQUEST '" ++ req ++ "' FAILED!"
-          Just _  -> printDetailMessage opts "Executing request succeeded"
+          Just _  -> do
+            let dummyqobject = setDummyEntityName queryobject
+            updateObjectInformation opts dummyqobject [(req, JString "ok")]
+            printDetailMessage opts "Executing request succeeded"
 
   -- extract or generating (depending on force) information for request
   extractOrGenerate fields obj reqerrormsg req = do
@@ -366,7 +408,7 @@ getInfosConfig opts queryobject reqs conf configobject
     case lookupRequest req conf of
       Nothing -> do
         printErrorMessage $ reqerrormsg req
-        return (req, RequestError "REQUEST DOES NOT EXIST IN CONFIGURATION")
+        return (req, RequestError "UNDEFINED REQUEST!")
       Just (_, _, extractor, generator) -> do
         printDetailMessage opts
           "Request found in configuration. Looking at Force option..."
@@ -406,8 +448,8 @@ getInfosConfig opts queryobject reqs conf configobject
             generationResult <- generateRequest opts req generator obj
             case generationResult of
               Nothing -> do
-                printDetailMessage opts $ "Request '" ++ req ++
-                  "' could not be generated for " ++ show obj
+                printDetailMessage opts $ "Request " ++ quote req ++
+                  " could not be generated for " ++ show obj
                 return (req, RequestError "GENERATING FAILED")
               Just (jv, output) -> do
                 printDetailMessage opts "Executing request succeeded."
@@ -426,21 +468,23 @@ extractRequest opts req extractor fields = do
   case extractionResult of
     Nothing -> do
       printDetailMessage opts $
-        "Extration failed: no request '" ++ req ++ "' in entity"
+        "Extraction failed: no request " ++ quote req ++ " in entity"
       return Nothing
     Just (jv, output) -> do
       printDetailMessage opts "Extraction succeeded."
       return $ Just (jv, output)
   
-generateRequest :: Options -> String
+generateRequest :: Show a => Options -> String
                 -> (Options -> a -> IO (Maybe (JValue, String))) -> a
                 -> IO (Maybe (JValue, String))
 generateRequest opts req generator obj = do
-  printDebugMessage opts $ "Trying generation of request '" ++ req ++ "'..."
+  printDebugMessage opts $
+    "Trying generation of request '" ++ req ++ "' for " ++ show obj
   generationResult <- generator opts obj
   case generationResult of
     Nothing -> do
-      printErrorMessage $ "GENERATION OF REQUEST '" ++ req ++ "' FAILED"
+      printErrorMessage $ 
+        "GENERATION OF REQUEST '" ++ req ++ "' FAILED FOR " ++ show obj
       return Nothing
     Just (jv, output) -> do
       printDetailMessage opts "Generation succeeded."
@@ -452,18 +496,18 @@ createOutput :: Options -> QueryObject -> [(String, RequestResult)]
              -> Output
 createOutput opts obj results = case optOutFormat opts of
   OutText -> OutputText $ unlines $
-                (if outputSingleEntity then []
-                                      else [object2StringTuple obj]) ++
-                map (\(r, ir) -> withColor opts green r ++ ": " ++ 
-                      fromRequestResult (withColor opts red "?") id (flip const) ir)
+              (if outputSingleEntity then []
+                                     else [object2StringTuple obj]) ++
+              map (\(r, ir) -> withColor opts green r ++ ": " ++ 
+                  fromRequestResult (withColor opts red "?") id (flip const) ir)
                   results
   OutJSON -> OutputJSON $ JObject
                 [("object", (JString . object2StringTuple) obj),
                   ("results",
-                  JObject (map (\(r, ir) ->
+                   JObject (map (\(r, ir) ->
                                   (r, fromRequestResult JNull JString
                                         (\_ s -> JString s) ir))
-                              results))]
+                               results))]
   OutTerm -> OutputTerm
                 [(object2StringTuple obj,
                   show (map (\(r, ir) ->

@@ -80,8 +80,8 @@ cmdCurryLoad opts path m =
 cmdCASS :: Options -> FilePath -> String -> Module
         -> (String, IO (Int, String, String))
 cmdCASS opts path analysis m =
-  let x@(cmd:args) = [ "cypm", "exec", "cass", "-q", "-f", "JSONTerm"
-                     , analysis, m]
+  let x@(cmd:args) = [ "cypm", "exec", "cass", "-v2", "-f", "JSONTerm"
+                     , "--nocurryinfo=" ++ m, analysis, m]
       action = do getPackageLoadPath opts path -- maybe install package...
                   evalCmdInDirectory opts path cmd args ""
   in (unwords x, action)
@@ -106,6 +106,7 @@ evalCmdInDirectory opts path cmd args inp = do
     then do current <- getCurrentDirectory
             printDebugMessage opts $ "Switch to directory: " ++ path
             setCurrentDirectory path
+            printDebugMessage opts $ "...and execute: " ++ unwords (cmd:args)
             (exitCode, output, err) <- evalCmd cmd args inp
             setCurrentDirectory current
             return (exitCode, output, err)

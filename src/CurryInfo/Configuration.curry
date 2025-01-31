@@ -34,11 +34,12 @@ packageConfiguration =
 
 versionConfiguration :: Configuration CurryVersion
 versionConfiguration =
-  [ registerRequest "version"       "\t\tVersion number of the version"   gVersionVersion         pVersionVersion
-  , registerRequest "documentation" "\t\tDocumentation of the version"    gVersionDocumentation   pVersionDocumentation
-  , registerRequest "categories"    "\t\tCategories of the version"       gVersionCategories      pVersionCategories
-  , registerRequest "modules"       "\t\tExported modules of the version" gVersionModules         pVersionModules
-  , registerRequest "dependencies"  "\t\tDependencies of the version"     gVersionDependencies    pVersionDependencies
+  [ registerRequest "version"         "\t\tVersion number of the version"   gVersionVersion         pVersionVersion
+  , registerRequest "documentation"   "\t\tDocumentation of the version"    gVersionDocumentation   pVersionDocumentation
+  , registerRequest "categories"      "\t\tCategories of the version"       gVersionCategories      pVersionCategories
+  , registerRequest "modules"         "\t\tAll modules of the version"      gVersionModules         pVersionModules
+  , registerRequest "exportedmodules" "\tExported modules of the version"   gVersionExportedModules pVersionModules
+  , registerRequest "dependencies"    "\t\tDependencies of the version"     gVersionDependencies    pVersionDependencies
   ]
 
 -- MODULE
@@ -78,21 +79,21 @@ classConfiguration =
 
 operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
-  [ registerRequest "name"                 "\t\t\tThe name of the operation"                      gOperationName                pOperationName
-  , registerRequest "documentation"        "\t\tDocumentation comment of the operation"           gOperationDocumentation       pOperationDocumentation
-  , registerRequest "definition"           "\t\tDefinition of the operation"                      gOperationSourceCode          pOperationSourceCode
-  , registerRequest "signature"            "\t\tSignature of the operation"                       gOperationSignature           pOperationSignature
-  , registerRequest "infix"                "\t\t\tAssociativity of operation"                     gOperationInfix               pOperationInfix
-  , registerRequest "precedence"           "\t\tPrecedence of the operation when used infix"      gOperationPrecedence          pOperationPrecedence
-  , registerRequest "cass-deterministic"   "\tAnalysis: operation deterministic?"                 gOperationCASSDeterministic   pOperationCASSDeterministic
-  , registerRequest "cass-demand"          "\t\tAnalysis: demanded arguments"                     gOperationCASSDemand          pOperationCASSDemand
-  , registerRequest "cass-indeterministic" "\tAnalysis: operation indeterministic?"               gOperationCASSIndeterministic pOperationCASSIndeterministic
-  , registerRequest "cass-solcomplete"     "\tAnalysis: operation solution complete?"             gOperationCASSSolComplete     pOperationCASSSolComplete
-  , registerRequest "cass-terminating"     "\tAnalysis: operation always terminating?"            gOperationCASSTerminating     pOperationCASSTerminating
-  , registerRequest "cass-total"           "\t\tAnalysis: operation totally defined?"             gOperationCASSTotal           pOperationCASSTotal
-  , registerRequest "cass-values"          "\t\tAnalysis: result values (top construcotrs)"       gOperationCASSValues          pOperationCASSValues
-  , registerRequest "failfree"             "\t\tVerification: non-fail conditions on arguments"   gOperationFailFree            pOperationFailFree
-  , registerRequest "iotype"               "\t\tInference: in/out type of the operation"          gOperationIOType              pOperationIOType  
+  [ registerRequest "name"                 "\t\t\tThe name of the operation"                    gOperationName                pOperationName
+  , registerRequest "documentation"        "\t\tDocumentation comment of the operation"         gOperationDocumentation       pOperationDocumentation
+  , registerRequest "definition"           "\t\tDefinition of the operation"                    gOperationSourceCode          pOperationSourceCode
+  , registerRequest "signature"            "\t\tSignature of the operation"                     gOperationSignature           pOperationSignature
+  , registerRequest "infix"                "\t\t\tAssociativity of operation"                   gOperationInfix               pOperationInfix
+  , registerRequest "precedence"           "\t\tPrecedence of the operation when used infix"    gOperationPrecedence          pOperationPrecedence
+  , registerRequest "cass-deterministic"   "\tAnalysis: operation deterministic?"               gOperationCASSDeterministic   pOperationCASSDeterministic
+  , registerRequest "cass-demand"          "\t\tAnalysis: demanded arguments"                   gOperationCASSDemand          pOperationCASSDemand
+  , registerRequest "cass-indeterministic" "\tAnalysis: operation indeterministic?"             gOperationCASSIndeterministic pOperationCASSIndeterministic
+  , registerRequest "cass-solcomplete"     "\tAnalysis: operation solution complete?"           gOperationCASSSolComplete     pOperationCASSSolComplete
+  , registerRequest "cass-terminating"     "\tAnalysis: operation always terminating?"          gOperationCASSTerminating     pOperationCASSTerminating
+  , registerRequest "cass-total"           "\t\tAnalysis: operation totally defined?"           gOperationCASSTotal           pOperationCASSTotal
+  , registerRequest "cass-values"          "\t\tAnalysis: result values (top construcotrs)"     gOperationCASSValues          pOperationCASSValues
+  , registerRequest "failfree"             "\t\tVerification: non-fail conditions on arguments" gOperationFailFree            pOperationFailFree
+  , registerRequest "iotype"               "\t\t\tInference: in/out type of the operation"      gOperationIOType              pOperationIOType  
   ]
 
 ------------------------------------------------------------------------------

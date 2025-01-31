@@ -10,7 +10,8 @@ import System.IOExts       ( readCompleteFile )
 
 import JSON.Data
 
-import CurryInfo.Helper       ( readSliceFromFile, parenthesize, safeRead )
+import CurryInfo.Helper       ( parenthesize, quote, readSliceFromFile
+                              , safeRead )
 import CurryInfo.Paths        ( addRootPath, getRoot )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
@@ -47,9 +48,7 @@ pVersionDocumentation opts vpath = do
   path <- addRootPath vpath
   b <- doesFileExist path
   case b of
-    False -> do
-      printErrorMessage $ "File '" ++ path ++ "' does not exist."
-      return "FAILED DUE TO FILE NOT EXISTING"
+    False -> returnFileError path
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
       content <- readCompleteFile path
@@ -189,9 +188,7 @@ printFromReference opts (Reference rpath start end) = do
   path <- addRootPath rpath
   b <- doesFileExist path
   case b of
-    False -> do
-      printErrorMessage $ "File '" ++ path ++ "' does not exist."
-      return "FAILED DUE TO FILE NOT EXISTING"
+    False -> returnFileError path
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
       slice <- readSliceFromFile path start end
@@ -202,5 +199,11 @@ printFromReference opts (Reference rpath start end) = do
 maybeRead :: Read a => String -> (a -> b) -> b -> b
 maybeRead s f x = case reads s of [(v,"")] -> f v
                                   _        -> x
+
+-- Shows a file existence error.
+returnFileError :: FilePath -> IO String
+returnFileError path = do
+  printErrorMessage $ "File " ++ quote path ++ " does not exist."
+  return $ "FAILED SINCE FILE " ++ quote path ++ " DOES NOT EXIST"
 
 ------------------------------------------------------------------------------

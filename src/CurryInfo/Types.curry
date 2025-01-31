@@ -63,7 +63,7 @@ instance Read OutFormat where
     "text"      -> [(OutText, "")]
     "json"      -> [(OutJSON, "")]
     "curryterm" -> [(OutTerm, "")]
-    _ -> []
+    _           -> []
 
 -- Types used to configure the request for various kinds of entities.
 
@@ -107,6 +107,14 @@ isDummyObject qo = case qo of
   QueryClass     _ _ _ n -> null n
   QueryOperation _ _ _ n -> null n
   _                      -> False
+
+--- Sets the name of a dummy object store.
+dummyEntityName :: String
+dummyEntityName = "_DUMMY_"
+
+--- Sets the name of a dummy object store.
+setDummyEntityName :: QueryObject -> QueryObject
+setDummyEntityName qo = setEName qo dummyEntityName
 
 --- Sets the entity name in a query object.
 setEName :: QueryObject -> String -> QueryObject

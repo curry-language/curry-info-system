@@ -271,7 +271,7 @@ options =
        "run the tool in server mode"
   , Option "" ["port"]
        (ReqArg (\args opts -> opts { optPort = safeRead args }) "<port>")
-       "the port used in server mode"
+       "specify port used in server mode"
   , Option "" ["update"]
        (NoArg (\opts -> opts { optUpdate = True }))
        "update package index (by 'cypm update')"

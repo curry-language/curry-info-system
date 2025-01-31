@@ -123,13 +123,21 @@ gVersionCategories :: Generator CurryVersion [String]
 gVersionCategories =
   generateFromPackageJSON "categories" (\jv -> maybe [] id (getCategories jv))
 
+--- Generator for all modules defined in the package version.
 gVersionModules :: Generator CurryVersion [String]
-gVersionModules opts x@(CurryVersion pkg vsn) = do
+gVersionModules opts x@(CurryVersion pkg vsn) =
+  fmap Just (readPackageModules opts pkg vsn)
+
+--- Generator for the exported modules of a package version.
+--- These are the modules mentioned in the `exportedModules` field
+--- of the package specification or all modules defined in the package version.
+gVersionExportedModules :: Generator CurryVersion [String]
+gVersionExportedModules opts x@(CurryVersion pkg vsn) = do
   allMods <- readPackageModules opts pkg vsn
   generateFromPackageJSON "modules" (modulesSelector allMods) opts x
  where
   modulesSelector allMods jv =
-    maybe allMods (intersect allMods) (getExportedModules jv)
+    maybe allMods (flip intersect allMods) (getExportedModules jv)
 
 gVersionDependencies :: Generator CurryVersion [Dependency]
 gVersionDependencies =
