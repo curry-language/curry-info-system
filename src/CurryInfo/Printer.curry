@@ -12,7 +12,7 @@ import JSON.Data
 
 import CurryInfo.Helper       ( parenthesize, quote, readSliceFromFile
                               , safeRead )
-import CurryInfo.Paths        ( addRootPath, getRoot )
+import CurryInfo.Paths        ( addRootPath )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
@@ -45,7 +45,7 @@ pVersionVersion _ vsn = return vsn
 
 pVersionDocumentation :: Printer String
 pVersionDocumentation opts vpath = do
-  path <- addRootPath vpath
+  let path = addRootPath opts vpath
   b <- doesFileExist path
   case b of
     False -> returnFileError path
@@ -185,7 +185,7 @@ pOperationIOType opts s
 -- This action returns the content of the file the given reference points to.
 printFromReference :: Options -> Reference -> IO String
 printFromReference opts (Reference rpath start end) = do
-  path <- addRootPath rpath
+  let path = addRootPath opts rpath
   b <- doesFileExist path
   case b of
     False -> returnFileError path

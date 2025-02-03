@@ -6,7 +6,7 @@ module CurryInfo.Options where
 
 
 import Control.Monad ( when, unless, filterM )
-import Data.List     ( intercalate )
+import Data.List     ( intercalate, intersperse, splitOn )
 import Data.Maybe    ( catMaybes )
 import Numeric       ( readNat )
 
@@ -14,19 +14,22 @@ import System.Console.GetOpt
 import System.Process (exitWith, system)
 import System.CurryPath ( getPackageVersionOfModule )
 import System.Directory ( getDirectoryContents, doesFileExist
-                        , doesDirectoryExist, removeFile, removeDirectory )
+                        , doesDirectoryExist, getHomeDirectory, removeFile
+                        , removeDirectory )
 import System.FilePath  ( (</>) )
 
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Configuration
-import CurryInfo.Paths     ( getDirectoryPath, getJSONPath, getRoot
-                           , packagesPath )
+import CurryInfo.Paths     ( objectDirectory, objectJSONPath )
 import CurryInfo.Verbosity ( printDetailMessage, printDebugMessage )
 import CurryInfo.Checkout  ( getCheckoutPath )
 import CurryInfo.Helper    ( quote, safeRead )
 
 ------------------------------------------------------------------------------
+--- The default path to the root of the local cache.
+defaultCacheRoot :: FilePath
+defaultCacheRoot = "$HOME/.curry_info_cache"
 
 -- This operation returns a string representing the requests of the given
 -- configuration using the given string as prefix.
@@ -39,20 +42,37 @@ withColor opts coloring = if optColor opts then coloring else id
 
 --- The default options used by the tool.
 defaultOptions :: Options
-defaultOptions = 
+defaultOptions =
   Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText ""
           False False False False False Nothing False False False False
+          defaultCacheRoot
+
+--- Get the default options used by the tool where occurrences of `$HOME`
+--- are expanded.
+getDefaultOptions :: IO Options
+getDefaultOptions = replaceHomeInOptions defaultOptions
+
+--- Replace substring `$HOME` by the actual home directory.
+replaceHomeInOptions :: Options -> IO Options
+replaceHomeInOptions opts = do
+  homedir <- getHomeDirectory
+  let homeroot = concat $ intersperse homedir
+                        $ splitOn "$HOME" (optCacheRoot opts)
+  return $ opts { optCacheRoot = homeroot }
 
 --- Options, with that nothing is printed by the tool (beyond the info results).
-silentOptions :: Options
-silentOptions = defaultOptions { optForce = 1, optVerb = 0 }
+getSilentOptions :: IO Options
+getSilentOptions =
+  fmap (\opts -> opts { optForce = 1, optVerb = 0 }) getDefaultOptions
 
-testOptions :: Options
-testOptions = defaultOptions { optVerb = 4 }
+getTestOptions :: IO Options
+getTestOptions =
+  fmap (\opts -> opts { optVerb = 4 }) getDefaultOptions
 
 --- Options, that are used internally when querying specific information.
-queryOptions :: Options
-queryOptions = silentOptions { optOutFormat = OutTerm }
+getQueryOptions :: IO Options
+getQueryOptions =
+  fmap (\opts -> opts { optOutFormat = OutTerm }) getSilentOptions
 
 -- This action takes the agruments given to the program and processes them.
 -- If the help option is True, it prints the usage text and stops.
@@ -64,12 +84,12 @@ processOptions banner argv = do
   unless (null opterrors)
     (putStr (unlines opterrors) >> printUsage >> exitWith 1)
   when (optHelp opts) (printUsage >> exitWith 0)
-  when (optCGI opts && (optServer opts || not (null (optOutFile opts))))
-    (putStrLn
-       "Options '--server' or '--output' not allowed in CGI mode!"
-       >> exitWith 1)
-  when (optClean opts) (getObject opts >>= cleanObject opts >> exitWith 0)
-  return (opts, args)
+  when (optCGI opts && (optServer opts || not (null (optOutFile opts)))) $ do
+    putStrLn "Options '--server' or '--output' not allowed in CGI mode!"
+    exitWith 1
+  opts1 <- replaceHomeInOptions opts
+  when (optClean opts1) (getObject opts1 >>= cleanObject opts1 >> exitWith 0)
+  return (opts1, args)
  where
   printUsage = putStrLn (banner ++ "\n" ++ usageText)
 
@@ -160,22 +180,22 @@ cleanObject opts mbobj = case mbobj of
 -- This action deletes the json file containing the stored information
 -- of the given object.
 cleanJSON :: Options -> QueryObject -> IO ()
-cleanJSON opts obj = do
-  getJSONPath obj >>= deleteFile opts
+cleanJSON opts obj = deleteFile opts (objectJSONPath opts obj)
 
 -- This action deletes the directory, in which the information of the
 -- given object is stored.
 cleanDirectory :: Options -> QueryObject -> IO ()
-cleanDirectory opts obj = getDirectoryPath obj >>= deleteDirectory opts
+cleanDirectory opts obj = deleteDirectory opts (objectDirectory opts obj)
 
 -- This action deletes the checkout directory of the given package and version.
 cleanCheckout :: Options -> Package -> Version -> IO ()
-cleanCheckout opts pkg vsn = getCheckoutPath pkg vsn >>= deleteDirectory opts
+cleanCheckout opts pkg vsn =
+  getCheckoutPath opts pkg vsn >>= deleteDirectory opts
 
 -- This action deletes the entire directory used by this tool to store
 -- information locally.
 cleanAll :: Options -> IO ()
-cleanAll opts = getRoot >>= deleteDirectory opts
+cleanAll opts = deleteDirectory opts (optCacheRoot opts)
 
 -- This action deletes the given file using a Boolean function to determine it
 -- being the correct kind of file.
@@ -275,6 +295,9 @@ options =
   , Option "" ["update"]
        (NoArg (\opts -> opts { optUpdate = True }))
        "update package index (by 'cypm update')"
+  , Option "" ["cache"]
+       (ReqArg (\arg opts -> opts { optCacheRoot = arg }) "<dir>")
+       ("root of the local cache\n(default: " ++ defaultCacheRoot ++ ")")
   ]
   where
     safeReadNat opttrans s opts = case readNat s of

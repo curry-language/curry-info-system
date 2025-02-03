@@ -62,8 +62,9 @@ Technical notes
 ---------------
 
 - `curry-info` maintains a file cache with all available information.
-  These files are stored in the directory `~/.curry_info_cache`
-  (this constant is defined in `CurryInfo.Paths.getRoot`).
+  As a default, these files are stored in the directory `~/.curry_info_cache`.
+  This path is defined in `CurryInfo.Options.defaultCacheRoot` but
+  can be changed by the option `--cache`.
 
 - The name of a module entity (operation, type, class) can also be
   an empty string. In this case,   the analysis is performed

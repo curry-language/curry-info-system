@@ -11,7 +11,6 @@ import System.Process     ( exitWith )
 import CurryInfo.Commands        ( runCmd, cmdCPMUpdate )
 import CurryInfo.Information     ( getInfos, printResult )
 import CurryInfo.Options         ( processOptions, getObject )
-import CurryInfo.Paths           ( getRoot )
 import CurryInfo.Server.Server   ( startServer )
 import CurryInfo.Types
 import CurryInfo.Verbosity       ( printErrorMessage )
@@ -19,7 +18,7 @@ import CurryInfo.Verbosity       ( printErrorMessage )
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
  where
-  bannerText = "Curry Package Information System (Version of 31/01/25)"
+  bannerText = "Curry Package Information System (Version of 03/02/25)"
   bannerLine = take (length bannerText) (repeat '=')
 
 main :: IO ()
@@ -34,7 +33,7 @@ main = do
             else return toolargs
   (opts, margs) <- processOptions banner args
   when (optUpdate opts) $ do
-    path <- getRoot
+    let path = optCacheRoot opts
     createDirectoryIfMissing True path
     (ec,_,_) <- runCmd opts (cmdCPMUpdate opts path)
     exitWith ec

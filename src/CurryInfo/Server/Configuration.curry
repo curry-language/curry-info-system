@@ -5,8 +5,6 @@
 
 module CurryInfo.Server.Configuration where
 
-import CurryInfo.Paths  ( getRoot )
-
 import Control.Monad (when)
 
 import System.Directory (removeFile)
@@ -14,26 +12,26 @@ import System.Process   (getPID)
 import System.FilePath  ((</>), (<.>))
 import System.IOExts    (readCompleteFile)
 
+import CurryInfo.Types  ( Options(..) )
+
 --- This action returns the path to the server port file.
-getServerPortFileName :: IO String
-getServerPortFileName = do
-  path <- getRoot
-  return (path </> ".curryinfo.port")
+serverPortFileName :: Options -> FilePath
+serverPortFileName opts = optCacheRoot opts </> ".curryinfo.port"
 
 --- This action stores the given port in the server port file.
-storeServerPortNumber :: Int -> IO ()
-storeServerPortNumber portnum = do
+storeServerPortNumber :: Options -> Int -> IO ()
+storeServerPortNumber opts portnum = do
   mypid <- getPID
-  serverPortFileName <- getServerPortFileName
-  writeFile serverPortFileName (show (portnum, mypid))
+  writeFile (serverPortFileName opts) (show (portnum, mypid))
 
 --- This action removes the server port file.
-removeServerPortNumber :: IO ()
-removeServerPortNumber = getServerPortFileName >>= removeFile
+removeServerPortNumber :: Options -> IO ()
+removeServerPortNumber opts = removeFile (serverPortFileName opts)
 
 --- This action reads the currently stored port from the server port file.
-readServerPortPid :: IO (Int, Int)
-readServerPortPid = getServerPortFileName >>= readCompleteFile >>= return . read
+readServerPortPid :: Options -> IO (Int, Int)
+readServerPortPid opts =
+  readCompleteFile (serverPortFileName opts) >>= return . read
 
 --- The wait time for accepting sockets.
 waitTime :: Int

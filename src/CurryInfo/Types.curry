@@ -18,7 +18,10 @@ import CurryInfo.RequestTypes
 data Options = Options
   { optVerb           :: Int          -- verbosity level
   , optHelp           :: Bool         -- show usage info?
-  , optForce          :: Int          -- only extract/generate if necessary/always generate
+  , optForce          :: Int          -- force information generation:
+                                      -- 0: no generation
+                                      -- 1: only generate when missing
+                                      -- 2: always generate
   , optPackage        :: Maybe String -- the requested package
   , optVersion        :: Maybe String -- the requested version
   , optModule         :: Maybe String -- the requested module
@@ -29,7 +32,7 @@ data Options = Options
   , optOutFile        :: String       -- posible file name to store output
   , optClean          :: Bool         -- clean up information
   , optColor          :: Bool         -- use colors in text output
-  , optShowAll        :: Bool         -- show all currently available information
+  , optShowAll        :: Bool         -- show all currently available infos
   , optCGI            :: Bool         -- run the tool in CGI mode
   , optServer         :: Bool         -- run the tool in server mode
   , optPort           :: Maybe Int    -- the port used in server mode
@@ -37,6 +40,7 @@ data Options = Options
   , optAllClasses     :: Bool         -- process requests for all type classes
   , optAllOperations  :: Bool         -- process requests for all operations
   , optUpdate         :: Bool         -- update package index (by `cypm update`)
+  , optCacheRoot      :: FilePath     -- root of local cache files
   }
   deriving Show 
 ------------------------------------------------------------------------------

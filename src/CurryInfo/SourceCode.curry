@@ -109,8 +109,7 @@ getSourceFileHandle opts pkg vsn m = do
         True -> do
           printDebugMessage opts $ "Opening source file " ++ quote path ++ "..."
           hdl <- openFile path ReadMode
-          relpath <- stripRootPath path
-          return (Just (relpath, hdl))
+          return (Just (stripRootPath opts path, hdl))
 
 -- This operation looks for the part of the source code that corresponds to
 -- the given checker and returns a reference to that part.

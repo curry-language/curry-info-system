@@ -1,9 +1,10 @@
------------------------------------------------------------------------------------------
---- This modules defines operations to get paths to files in the local cache and to initialize it.
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--- This modules defines operations to get paths to files in the local cache.
+------------------------------------------------------------------------------
 
 module CurryInfo.Paths where
 
+import Control.Monad    ( unless )
 import Data.List        ( isPrefixOf, isSuffixOf )
 import Numeric          ( readHex )
 
@@ -17,77 +18,34 @@ import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Verbosity ( printDebugMessage)
 
---- This action initializes the directory and JSON file for the given data.
---- If the JSON file does not exist, it will be initialized with an
---- empty object. If the JSON file already exists, it will remain unchanged.
-initializeStore :: Options -> QueryObject -> IO ()
-initializeStore opts qobj = initializeStoreWith opts qobj []
-
---- This action initializes the directory and JSON file for the given data.
---- If the JSON file does not exist, it will be initialized with an object
---- containing a field named by `realNameField` with the qualified name.
---- This is used if entities are defined in a some and re-exported from
---- another module.
---- If the JSON file already exists, it will remain unchanged.
-initializeStoreWithRealName :: Options -> QueryObject -> Module -> String
-                            -> IO ()
-initializeStoreWithRealName opts qobj mn en =
-  initializeStoreWith opts qobj [(realNameField, JString $ mn ++ "." ++ en)]
-
---- This action initializes the directory and JSON file for the given data.
---- If the JSON file does not exist, it will be initialized with the fields
---- provided in the second argument.
---- If the JSON already exists, it will remain unchanged.
-initializeStoreWith :: Options -> QueryObject -> [(String, JValue)] -> IO ()
-initializeStoreWith opts qobj fields = do
-  getDirectoryPath qobj >>= createDirectoryIfMissing True -- create directory
-  jfile <- getJSONPath qobj -- find path to JSON file
-  b <- doesFileExist jfile  -- check whether JSON file exists
-  case b of
-    -- Initialize new json file with "{}"
-    False -> do let json = ppJSON (JObject fields)
-                printDebugMessage opts $ "Initializing store of entity " ++
-                  quotePrettyObject qobj ++ " with contents:\n" ++ json ++
-                  "\ninto file " ++ jfile
-                writeFile jfile json
-    -- Do nothing
-    True -> return ()
-
---- Gets the directory path where an object is stored.
-getDirectoryPath :: QueryObject -> IO String
-getDirectoryPath (QueryPackage pkg) = do
-  path <- packagesPath
-  return (path </> pkg)
-getDirectoryPath (QueryVersion pkg vsn) = do
-  path <- getDirectoryPath (QueryPackage pkg)
-  return (path </> "versions" </> vsn)
-getDirectoryPath (QueryModule pkg vsn m) = do
-  path <- getDirectoryPath (QueryVersion pkg vsn)
-  return (path </> "modules" </> m)
-getDirectoryPath (QueryType pkg vsn m _) = do
-  path <- getDirectoryPath (QueryModule pkg vsn m)
-  return (path </> "types")
-getDirectoryPath (QueryClass pkg vsn m _) = do
-  path <- getDirectoryPath (QueryModule pkg vsn m)
-  return (path </> "classes")
-getDirectoryPath (QueryOperation pkg vsn m _) = do
-  path <- getDirectoryPath (QueryModule pkg vsn m)
-  return (path </> "operations")
+--- Returns the directory path where information about an object is stored.
+objectDirectory :: Options -> QueryObject -> FilePath
+objectDirectory opts (QueryPackage pkg) = packagesPath opts </> pkg
+objectDirectory opts (QueryVersion pkg vsn) =
+  objectDirectory opts (QueryPackage pkg) </> "versions" </> vsn
+objectDirectory opts (QueryModule pkg vsn m) =
+  objectDirectory opts (QueryVersion pkg vsn) </> "modules" </> m
+objectDirectory opts (QueryType pkg vsn m _) =
+  objectDirectory opts (QueryModule pkg vsn m) </> "types"
+objectDirectory opts (QueryClass pkg vsn m _) =
+  objectDirectory opts (QueryModule pkg vsn m) </> "classes"
+objectDirectory opts (QueryOperation pkg vsn m _) = do
+  objectDirectory opts (QueryModule pkg vsn m) </> "operations"
 
 --- Gets the path of the JSON file containing all information about an object.
-getJSONPath :: QueryObject -> IO String
-getJSONPath qo = do
-  path <- getDirectoryPath qo
+objectJSONPath :: Options -> QueryObject -> FilePath
+objectJSONPath opts qo =
+  let path = objectDirectory opts qo in
   case qo of
-    QueryPackage pkg       -> return (path </> pkg <.> "json")
-    QueryVersion _ vsn     -> return (path </> vsn <.> "json")
-    QueryModule _ _ m      -> return (path </> m <.> "json")
-    QueryType _ _ _ t      -> return (path </> t <.> "json")
-    QueryClass _ _ _ c     -> return (path </> c <.> "json")
-    QueryOperation _ _ _ o -> do
+    QueryPackage pkg       -> path </> pkg <.> "json"
+    QueryVersion _ vsn     -> path </> vsn <.> "json"
+    QueryModule _ _ m      -> path </> m <.> "json"
+    QueryType _ _ _ t      -> path </> t <.> "json"
+    QueryClass _ _ _ c     -> path </> c <.> "json"
+    QueryOperation _ _ _ o ->
       let name = if isSimpleID o then o
                                  else '_': concatMap (intToHex . ord) o
-      return (path </> name <.> "json")
+      in (path </> name <.> "json")
  where
   isSimpleID []     = False
   isSimpleID (x:xs) = isAlpha x && all (\c -> isAlphaNum c || c `elem` ".'_") xs
@@ -99,6 +57,7 @@ getJSONPath qo = do
    where
     cs = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
           'A', 'B', 'C', 'D', 'E', 'F']
+
 
 --- Translates a JSON file name (without directory but with suffix `.json`)
 --- into name of corresponding entity.
@@ -125,33 +84,26 @@ getReducedDirectoryContents path =
 getCPMIndex :: IO FilePath
 getCPMIndex = fmap (</> ".cpm" </> "index") getHomeDirectory
 
---- This action returns the path to the root of the local cache.
-getRoot :: IO FilePath
-getRoot = fmap (</> ".curry_info_cache") getHomeDirectory
-
 --- Transform a relative file path into an absolute path by adding
---- the `getRoot` path.
-addRootPath :: FilePath -> IO FilePath
-addRootPath f =
-  if isAbsolute f
-    then return f
-    else fmap (</> f) getRoot
+--- the `optCacheRoot` path.
+addRootPath :: Options -> FilePath -> FilePath
+addRootPath opts f =
+  if isAbsolute f then f
+                  else optCacheRoot opts </> f
 
 --- Transform an absolute file path into a relative path by removing
---- a leading `getRoot` path, if possible.
-stripRootPath :: FilePath -> IO FilePath
-stripRootPath f = do
-  root <- getRoot
-  let rdirs = splitDirectories root
+--- a leading `optCacheRoot` path, if possible.
+stripRootPath :: Options -> FilePath -> FilePath
+stripRootPath opts f = do
+  let rdirs = splitDirectories (optCacheRoot opts)
       fdirs = splitDirectories f
-  if rdirs `isPrefixOf` fdirs
-    then return $ joinPath (drop (length rdirs) fdirs)
-    else return f
+  if rdirs `isPrefixOf` fdirs then joinPath (drop (length rdirs) fdirs)
+                              else f
 
 --- This action returns the path to the packages directory where
 --- the tool stores all information in form of JSON files.
-packagesPath :: IO FilePath
-packagesPath = fmap (</> "packages") getRoot
+packagesPath :: Options -> FilePath
+packagesPath opts = optCacheRoot opts </> "packages"
 
 --- The name of the field identifying re-exported names by their
 --- fully qualified name.

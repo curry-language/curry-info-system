@@ -22,14 +22,13 @@ import System.FilePath     ( (</>), (<.>) )
 
 
 import CurryInfo.Configuration
-import CurryInfo.Paths     ( getCPMIndex, getDirectoryPath, getJSONPath
-                           , initializeStore, initializeStoreWithRealName
-                           , jsonFile2Name, realNameField )
+import CurryInfo.Paths     ( getCPMIndex, jsonFile2Name
+                           , objectDirectory, objectJSONPath, realNameField )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
-import CurryInfo.Options   ( queryOptions, withColor )
+import CurryInfo.Options   ( getQueryOptions, withColor )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
@@ -197,7 +196,7 @@ getInfos opts qobj reqs = do
   -- Return all entities of the query object currently stored in json files:
   queryAllStoredEntities :: QueryObject -> IO [String]
   queryAllStoredEntities qo = do
-    dir   <- getDirectoryPath qo
+    let dir = objectDirectory opts qo
     exdir <- doesDirectoryExist dir
     if exdir then fmap (catMaybes . map jsonFile2Name)
                        (getDirectoryContents dir)
@@ -209,7 +208,7 @@ getInfos opts qobj reqs = do
       maybe (return Nothing)
         (\opnames -> do
            let qopnames = map fromQName opnames
-           mapM_ (\(mn,en) -> initializeStoreWithRealName opts
+           mapM_ (\(mn,en) -> initializeObjectWithRealName opts
                                 (setEName entqobj en) mn en)
                  (filter (not . null . fst) qopnames)
            stnames <- queryAllStoredEntities entqobj
@@ -220,7 +219,8 @@ getInfos opts qobj reqs = do
   query obj req = do
     printDetailMessage opts $ "Query for object " ++ quotePrettyObject obj ++
                               " and request " ++ quote req
-    res <- getInfos queryOptions obj [req]
+    qopts <- getQueryOptions
+    res <- getInfos qopts obj [req]
     printDebugMessage opts $ "Query result: " ++ show res
     case res of
       -- OutputTerm [("obj", [("req", "res")])]
@@ -252,7 +252,7 @@ getInfos opts qobj reqs = do
 
   checkPackageExists :: Package -> IO Bool
   checkPackageExists pkg = do
-    jpath <- getJSONPath (QueryPackage pkg)
+    let jpath = objectJSONPath opts (QueryPackage pkg)
     whenFileDoesNotExist jpath $do
       path <- getCPMIndex
       printDebugMessage opts $ "Looking for package in index..."
@@ -260,7 +260,7 @@ getInfos opts qobj reqs = do
 
   checkVersionExists :: Package -> Version -> IO Bool
   checkVersionExists pkg vsn = do
-    jpath <- getJSONPath (QueryVersion pkg vsn)
+    let jpath = objectJSONPath opts (QueryVersion pkg vsn)
     whenFileDoesNotExist jpath $ do
       path <- getCPMIndex
       printDebugMessage opts $ "Looking for version in index..."
@@ -268,7 +268,7 @@ getInfos opts qobj reqs = do
 
   checkModuleExists :: Package -> Version -> Module -> IO Bool
   checkModuleExists pkg vsn m = do
-    jpath <- getJSONPath (QueryModule pkg vsn m)
+    let jpath = objectJSONPath opts (QueryModule pkg vsn m)
     whenFileDoesNotExist jpath $ do
       allmods <- readPackageModules opts pkg vsn
       return (elem m allmods)
@@ -277,8 +277,7 @@ getInfos opts qobj reqs = do
     | isDummyObject qo = cont
     | otherwise
     = do
-      jpath <- getJSONPath qo
-      exf <- doesFileExist jpath
+      exf <- doesFileExist (objectJSONPath opts qo)
       if exf
         then msgCont
         else do
@@ -290,7 +289,7 @@ getInfos opts qobj reqs = do
                 then msgCont
                 else maybe returnError
                           (\(mn,en) ->
-                             initializeStoreWithRealName opts qo mn en >> cont)
+                             initializeObjectWithRealName opts qo mn en >> cont)
                           (find ((== e) . snd) (map fromQName es))
    where
     msgCont = printDetailMessage opts
@@ -321,7 +320,7 @@ getInfosConfig opts queryobject reqs conf configobject
    return $ createOutput opts queryobject []
  | otherwise
  = do
-  initializeStore opts queryobject
+  initializeObject opts queryobject
   printDetailMessage opts $
     "Reading current information of entity " ++ quotePrettyObject queryobject
   mfields <- readObjectInformation opts queryobject

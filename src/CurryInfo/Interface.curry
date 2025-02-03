@@ -38,7 +38,7 @@ readInterface opts pkg vsn m = do
   case mbsrcpath of
     Nothing -> return Nothing
     Just (srcdir,_) -> do
-      path <- getCheckoutPath pkg vsn
+      path <- getCheckoutPath opts pkg vsn
       printDebugMessage opts "Path to icurry file is:"
       let icurry = srcdir </> (curryInterfaceFileName m)
       printDebugMessage opts icurry

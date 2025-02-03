@@ -46,7 +46,7 @@ startServer opts = do
             (\p -> listenOn p >>= \s -> return (p, s))
             (optPort opts)
   putStrLn ("Server Port: " ++ show port1)
-  storeServerPortNumber port1
+  storeServerPortNumber opts port1
   serverLoop opts socket1
 
 -- This action is the main server loop.
@@ -119,7 +119,7 @@ serverLoopOnHandle opts socket1 handle = do
           hClose handle
           close socket1
           printStatusMessage opts "Stop Server"
-          removeServerPortNumber
+          removeServerPortNumber opts
  where
   sendResult resultstring = do
     printDebugMessage opts $ "Formatted result:\n" ++ resultstring
@@ -135,8 +135,9 @@ serverLoopOnHandle opts socket1 handle = do
     (Nothing, Just _ ) -> sendRequestError "Given output format does not exist"
     (Just _ , Nothing) -> sendRequestError "Given force value does not exist"
     (Just outform, Just force) -> catch
-      (let giopts = silentOptions { optForce = force, optOutFormat = outform }
-       in getInfos (change singleOrAll giopts) obj reqs
+      (do silentopts <- getSilentOptions
+          let giopts = silentopts { optForce = force, optOutFormat = outform }
+          getInfos (change singleOrAll giopts) obj reqs
             >>= printResult giopts >>= sendResult)
       sendRequestError
   

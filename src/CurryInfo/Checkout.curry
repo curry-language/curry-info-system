@@ -10,7 +10,6 @@ import System.FilePath ((</>))
 
 import CurryInfo.Commands     ( runCmd, cmdCheckout, cmdCPMInstall )
 import CurryInfo.Helper       ( quote )
-import CurryInfo.Paths        ( getRoot )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
@@ -22,22 +21,20 @@ toCheckout :: Package -> Version -> String
 toCheckout pkg vsn = pkg ++ "-" ++ vsn
 
 -- This actions returns the path to the directory used for checkouts.
-getCheckoutRoot :: IO String
-getCheckoutRoot = fmap (</> "checkouts") getRoot
+checkoutRoot :: Options -> String
+checkoutRoot opts = optCacheRoot opts </> "checkouts"
 
 -- This action returns the path to the directory, in which the checkout
 -- of the given version of the given package is stored or will be stored.
-getCheckoutPath :: Package -> Version -> IO String
-getCheckoutPath pkg vsn = do
-  initializeCheckouts
-  path <- getCheckoutRoot
-  return (path </> toCheckout pkg vsn)
+getCheckoutPath :: Options -> Package -> Version -> IO String
+getCheckoutPath opts pkg vsn = do
+  initializeCheckouts opts
+  return (checkoutRoot opts </> toCheckout pkg vsn)
 
 -- This action creates a checkouts directory if it is missing.
-initializeCheckouts :: IO ()
-initializeCheckouts = do
-  path <- getCheckoutRoot
-  createDirectoryIfMissing True path
+initializeCheckouts :: Options -> IO ()
+initializeCheckouts opts =
+  createDirectoryIfMissing True (checkoutRoot opts)
 
 {-
 cmdNotFound :: Int
@@ -56,7 +53,7 @@ checkoutIfMissing :: Options -> Package -> Version -> IO (Maybe String)
 checkoutIfMissing opts pkg vsn = do
   printDetailMessage opts $ "Computing checkout path for package '" ++ pkg ++
                             "' with version '" ++ vsn ++ "'..."
-  path <- getCheckoutPath pkg vsn
+  path <- getCheckoutPath opts pkg vsn
   printDetailMessage opts $ "Checkout path: " ++ path
   printDetailMessage opts "Determining if checkout is necessary..."
   expath <- doesDirectoryExist path

@@ -6,7 +6,7 @@
 module CurryInfo.Reader where
 
 import CurryInfo.Types
-import CurryInfo.Paths     ( getJSONPath )
+import CurryInfo.Paths     ( objectJSONPath )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage)
 
@@ -22,7 +22,7 @@ readObjectInformation :: Options -> QueryObject -> IO (Maybe [(String, JValue)])
 readObjectInformation opts obj = do
   printDebugMessage opts $
     "Determining path to JSON file of object " ++ quotePrettyObject obj ++ "..."
-  path <- getJSONPath obj
+  let path = objectJSONPath opts obj
   printDebugMessage opts $ "Path to JSON file: " ++ path
   b <- doesFileExist path
   case b of

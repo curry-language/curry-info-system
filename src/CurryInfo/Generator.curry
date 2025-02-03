@@ -4,12 +4,22 @@
 
 module CurryInfo.Generator where
 
-import CurryInfo.RequestTypes
-import CurryInfo.Types
-import CurryInfo.Paths
-import CurryInfo.JConvert
-import CurryInfo.Checkout ( toCheckout, getCheckoutPath, initializeCheckouts
-                          , checkoutIfMissing)
+import Data.List        ( find, isPrefixOf, (\\) )
+import Data.Maybe       ( catMaybes )
+
+import CurryInterface.Types ( Interface )
+import JSON.Convert
+import JSON.Data
+import JSON.Parser      ( parseJSON )
+import JSON.Pretty      ( ppJSON )
+import System.CurryPath ( curryModulesInDirectory )
+import System.Directory ( doesFileExist, getDirectoryContents )
+import System.FilePath  ( (</>) )
+import System.IOExts    ( readCompleteFile )
+
+import CurryInfo.Analysis
+import CurryInfo.Checkout   ( checkoutIfMissing)
+import CurryInfo.Helper     ( isCurryID, quote )
 import CurryInfo.Interface
   ( readInterface
   , getDeclarations
@@ -21,36 +31,12 @@ import CurryInfo.Interface
   , getAllClasses, getClassQName, getHiddenClasses, getHiddenClassQName
   , getClassDecl, getClassMethods
   )
-import CurryInfo.Helper     ( isCurryID, quote )
-import CurryInfo.Analysis
-import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation
-                            , getSourceCodeRef )
 import CurryInfo.Parser     ( parseVersionConstraints )
-import CurryInfo.Verbosity  ( printStatusMessage, printDetailMessage
-                            , printDebugMessage)
-
-import Text.Pretty (text)
-
-import JSON.Data
-import JSON.Parser (parseJSON)
-import JSON.Convert
-import JSON.Pretty
-
-import System.IOExts    ( evalCmd )
-import System.Directory ( doesDirectoryExist, doesFileExist
-                        , getDirectoryContents )
-import System.CurryPath ( curryModulesInDirectory )
-import System.FilePath  ( (</>), (<.>) )
-import System.IOExts    ( readCompleteFile )
-import Data.Either      ( partitionEithers )
-import Data.List        ( find, isPrefixOf, intersect, (\\) )
-import Data.Maybe       ( catMaybes, maybeToList )
-
-import Control.Monad    ( unless, when )
-
-import DetParse (parse)
-
-import CurryInterface.Types (Interface)
+import CurryInfo.Paths
+import CurryInfo.RequestTypes
+import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation )
+import CurryInfo.Types
+import CurryInfo.Verbosity  ( printDetailMessage, printDebugMessage)
 
 ------------------------------------------------------------------------------
 
@@ -115,7 +101,7 @@ gVersionDocumentation opts (CurryVersion pkg vsn) = do
   printDetailMessage opts $
     "Generating documentation for version '" ++ vsn ++ "' of package '" ++
     pkg ++ "'..."
-  path <- packageREADMEPath opts pkg vsn >>= stripRootPath
+  path <- packageREADMEPath opts pkg vsn >>= return . stripRootPath opts
   printDetailMessage opts "Generating finished successfully."
   return $ Just path
 
@@ -124,20 +110,30 @@ gVersionCategories =
   generateFromPackageJSON "categories" (\jv -> maybe [] id (getCategories jv))
 
 --- Generator for all modules defined in the package version.
+--- If there are `exportedModules` defined in the package specification,
+--- they appear after the non-exported modules. This might be useful
+--- when information about all modules are generated so that first the
+--- non-exported modules are analyzed.
 gVersionModules :: Generator CurryVersion [String]
-gVersionModules opts x@(CurryVersion pkg vsn) =
-  fmap Just (readPackageModules opts pkg vsn)
+gVersionModules opts cv@(CurryVersion pkg vsn) = do
+  allMods <- readPackageModules opts pkg vsn
+  generateFromPackageJSON "modules" (modulesSelector allMods) opts cv
+ where
+  modulesSelector allMods jv =
+    maybe allMods
+          (\ems -> filter (`notElem` ems) allMods ++ ems)
+          (getExportedModules jv)
 
 --- Generator for the exported modules of a package version.
 --- These are the modules mentioned in the `exportedModules` field
 --- of the package specification or all modules defined in the package version.
 gVersionExportedModules :: Generator CurryVersion [String]
-gVersionExportedModules opts x@(CurryVersion pkg vsn) = do
+gVersionExportedModules opts cv@(CurryVersion pkg vsn) = do
   allMods <- readPackageModules opts pkg vsn
-  generateFromPackageJSON "modules" (modulesSelector allMods) opts x
+  generateFromPackageJSON "modules" (modulesSelector allMods) opts cv
  where
   modulesSelector allMods jv =
-    maybe allMods (flip intersect allMods) (getExportedModules jv)
+    maybe allMods (filter (`elem` allMods)) (getExportedModules jv)
 
 gVersionDependencies :: Generator CurryVersion [Dependency]
 gVersionDependencies =
