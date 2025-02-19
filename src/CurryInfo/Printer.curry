@@ -5,6 +5,7 @@
 
 module CurryInfo.Printer where
 
+import Data.List           ( init, last )
 import System.Directory    ( doesFileExist )
 import System.IOExts       ( readCompleteFile )
 
@@ -192,7 +193,13 @@ printFromReference opts (Reference rpath start end) = do
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
       slice <- readSliceFromFile path start end
-      return $ (if optOutFormat opts == OutText then "\n" else "") ++ slice
+      return $ if optOutFormat opts == OutText
+                 then "\n" ++ removeLastCR slice
+                 else slice
+ where
+  removeLastCR s | null s         = s
+                 | last s == '\n' = init s
+                 | otherwise      = s
 
 -- Reads a string and apply the function (second argument) to the value.
 -- If there is a read error, return the third argument.

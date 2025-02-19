@@ -18,7 +18,7 @@ import System.IOExts       ( readCompleteFile )
 
 --- This action reads the current information for the query object
 --- that exist at the moment.
-readObjectInformation :: Options -> QueryObject -> IO (Maybe [(String, JValue)])
+readObjectInformation :: Options -> QueryObject -> IO (Maybe JObject)
 readObjectInformation opts obj = do
   printDebugMessage opts $
     "Determining path to JSON file of object " ++ quotePrettyObject obj ++ "..."
@@ -34,9 +34,9 @@ readObjectInformation opts obj = do
       jtext <- readCompleteFile path
       printDebugMessage opts $ "Read complete JSON file.\n" ++ jtext
       case parseJSON jtext of
-        Just (JObject fields) -> do
+        Just (JObject jobject) -> do
           printDebugMessage opts "Parsing JSON file succeeded."
-          return $ Just fields
+          return $ Just jobject
         Nothing -> do
           printDebugMessage opts "Parsing failed."
           return Nothing

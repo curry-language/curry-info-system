@@ -48,17 +48,11 @@ initializeObjectWith opts qobj fields = do
   existjson <- doesFileExist jfile  -- check whether JSON file exists
   unless existjson $ do
     -- Initialize new json file with fields
-    let json = ppJSON (JObject fields)
+    let json = ppJSON (JObject (toJObject fields))
     printDebugMessage opts $ "Initializing store of entity " ++
       quotePrettyObject qobj ++ " with contents:\n" ++ json ++
       "\ninto file " ++ jfile
     writeFile jfile json
-
---- This operator combines two lists and excludes all duplicates.
---- The first list should contain the newer information
---- to get an updated list.
-(<+>) :: [(String, a)] -> [(String, a)] -> [(String, a)]
-info1 <+> info2 = nubBy (\(k1, _) (k2, _) -> k1 == k2) (info1 ++ info2)
 
 --- This action updates the JSON file of an object with the provided fields.
 --- Thus, new fields are added and existing fields are replaced with the
@@ -71,7 +65,7 @@ updateObjectInformation opts obj newfields = do
   mfields <- readObjectInformation opts obj
   case mfields of
     Nothing        -> printDebugMessage opts $ errorReadingObject obj
-    Just oldfields -> do
-      writeFile path (ppJSON (JObject (newfields <+> oldfields)))
+    Just oldjobj -> do
+      let newjobj = foldr (uncurry insertField) oldjobj newfields
+      writeFile path (ppJSON (JObject newjobj))
   printDetailMessage opts $ "JSON file " ++ path ++ " updated."
-  

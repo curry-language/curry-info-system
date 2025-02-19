@@ -191,7 +191,7 @@ errorRequestObject (QueryClass pkg vsn m c) req =
   " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++
   pkg ++ " could not be read."
 errorRequestObject (QueryOperation pkg vsn m o) req =
-  "Request '" ++ req ++ "' could not be found for for operation " ++ o ++
+  "Request '" ++ req ++ "' could not be found for operation " ++ o ++
   " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++
   pkg ++ " could not be read."
 

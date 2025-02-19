@@ -22,14 +22,14 @@ instance ConvertJSON Infix where
 
 instance ConvertJSON Reference where
   toJSON (Reference path start end) =
-    JObject [ ("path", toJSON path)
-            , ("start", toJSON start), ("end", toJSON end)]
+    JObject $ toJObject
+      [ ("path", toJSON path), ("start", toJSON start), ("end", toJSON end)]
 
   fromJSON jv = case jv of
-    JObject fields -> do
-      path  <- lookup "path"  fields >>= fromJSON
-      start <- lookup "start" fields >>= fromJSON
-      end   <- lookup "end"   fields >>= fromJSON
+    JObject jobject -> do
+      path  <- lookupName "path"  jobject >>= fromJSON
+      start <- lookupName "start" jobject >>= fromJSON
+      end   <- lookupName "end"   jobject >>= fromJSON
       return (Reference path start end)
     _ -> Nothing
 
@@ -42,11 +42,12 @@ instance ConvertJSON VersionConstraint where
 
 instance ConvertJSON Dependency where
   toJSON (Dependency pkg dsj) =
-    JObject [("package", toJSON pkg), ("constraints", toJSONList dsj)]
+    JObject $ toJObject
+      [("package", toJSON pkg), ("constraints", toJSONList dsj)]
 
   fromJSON jv = case jv of
-    JObject fields -> do
-      pkg <- lookup "package" fields >>= fromJSON
-      dsj <- lookup "constraints" fields >>= fromJSONList
+    JObject jobject -> do
+      pkg <- lookupName "package"     jobject >>= fromJSON
+      dsj <- lookupName "constraints" jobject >>= fromJSONList
       return (Dependency pkg dsj)
     _ -> Nothing

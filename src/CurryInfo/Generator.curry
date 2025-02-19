@@ -317,33 +317,31 @@ gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
 
 gOperationCASSDeterministic :: Generator CurryOperation String
 gOperationCASSDeterministic =
-  generateOperationAnalysisWithCASS "deterministic" analyseDeterministicWithCASS
+  generateOperationAnalysis "deterministic" analyseOperationWithCASS
 
 gOperationCASSDemand :: Generator CurryOperation String
 gOperationCASSDemand =
-  generateOperationAnalysisWithCASS "demand" analyseDemandWithCASS
+  generateOperationAnalysis "demand" analyseOperationWithCASS
 
 gOperationCASSIndeterministic :: Generator CurryOperation String
 gOperationCASSIndeterministic =
-  generateOperationAnalysisWithCASS "indeterministic"
-    analyseIndeterministicWithCASS
+  generateOperationAnalysis "indeterministic" analyseOperationWithCASS
 
 gOperationCASSSolComplete :: Generator CurryOperation String
 gOperationCASSSolComplete =
-  generateOperationAnalysisWithCASS "solution completeness"
-    analyseSolCompleteWithCASS
+  generateOperationAnalysis "solution-complete" analyseOperationWithCASS
 
 gOperationCASSTerminating :: Generator CurryOperation String
 gOperationCASSTerminating =
-  generateOperationAnalysisWithCASS "terminating" analyseTerminatingWithCASS
+  generateOperationAnalysis "terminating" analyseOperationWithCASS
 
 gOperationCASSTotal :: Generator CurryOperation String
 gOperationCASSTotal =
-  generateOperationAnalysisWithCASS "totally defined" analyseTotalWithCASS
+  generateOperationAnalysis "totally-defined" analyseOperationWithCASS
 
 gOperationCASSValues :: Generator CurryOperation String
 gOperationCASSValues =
-  generateOperationAnalysisWithCASS "top result values" analyseValuesWithCASS
+  generateOperationAnalysis "result-values" analyseOperationWithCASS
 
 gOperationFailFree :: Generator CurryOperation String
 gOperationFailFree =
@@ -434,6 +432,21 @@ generateDocumentation = generateReference readDocumentation
 generateSourceCode :: SourceCode a => Generator a Reference
 generateSourceCode = generateReference readSourceCode
 
+--- Generator function to create an information generator using an analysis
+--- action provided as the second argument.
+--- The first argument is the name of the CurryInfo field for the analysis
+--- which is passed as the last argument to the analysis action.
+generateOperationAnalysis :: Show b => String
+  -> (Options -> Package -> Version -> Module -> Operation -> String
+              -> IO (Maybe b))
+  -> Generator CurryOperation b
+generateOperationAnalysis aname analysis opts (CurryOperation pkg vsn m o) = do
+  printDetailMessage opts $ "Generating " ++ aname ++ " analysis of operation '"
+    ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
+    "' of package '" ++ pkg ++ "'..."
+  mres <- analysis opts pkg vsn m o aname
+  processAnalysisResult opts mres
+
 --- Generator function to create an information generator using CASS for
 --- the analysis.
 --- The first argument is a description of the analysis
@@ -476,8 +489,8 @@ processAnalysisResult opts mres = case mres of
 
 lookupField :: String -> JValue -> Maybe JValue
 lookupField s jv = case jv of
-  JObject fields -> lookup s fields
-  _ -> Nothing
+  JObject fields -> lookupName s fields
+  _              -> Nothing
 
 --- Returns the `category` field in a JSON object, if present.
 getCategories :: JValue -> Maybe [String]
@@ -497,9 +510,9 @@ getSourceDirs jv =
 getDependencies :: JValue -> Maybe [Dependency]
 getDependencies jv = case jv of
   JObject fields -> do
-    value <- lookup "dependencies" fields
+    value <- lookupName "dependencies" fields
     case value of
-      JObject fields' -> mapM convertDependency fields'
+      JObject fields' -> mapM convertDependency (fromJObject fields')
       _               -> Nothing
   _ -> Nothing
 

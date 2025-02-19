@@ -8,7 +8,7 @@ module CurryInfo.Information ( getInfos, printResult ) where
 import Control.Monad      ( unless, when, zipWithM)
 import Data.Char          ( toLower )
 import Data.Either        ( partitionEithers )
-import Data.List          ( find, isSuffixOf, sort, union )
+import Data.List          ( (\\), find, isSuffixOf, sort, union )
 import Data.Maybe         ( catMaybes, isJust )
 import System.Environment ( getArgs )
 
@@ -97,7 +97,7 @@ getInfos opts qobj reqs = do
         True  -> do
           printDetailMessage opts "Module entity exists."
           case (optAllTypes opts, optAllClasses opts, optAllOperations opts) of
-            (True, _, _) -> do
+            (True, _, _) -> checkRequests opts reqs typeConfiguration $ do
               mts <- queryAllEntities pkg vsn m (QueryType pkg vsn m "?")
                                       "types"
               case mts of
@@ -109,7 +109,7 @@ getInfos opts qobj reqs = do
                                (map (\t -> (QueryType pkg vsn m t,
                                             CurryType pkg vsn m t)) ts)
                   return $ combineOutput outs
-            (_, True, _) -> do
+            (_, True, _) -> checkRequests opts reqs classConfiguration $ do
               mcs <- queryAllEntities pkg vsn m (QueryClass pkg vsn m "?")
                                       "classes"
               case mcs of
@@ -121,7 +121,7 @@ getInfos opts qobj reqs = do
                                (map (\t -> (QueryClass pkg vsn m t,
                                             CurryClass pkg vsn m t)) cs)
                   return $ combineOutput outs
-            (_, _, True) -> do
+            (_, _, True) -> checkRequests opts reqs operationConfiguration $ do
               mos <- queryAllEntities pkg vsn m (QueryOperation pkg vsn m "?")
                                       "operations"
               case mos of
@@ -172,9 +172,9 @@ getInfos opts qobj reqs = do
         printDetailMessage opts $
           "Entity " ++ quote dummyEntityName ++ " does not exist."
         getInfosConfig opts dqo reqs entityconfig emptyent
-      Just fields -> do
+      Just jobject -> do
         printDetailMessage opts "Reading DUMMY object information succeeded."
-        case lookup req fields of
+        case lookupName req jobject of
           Just js -> maybe (return $ OutputError $
                               "Illegal value in field " ++ quote req ++
                               " in entity " ++ quotePrettyObject dummyqo)
@@ -304,12 +304,35 @@ whenFileDoesNotExist path act = do
   case exf of True  -> return True
               False -> act
 
+--- Check whether the given requests exist in the registered requests.
+--- If this is not the case, return with an error message,
+--- otherwise proceed with the continuation provided as the last argument.
+checkRequests :: Show a =>
+   Options -> [String] -> [RegisteredRequest a] -> IO Output -> IO Output
+checkRequests opts reqs config cont = do
+  let unknownrequests = reqs \\ map request config
+  if null unknownrequests
+    then cont
+    else do let err = "Request" ++
+                      (if length unknownrequests == 1
+                         then " " ++ head unknownrequests ++ " is"
+                         else "s " ++ unwords unknownrequests ++ " are") ++
+                      " unknown!"
+            printDetailMessage opts err
+            generateOutputError opts err
+
 --- This action process the given requests for the given query object
 --- w.r.t. to the configuration for the kind of query object and
 --- returns the output for the requests.
 getInfosConfig :: Show a => Options -> QueryObject -> [String]
                -> [RegisteredRequest a] -> a -> IO Output
-getInfosConfig opts queryobject reqs conf configobject
+getInfosConfig opts queryobject reqs conf configobject =
+  checkRequests opts reqs conf $
+    getCheckedInfosConfig opts queryobject reqs conf configobject
+ 
+getCheckedInfosConfig :: Show a => Options -> QueryObject -> [String]
+                      -> [RegisteredRequest a] -> a -> IO Output
+getCheckedInfosConfig opts queryobject reqs conf configobject
  | isDummyObject queryobject && optForce opts == 0
  = return $ createOutput opts queryobject []
  | isDummyObject queryobject
@@ -328,8 +351,9 @@ getInfosConfig opts queryobject reqs conf configobject
     Nothing -> do
       printErrorMessage $ errorReadingObject queryobject
       return $ OutputError $ errorReadingObject queryobject
-    Just fields -> do
+    Just jobject -> do
       printDetailMessage opts "Reading information succeeded."
+      let fields = fromJObject jobject
       case lookup realNameField fields of
        Just js -> maybe (return $ OutputError $
                            "Illegal value in field " ++ quote realNameField ++
@@ -500,13 +524,14 @@ createOutput opts obj results = case optOutFormat opts of
               map (\(r, ir) -> withColor opts green r ++ ": " ++ 
                   fromRequestResult (withColor opts red "?") id (flip const) ir)
                   results
-  OutJSON -> OutputJSON $ JObject
+  OutJSON -> OutputJSON $ JObject $ toJObject $
                 [("object", (JString . object2StringTuple) obj),
                   ("results",
-                   JObject (map (\(r, ir) ->
-                                  (r, fromRequestResult JNull JString
+                   JObject $ toJObject
+                     (map (\(r, ir) ->
+                              (r, fromRequestResult JNull JString
                                         (\_ s -> JString s) ir))
-                               results))]
+                          results))]
   OutTerm -> OutputTerm
                 [(object2StringTuple obj,
                   show (map (\(r, ir) ->

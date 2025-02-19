@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
---- This modules defines operations to start analysis using outside tools
+--- This modules defines operations to start analysis using external tools
 --- like CASS or `verify-non-fail`.
 ------------------------------------------------------------------------------
 
@@ -13,34 +13,41 @@ import XML
 
 import CurryInfo.Checkout
 import CurryInfo.Commands
+import CurryInfo.Helper       ( quote )
 import CurryInfo.Paths
 import CurryInfo.RequestTypes
 import CurryInfo.Types
-import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
-                           , printDebugMessage, printErrorMessage )
+import CurryInfo.Verbosity    ( printStatusMessage, printDetailMessage
+                              , printDebugMessage, printErrorMessage )
 import CurryInfo.Writer
 import CurryInfo.Reader
 
--- Analysis
+------------------------------------------------------------------------------
 
 -- This action invokes an analysis tool, like CASS, to perform
--- the given analysis on the given module.
+-- the given analysis on the given module and stores the computed
+-- analysis results.
 -- The first argument is an operation (like `withCASS`) which returns,
--- for a given file path, analysis and module, the command to compute
--- the analysis information.
+-- for a given file path, analysis name and module, the command to compute
+-- the analysis information. It is assumed that this operation returns
+-- a JSON array where each element is a JSON object containing the fields
+-- `name` and `result` (the name of an entity and its analysis result).
+-- The further arguments are the options, package, version, module,
+-- entitiy name, analysis name, field name (containing the analysis result),
+-- and a function which maps an entity name into a corresponding query object.
 analyseWith :: (FilePath -> String -> Module
-                    -> (String, IO (Int, String, String)))
-                -> Options -> Package -> Version -> Module -> String -> String
-                -> String -> (String -> QueryObject) -> IO (Maybe String)
-analyseWith anacmd opts pkg vsn m ename analysis field constructor = do
-  printDetailMessage opts $ "Starting analysis '" ++ analysis ++ "'..."
+                                   -> (String, IO (Int, String, String)))
+            -> Options -> Package -> Version -> Module -> String -> String
+            -> String -> (String -> QueryObject) -> IO (Maybe String)
+analyseWith anacmd opts pkg vsn m ename ananame field constructor = do
+  printDetailMessage opts $ "Starting analysis '" ++ ananame ++ "'..."
   mpath <- checkoutIfMissing opts pkg vsn
   case mpath of
     Nothing -> do
       printDetailMessage opts "Analysis failed."
       return Nothing
     Just path -> do
-      (_, output, _) <- runCmd opts (anacmd path analysis m)
+      (_, output, _) <- runCmd opts (anacmd path ananame m)
       printDetailMessage opts "Analysis finished."
       printDebugMessage opts "Parsing analysis output..."
       case parseJSON output of
@@ -59,28 +66,26 @@ analyseWith anacmd opts pkg vsn m ename analysis field constructor = do
                 else lookupResultForEntity results
         _ -> do
           printErrorMessage $
-            "Could not parse JSON output of analysis '" ++ analysis ++
+            "Could not parse JSON output of analysis '" ++ ananame ++
             "' of module '" ++ m ++ "'!"
           printErrorMessage "Analysis output:"
           printErrorMessage output
-          printDetailMessage opts $ "Analysis'" ++ analysis ++ "' failed."
+          printDetailMessage opts $ "Analysis'" ++ ananame ++ "' failed."
           return Nothing
  where
   getJsonResults :: [JValue] -> Maybe [(String, String)]
   getJsonResults = mapM elemToResult
-
-  elemToResult :: JValue -> Maybe (String, String)
-  elemToResult jv = case jv of
-    JObject fields -> do
-      n <- lookup "name" fields >>= fromJSON
-      r <- lookup "result" fields >>= fromJSON
-      return (n, r)
-    _              -> Nothing
+   where
+    elemToResult jv = case jv of
+      JObject fields -> do
+        n <- lookupName "name"   fields >>= fromJSON
+        r <- lookupName "result" fields >>= fromJSON
+        return (n, r)
+      _              -> Nothing
 
   addInformation :: (String, String) -> IO ()
-  addInformation (n, r) = do
-    let obj = constructor n
-    updateObjectInformation opts obj [(field, toJSON r)]
+  addInformation (n, r) =
+    updateObjectInformation opts (constructor n) [(field, toJSON r)]
   
   lookupResultForEntity results = do
     printDebugMessage opts "Results found. Looking for requested result..."
@@ -95,69 +100,29 @@ analyseWith anacmd opts pkg vsn m ename analysis field constructor = do
         printDebugMessage opts $ "Result found: " ++ show result
         return (Just result)
 
--- This action initiates a call to CASS to compute the 'UnsafeModule' analysis
--- for the given module in the given path.
-analyseUnsafeModuleWithCASS :: Options -> Package -> Version -> Module
-                            -> IO (Maybe String)
-analyseUnsafeModuleWithCASS opts pkg vsn m =
-  analyseWith (cmdCASS opts) opts pkg vsn m m
-              "UnsafeModule" "cass-unsafemodule" (QueryModule pkg vsn)
+-- Map a request name of CurryInfo to a CASS analysis name.
+curryInfoRequest2CASS :: [(String,String)]
+curryInfoRequest2CASS =
+  [ ("deterministic",     "Deterministic")
+  , ("demand",            "Demand")
+  , ("indeterministic",   "Indeterministic")
+  , ("solution-complete", "SolComplete")
+  , ("terminating",       "Terminating")
+  , ("totally-defined",   "Total")
+  , ("result-values",     "Values")
+  ]
 
--- This action initiates a call to CASS to compute the 'Deterministic' analysis
--- for the given module in the given path.
-analyseDeterministicWithCASS :: Options -> Package -> Version -> Module
-                             -> Operation -> IO (Maybe String)
-analyseDeterministicWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-              "Deterministic" "cass-deterministic" (QueryOperation pkg vsn m)
-
--- This action initiates a call to CASS to compute the 'Demand' analysis
--- for the given module in the given path.
-analyseDemandWithCASS :: Options -> Package -> Version -> Module
-                      -> Operation -> IO (Maybe String)
-analyseDemandWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-              "Demand" "cass-demand" (QueryOperation pkg vsn m)
-
--- This action initiates a call to CASS to compute the 'Indeterministic'
--- analysis for the given module in the given path.
-analyseIndeterministicWithCASS :: Options -> Package -> Version -> Module
-                              -> Operation -> IO (Maybe String)
-analyseIndeterministicWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-    "Indeterministic" "cass-indeterministic" (QueryOperation pkg vsn m)
-
--- This action initiates a call to CASS to compute the 'SolComplete' analysis
--- for the given module in the given path.
-analyseSolCompleteWithCASS :: Options -> Package -> Version -> Module
-                           -> Operation -> IO (Maybe String)
-analyseSolCompleteWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-    "SolComplete" "cass-solcomplete" (QueryOperation pkg vsn m)
-
--- This action initiates a call to CASS to compute the 'Terminating' analysis
--- for the given module in the given path.
-analyseTerminatingWithCASS :: Options -> Package -> Version -> Module
-                           -> Operation -> IO (Maybe String)
-analyseTerminatingWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-    "Terminating" "cass-terminating" (QueryOperation pkg vsn m)
-
--- This action initiates a call to CASS to compute the 'Total' analysis
--- for the given module in the given path.
-analyseTotalWithCASS :: Options -> Package -> Version -> Module
-                     -> Operation -> IO (Maybe String)
-analyseTotalWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-    "Total" "cass-total" (QueryOperation pkg vsn m)
-
--- This action initiates a call to CASS to compute the 'Total' analysis
--- for the given module in the given path.
-analyseValuesWithCASS :: Options -> Package -> Version -> Module
-                     -> Operation -> IO (Maybe String)
-analyseValuesWithCASS opts pkg vsn m o =
-  analyseWith (cmdCASS opts) opts pkg vsn m o
-    "Values" "cass-values" (QueryOperation pkg vsn m)
+-- Analyse an operation of a module with CASS where the name of the
+-- CurryInfo field is provided as the first argument.
+analyseOperationWithCASS :: Options -> Package -> Version -> Module -> Operation
+                         -> String -> IO (Maybe String)
+analyseOperationWithCASS opts pkg vsn m o field =
+  case lookup field curryInfoRequest2CASS of
+    Nothing    -> do printErrorMessage $ "No CASS analysis found for field " ++
+                                         quote field ++ "!"
+                     return Nothing
+    Just aname -> analyseWith (cmdCASS opts) opts pkg vsn m o aname field
+                              (QueryOperation pkg vsn m)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.
@@ -174,3 +139,11 @@ analyseIOTypes :: Options -> Package -> Version -> Module -> Operation
 analyseIOTypes opts pkg vsn m o =
   analyseWith (cmdCallTypes opts ["-v0", "--iotypes"]) opts pkg vsn m o
                "IOType" "iotype" (QueryOperation pkg vsn m)
+
+-- This action initiates a call to CASS to compute the 'UnsafeModule' analysis
+-- for the given module in the given path.
+analyseUnsafeModuleWithCASS :: Options -> Package -> Version -> Module
+                            -> IO (Maybe String)
+analyseUnsafeModuleWithCASS opts pkg vsn m =
+  analyseWith (cmdCASS opts) opts pkg vsn m m
+              "UnsafeModule" "unsafe" (QueryModule pkg vsn)
