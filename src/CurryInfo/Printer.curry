@@ -70,10 +70,10 @@ pModuleName :: Printer Module
 pModuleName _ name = return name
 
 pModuleDocumentation :: Printer Reference
-pModuleDocumentation opts ref = printFromReference opts ref
+pModuleDocumentation = printDocumentation
 
 pModuleSourceCode :: Printer Reference
-pModuleSourceCode opts ref = printFromReference opts ref
+pModuleSourceCode = printSourceCode
 
 pModuleUnsafeModule :: Printer String
 pModuleUnsafeModule opts safe
@@ -100,13 +100,13 @@ pTypeName :: Printer Type
 pTypeName _ = return
 
 pTypeDocumentation :: Printer Reference
-pTypeDocumentation opts ref = printFromReference opts ref
+pTypeDocumentation = printDocumentation
 
 pTypeConstructors :: Printer [Constructor]
 pTypeConstructors _ cons = return (show cons)
 
 pTypeDefinition :: Printer Reference
-pTypeDefinition opts ref = printFromReference opts ref
+pTypeDefinition = printSourceCode
 
 -- TYPECLASS
 
@@ -114,13 +114,13 @@ pClassName :: Printer Class
 pClassName _ = return
 
 pClassDocumentation :: Printer Reference
-pClassDocumentation opts ref = printFromReference opts ref
+pClassDocumentation  = printDocumentation
 
 pClassMethods :: Printer [Method]
 pClassMethods _ ms = return (show ms)
 
 pClassDefinition :: Printer Reference
-pClassDefinition opts ref = printFromReference opts ref
+pClassDefinition = printSourceCode
 
 -- OPERATION
 
@@ -128,10 +128,10 @@ pOperationName :: Printer Operation
 pOperationName _ = return
 
 pOperationDocumentation :: Printer Reference
-pOperationDocumentation opts ref = printFromReference opts ref
+pOperationDocumentation  = printDocumentation
 
 pOperationSourceCode :: Printer Reference
-pOperationSourceCode opts ref = printFromReference opts ref
+pOperationSourceCode = printSourceCode
 
 pOperationSignature :: Printer Signature
 pOperationSignature _ = return
@@ -165,10 +165,20 @@ pOperationCASSSolComplete :: Printer String
 pOperationCASSSolComplete _ = return
 
 pOperationCASSTerminating :: Printer String
-pOperationCASSTerminating _ = return
+pOperationCASSTerminating opts  s
+  | optOutFormat opts == OutText = return $ maybeRead s prettyTerminate s
+  | otherwise                    = return s
+ where
+  prettyTerminate True  = "yes"
+  prettyTerminate False = "possibly non-terminating"
 
 pOperationCASSTotal :: Printer String
-pOperationCASSTotal _ = return
+pOperationCASSTotal opts  s
+  | optOutFormat opts == OutText = return $ maybeRead s prettyTotal s
+  | otherwise                    = return s
+ where
+  prettyTotal True  = "yes (i.e., always reducible on ground data terms)"
+  prettyTotal False = "possibly non-reducible"
 
 pOperationCASSValues :: Printer String
 pOperationCASSValues opts s
@@ -193,6 +203,33 @@ pOperationIOType opts s
 ------------------------------------------------------------------------------
 -- Auxililiaries.
 
+-- Pretty print a documentation string.
+-- If the output mode is text, the leading comment characters are deleted.
+printDocumentation :: Options -> Reference -> IO String
+printDocumentation opts ref =
+  fmap (if optOutFormat opts == OutText
+          then concatMap ("\n" ++) . map stripDocCmt . lines
+          else id)
+       (printFromReference opts ref)
+ where
+  stripDocCmt s | take 4 s == "--- " = drop 4 s
+                | take 3 s == "-- "  = drop 3 s
+                | take 3 s == "---"  = drop 3 s
+                | take 2 s == "--"   = drop 2 s
+                | otherwise          = s
+
+-- Pretty print source code from a given reference.
+printSourceCode :: Options -> Reference -> IO String
+printSourceCode opts ref = do
+  slice <- printFromReference opts ref
+  return $ if optOutFormat opts == OutText
+             then "\n" ++ removeLastCR slice
+             else slice
+ where
+  removeLastCR s | null s         = s
+                 | last s == '\n' = init s
+                 | otherwise      = s
+
 -- This action returns the content of the file the given reference points to.
 printFromReference :: Options -> Reference -> IO String
 printFromReference opts (Reference rpath start end) = do
@@ -202,14 +239,7 @@ printFromReference opts (Reference rpath start end) = do
     False -> returnFileError path
     True -> do
       printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-      slice <- readSliceFromFile path start end
-      return $ if optOutFormat opts == OutText
-                 then "\n" ++ removeLastCR slice
-                 else slice
- where
-  removeLastCR s | null s         = s
-                 | last s == '\n' = init s
-                 | otherwise      = s
+      readSliceFromFile path start end
 
 -- Reads a string and apply the function (second argument) to the value.
 -- If there is a read error, return the third argument.
