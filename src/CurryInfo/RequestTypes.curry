@@ -80,6 +80,16 @@ data Infix = Infix | InfixL | InfixR
 type Precedence = Int
 
 ------------------------------------------------------------------------------
+--- Data type to represent determinism information.
+data Deterministic = NDet | Det
+ deriving (Eq, Show, Read)
+
+--- Shows deterministim information in human-readable form.
+prettyDeterministic :: Deterministic -> String
+prettyDeterministic NDet = "possibly non-deterministic operation"
+prettyDeterministic Det  = "deterministic operation"
+
+------------------------------------------------------------------------------
 --- An abstract term domain where terms are abstracted into their
 --- top-level constructors.
 --- `AAny` represents any expression, and

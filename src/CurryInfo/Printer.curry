@@ -97,7 +97,7 @@ pModuleOperations _ os = return (show os)
 -- TYPE
 
 pTypeName :: Printer Type
-pTypeName _ name = return name
+pTypeName _ = return
 
 pTypeDocumentation :: Printer Reference
 pTypeDocumentation opts ref = printFromReference opts ref
@@ -111,7 +111,7 @@ pTypeDefinition opts ref = printFromReference opts ref
 -- TYPECLASS
 
 pClassName :: Printer Class
-pClassName _ name = return name
+pClassName _ = return
 
 pClassDocumentation :: Printer Reference
 pClassDocumentation opts ref = printFromReference opts ref
@@ -125,7 +125,7 @@ pClassDefinition opts ref = printFromReference opts ref
 -- OPERATION
 
 pOperationName :: Printer Operation
-pOperationName _ name = return name
+pOperationName _ = return
 
 pOperationDocumentation :: Printer Reference
 pOperationDocumentation opts ref = printFromReference opts ref
@@ -134,7 +134,7 @@ pOperationSourceCode :: Printer Reference
 pOperationSourceCode opts ref = printFromReference opts ref
 
 pOperationSignature :: Printer Signature
-pOperationSignature _ s = return s
+pOperationSignature _ = return
 
 pOperationInfix :: Printer (Maybe Infix)
 pOperationInfix _ inf = return (show inf)
@@ -143,22 +143,32 @@ pOperationPrecedence :: Printer (Maybe Precedence)
 pOperationPrecedence _ p = return (show p)
 
 pOperationCASSDeterministic :: Printer String
-pOperationCASSDeterministic _ det = return det
+pOperationCASSDeterministic opts s
+  | optOutFormat opts == OutText = return $ maybeRead s prettyDeterministic s
+  | otherwise                    = return s
 
 pOperationCASSDemand :: Printer String
-pOperationCASSDemand _ dem = return dem
+pOperationCASSDemand opts s
+  | optOutFormat opts == OutText = return $ maybeRead s prettyDemand s
+  | otherwise                    = return s
+ where
+  prettyDemand :: [Int] -> String
+  prettyDemand ds = case ds of
+    []  -> "no demanded arguments"
+    [d] -> "demanded argument position: " ++ show d
+    _   -> "demand argument positions: " ++ unwords (map show ds) 
 
 pOperationCASSIndeterministic :: Printer String
-pOperationCASSIndeterministic _ ind = return ind
+pOperationCASSIndeterministic _ = return
 
 pOperationCASSSolComplete :: Printer String
-pOperationCASSSolComplete _ sol = return sol
+pOperationCASSSolComplete _ = return
 
 pOperationCASSTerminating :: Printer String
-pOperationCASSTerminating _ t = return t
+pOperationCASSTerminating _ = return
 
 pOperationCASSTotal :: Printer String
-pOperationCASSTotal _ t = return t
+pOperationCASSTotal _ = return
 
 pOperationCASSValues :: Printer String
 pOperationCASSValues opts s

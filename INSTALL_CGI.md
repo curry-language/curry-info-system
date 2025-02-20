@@ -42,8 +42,8 @@ Generating analysis information
 
 Updating/generating analysis infos for single package versions:
 
-    > cpm-query --cgi --generate <PACKAGE> <VERSION>
+    > cpm-query --remote --generate <PACKAGE> <VERSION>
 
 Updating/generating analysis infos for all (newest compatible) package versions:
 
-    > cpm-manage packagelist | cpm-query --cgi --generate --from=-
+    > cpm-manage packagelist | cpm-query --remote --generate --from=-
