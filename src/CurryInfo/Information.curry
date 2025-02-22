@@ -337,7 +337,7 @@ getCheckedInfosConfig opts queryobject reqs conf configobject
  = return $ createOutput opts queryobject []
  | isDummyObject queryobject
  = do -- run only the generator without considering the query object
-   printDetailMessage opts "Generating requested information..."
+   printDetailMessage opts "Generating requested information for dummy object..."
    mapM_ (generateDummyRequest configobject)
          (map (map toLower) reqs)
    return $ createOutput opts queryobject []
@@ -414,7 +414,7 @@ getCheckedInfosConfig opts queryobject reqs conf configobject
     case lookupRequest req conf of
       Nothing -> printStatusMessage opts $ reqerrormsg req
       Just (_, _, _, generator) -> do
-        printDetailMessage opts "Request found in configuration"
+        printDetailMessage opts "Request found in configuration, generate..."
         generationResult <- generateRequest opts req generator obj
         case generationResult of
           Nothing -> printErrorMessage $

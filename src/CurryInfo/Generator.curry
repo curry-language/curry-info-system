@@ -5,7 +5,7 @@
 module CurryInfo.Generator where
 
 import Data.List        ( find, isPrefixOf, (\\) )
-import Data.Maybe       ( catMaybes )
+import Data.Maybe       ( catMaybes, mapMaybe )
 
 import CurryInterface.Types ( Interface )
 import JSON.Convert
@@ -29,7 +29,8 @@ import CurryInfo.Interface
   , getAllTypes, getTypeQName, getHiddenTypes, getHiddenTypeQName, getTypeDecl
   , getTypeConstructors
   , getAllClasses, getClassQName, getHiddenClasses, getHiddenClassQName
-  , getClassDecl, getClassMethods
+  , getClassDecl, getClassMethods, getOperationNameSignature
+  , getOperationName, getOperationNameSignature
   )
 import CurryInfo.Parser     ( parseVersionConstraints )
 import CurryInfo.Paths
@@ -37,6 +38,7 @@ import CurryInfo.RequestTypes
 import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation )
 import CurryInfo.Types
 import CurryInfo.Verbosity  ( printDetailMessage, printDebugMessage)
+import CurryInfo.Writer     ( updateObjectInformation )
 
 ------------------------------------------------------------------------------
 
@@ -197,7 +199,7 @@ gModuleOperations opts (CurryModule pkg vsn mn) = do
   return (mbns >>= Just . map qName2String)
  where
   operationsSelector interface = Just $ catMaybes $
-    map getOperationQName $ getOperations $ getDeclarations interface
+    map getOperationQName $ getOperations interface
 
 qName2String :: (String,String) -> String
 qName2String (m,n) = if null m then n else m ++ "." ++ n
@@ -277,43 +279,72 @@ gOperationName opts (CurryOperation pkg vsn m o) = do
   finishResult opts o
 
 gOperationDocumentation :: Generator CurryOperation Reference
-gOperationDocumentation opts x@(CurryOperation pkg vsn m o) = do
+gOperationDocumentation opts cop@(CurryOperation pkg vsn m o) = do
   printModEntityGenMsg opts pkg vsn m o "operation" "documentation"
-  generateDocumentation opts x
+  generateDocumentation opts cop
 
 gOperationSourceCode :: Generator CurryOperation Reference
 gOperationSourceCode opts x@(CurryOperation pkg vsn m o)
-  | isCurryID o
+  | isCurryID o || null o
   = do printModEntityGenMsg opts pkg vsn m o "operation" "source code"
        generateSourceCode opts x
   | otherwise = return Nothing
 
+--- Generator for signatures of operations.
 gOperationSignature :: Generator CurryOperation Signature
 gOperationSignature opts (CurryOperation pkg vsn m o) = do
   printModEntityGenMsg opts pkg vsn m o "operation" "signature"
-  generateFromInterface pkg vsn m "signature" signatureSelector opts
+  mbops <- generateFromInterface pkg vsn m "signature"
+                                 (Just . getOperations) opts
+  case mbops of
+    Nothing    -> return Nothing
+    Just decls -> do let opsigs = mapMaybe getOperationNameSignature decls
+                     mapM_ addSignature opsigs
+                     return $ if null o then Just ""
+                                        else lookup o opsigs
  where
-  signatureSelector :: Interface -> Maybe Signature
-  signatureSelector int =
-    getOperationDecl o (getOperations $ getDeclarations int)
-      >>= getOperationSignature
+  addSignature (fn,sig) = do
+    updateObjectInformation opts (QueryOperation pkg vsn m fn)
+                            [("signature", toJSON sig)]
 
+--- Generator for infix properties of operations.
 gOperationInfix :: Generator CurryOperation (Maybe Infix)
 gOperationInfix opts (CurryOperation pkg vsn m o) = do
   printModEntityGenMsg opts pkg vsn m o "operation" "infix"
-  generateFromInterface pkg vsn m "infix" infixSelector opts
+  mbops <- generateFromInterface pkg vsn m "infix"
+                                 (Just . getDeclarations) opts
+  case mbops of
+    Nothing    -> return Nothing
+    Just decls -> do let opsigs = mapMaybe getOperationName decls
+                     opfixity <- mapM (addInfix decls) opsigs
+                     return $ if null o then Just Nothing
+                                        else (lookup o opfixity) >>= Just
  where
-  infixSelector interface =
-    Just (getInfixDecl o (getDeclarations interface) >>= getOperationInfix)
+  addInfix decls fn = do
+    let fixity = getInfixDecl fn decls >>= getOperationInfix
+    updateObjectInformation opts (QueryOperation pkg vsn m fn)
+                            [("infix", toJSON fixity)]
+    return (fn,fixity)
 
+--- Generator for precedence properties of operations.
 gOperationPrecedence :: Generator CurryOperation (Maybe Precedence)
 gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
   printModEntityGenMsg opts pkg vsn m o "operation" "precedence"
-  generateFromInterface pkg vsn m "precedence" precedenceSelector opts
+  mbops <- generateFromInterface pkg vsn m "precedence"
+                                 (Just . getDeclarations) opts
+  case mbops of
+    Nothing    -> return Nothing
+    Just decls -> do let opsigs = mapMaybe getOperationName decls
+                     opprecs <- mapM (addPrecedence decls) opsigs
+                     return $ if null o then Just Nothing
+                                        else (lookup o opprecs) >>= Just
  where
-  precedenceSelector interface =
-    Just (getInfixDecl o (getDeclarations interface)
-      >>= getOperationPrecedence :: Maybe Precedence)
+  addPrecedence decls fn = do
+    let fixity = getInfixDecl fn decls >>= getOperationPrecedence
+    updateObjectInformation opts (QueryOperation pkg vsn m fn)
+                            [("prededence", toJSON fixity)]
+    return (fn,fixity)
+
 
 gOperationCASSDeterministic :: Generator CurryOperation String
 gOperationCASSDeterministic =
@@ -371,14 +402,15 @@ generateFromPackageJSON desc selector opts (CurryVersion pkg vsn) = do
       printDetailMessage opts "Generating finished successfully."
       return $ Just res
 
---- Generator function to get information from an interface.
+--- Generator function to get information from a Curry interface.
 --- The first three arguments are the package, the version and the module.
---- The fourth argument is a description of the generated information.
---- The fifth argument is the operation, that looks for the information
---- in the interface of the module.
+--- The fourth argument is a description of the generated information,
+--- i.e., the name of the CurryInfo request.
+--- The fifth argument is the operation which actually extracts the information
+--- from the module's interface.
 generateFromInterface :: Show b => Package -> Version -> Module -> String
                       -> (Interface -> Maybe b) -> Options -> IO (Maybe b)
-generateFromInterface pkg vsn m desc selector opts = do
+generateFromInterface pkg vsn m req selector opts = do
   minterface <- readInterface opts pkg vsn m
   case minterface of
     Nothing -> do
@@ -386,7 +418,7 @@ generateFromInterface pkg vsn m desc selector opts = do
       printDetailMessage opts "Generating failed."
       return Nothing
     Just interface -> do
-      printDetailMessage opts $ "Reading " ++ desc ++ " from interface..."
+      printDetailMessage opts $ "Reading " ++ quote req ++ " from interface..."
       case selector interface of
         Nothing -> do
           printDetailMessage opts "Failed to find information in interface."

@@ -60,7 +60,7 @@ analyseWith anacmd opts pkg vsn m ename ananame field constructor = do
               return Nothing
             Just results -> do
               printDebugMessage opts "Writing all results in files..."
-              mapM addInformation results
+              mapM_ addInformation results
               if null ename -- dummy object?
                 then return (Just "")
                 else lookupResultForEntity results
@@ -113,7 +113,7 @@ curryInfoRequest2CASS =
   ]
 
 -- Analyse an operation of a module with CASS where the name of the
--- CurryInfo field is provided as the first argument.
+-- CurryInfo field is provided as the last argument.
 analyseOperationWithCASS :: Options -> Package -> Version -> Module -> Operation
                          -> String -> IO (Maybe String)
 analyseOperationWithCASS opts pkg vsn m o field =

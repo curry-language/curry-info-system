@@ -5,14 +5,14 @@
 
 module CurryInfo.Interface where
 
-import Data.List             ( find, intercalate )
+import Data.List            ( find, intercalate )
 
 import System.Directory     ( doesFileExist, getCurrentDirectory
                             , setCurrentDirectory )
 import System.IOExts        ( evalCmd )
 import System.FrontendExec  ( FrontendTarget (..), callFrontend )
 import System.CurryPath     ( currySubdir )
-import System.FilePath      ( (</>), (<.>) )
+import System.FilePath      ( (</>), normalise )
 import Text.Pretty          ( pPrint )
 
 import CurryInfo.Checkout   ( getCheckoutPath )
@@ -37,7 +37,7 @@ readInterface opts pkg vsn m = do
   mbsrcpath <- getSourceFilePath opts pkg vsn m
   case mbsrcpath of
     Nothing -> return Nothing
-    Just (srcdir,_) -> do
+    Just (_,srcdir,_) -> do
       path <- getCheckoutPath opts pkg vsn
       printDebugMessage opts "Path to icurry file is:"
       let icurry = srcdir </> (curryInterfaceFileName m)
@@ -181,8 +181,8 @@ getHiddenClassQName decl = case decl of
 
 -- This operation returns the declarations of operations from the
 -- given declarations.
-getOperations :: [IDecl] -> [IDecl]
-getOperations = filter isOperation
+getOperations :: Interface -> [IDecl]
+getOperations = filter isOperation . getDeclarations
 
 -- This operation returns True, if the given declaration declares an operation.
 -- Otherwise it returns False.
@@ -213,6 +213,26 @@ getOperationArity decl = case decl of
   IFunctionDecl _ _ arity _   -> Just arity
   _                           -> Nothing
 
+-- This operation returns the name and signature of the given declaration.
+-- If it is not a declaration of an operation defined in the module,
+-- `Nothing` is returned.
+getOperationName :: IDecl -> Maybe String
+getOperationName decl = case decl of
+  IFunctionDecl n _ _ _ -> let (mn,fn) = fromQId n
+                           in if null mn then Just fn else Nothing
+  _                     -> Nothing
+
+-- This operation returns the name and signature of the given declaration.
+-- If it is not a declaration of an operation defined in the module,
+-- `Nothing` is returned.
+getOperationNameSignature :: IDecl -> Maybe (String, Signature)
+getOperationNameSignature decl = case decl of
+  IFunctionDecl n _ _ t -> let (mn,fn) = fromQId n
+                           in if null mn
+                                then Just (fn, pPrint . ppQualType defaultOptions $ t)
+                                else Nothing
+  _                     -> Nothing
+
 -- This operation returns the signature of the given operation declaration.
 -- If the given declaration is not of an operation, Nothing is returned.
 getOperationSignature :: IDecl -> Maybe Signature
@@ -239,7 +259,7 @@ getOperationInfix decl = case decl of
     CurryInterface.Types.Infix  -> Just CurryInfo.RequestTypes.Infix
     CurryInterface.Types.InfixL -> Just CurryInfo.RequestTypes.InfixL
     CurryInterface.Types.InfixR -> Just CurryInfo.RequestTypes.InfixR
-  _                   -> Nothing
+  _                             -> Nothing
 
 -- This operation returns the precedence of the given infix declaration.
 -- If the given declaration ii not of an infix, Nothing is returned.

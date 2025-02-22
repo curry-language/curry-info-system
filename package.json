@@ -1,6 +1,6 @@
 {
   "name": "curry-info-system",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Michael Hanus <mh@informatik.uni-kiel.de>, Dennis Thomsen <stu232874@mail.uni-kiel.de>",
   "maintainer": "Michael Hanus <mh@informatik.uni-kiel.de>",
   "synopsis": "A tool to manage analysis and verification information about Curry packages",
@@ -12,6 +12,7 @@
     "ansi-terminal"  : " >= 3.0.0, < 4.0.0",
     "currypath"      : " >= 3.0.0, < 4.0.0",
     "curry-interface": " >= 2.0.1, < 3.0.0",
+    "curry-source"   : " ^ 1.2.0",
     "det-parse"      : " >= 3.0.0, < 4.0.0",
     "directory"      : " >= 3.0.0, < 4.0.0",
     "execpath"       : " >= 3.0.0, < 4.0.0",

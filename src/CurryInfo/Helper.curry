@@ -15,7 +15,7 @@ import JSON.Data
 readSliceFromFile :: FilePath -> Int -> Int -> IO String
 readSliceFromFile fname start end = do
    h <- openFile fname ReadMode
-   mapM_ (\_ -> hGetLine h) [1..start]
+   mapM_ (\_ -> hGetLine h) [1 .. start]
    slicelines <- mapM (\_ -> hGetLine h) [1 .. (end-start)]
    hClose h
    return $ unlines slicelines

@@ -4,19 +4,22 @@
 ------------------------------------------------------------------------------
 
 module CurryInfo.SourceCode
-  ( getSourceFilePath, SourceCode(..), readSourceCode, readDocumentation
-  , getSourceCodeRef )
+  ( getSourceFilePath, SourceCode(..) )
  where
 
-import Data.List  ( isPrefixOf, isInfixOf, groupBy, last, elemIndex, findIndex )
-import Data.Maybe ( fromMaybe )
-
-import System.CurryPath ( lookupModuleSource )
-import System.Directory ( doesFileExist )
-import System.FilePath  ( (</>), (<.>) )
+import Control.Monad      ( unless )
+import Data.List          ( intercalate, isPrefixOf )
+import System.Environment ( setEnv )
 import System.IO
 
+import JSON.Convert     ( toJSON )
+import Language.Curry.SourceCodeClassifier
+import System.CurryPath ( lookupModuleSource )
+import System.Directory ( doesFileExist )
+import System.FilePath  ( searchPathSeparator )
+
 import CurryInfo.Helper    ( quote )
+import CurryInfo.JConvert
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Checkout  ( checkoutIfMissing )
@@ -24,51 +27,14 @@ import CurryInfo.Commands  ( cmdCPMPath, runCmd, getPackageLoadPath )
 import CurryInfo.Paths     ( stripRootPath )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )
+import CurryInfo.Writer    ( updateObjectInformation )
 
-type Checker = String -> Bool
+------------------------------------------------------------------------------
 
-
--- This operation returns the line number of the contents of the given handle
--- (counted from the second argument)
--- in which the given definition (specified by the checker) starts.
-getDefinitionLine :: Handle -> Checker -> Int -> IO (Maybe Int)
-getDefinitionLine h check lnum = do
-  eof <- hIsEOF h
-  if eof then return Nothing
-         else do l <- hGetLine h
-                 if check l then return (Just lnum)
-                            else getDefinitionLine h check (lnum+1)
-
--- This operation returns the lines of the contents of the given handle
--- up to the line where the predicate holds. This line is not included.
-getLinesUpTo :: Handle -> Checker -> IO (Maybe [String])
-getLinesUpTo = findLines []
- where
-  findLines ls h check = do
-    eof <- hIsEOF h
-    if eof then return Nothing
-           else do l <- hGetLine h
-                   if check l then return (Just (reverse ls))
-                              else findLines (l:ls) h check
-
--- This operation returns the line number of the contents of the given handle
--- (counted from the second argument) in which a definition of an entitity ends.
-belongsLine :: Handle -> Checker -> Int -> IO Int
-belongsLine h belong lnum = do
-  eof <- hIsEOF h
-  if eof then return lnum
-         else do l <- hGetLine h
-                 if belong l then belongsLine h belong (lnum+1)
-                             else return lnum
-
--- This operation determines whether a line belongs to a definition.
-belongs :: String -> Bool
-belongs l = isPrefixOf " " l || isPrefixOf "\t" l || null l
-
---- This operation returns the directory and the actual path of the source file
---- of the given module.
+--- This operation returns the package load path, the directory,
+--- and the actual path of the source file of the given module of the package.
 getSourceFilePath :: Options -> Package -> Version -> Module
-                  -> IO (Maybe (FilePath,FilePath))
+                  -> IO (Maybe ([String],FilePath,FilePath))
 getSourceFilePath opts pkg vsn m = do
   printDebugMessage opts $ "Getting source file path of " ++ quote m ++ "..."
   mpath <- checkoutIfMissing opts pkg vsn
@@ -83,12 +49,15 @@ getSourceFilePath opts pkg vsn m = do
                                                "for package '" ++ pkg ++ "'!"
                       return Nothing
         Just lpath -> do
+          let cpath = intercalate [searchPathSeparator] lpath
+          printDebugMessage opts $ "Load path of package: " ++ cpath
+          unless (null lpath) $ setEnv "CURRYPATH" cpath
           msrcpath <- lookupModuleSource lpath m
           case msrcpath of
             Nothing -> do printDebugMessage opts $ "Source file of module '" ++
                                                    m ++ "' not found!"
                           return Nothing
-            Just dirpath -> return (Just dirpath)
+            Just (dir,path) -> return (Just (lpath,dir,path))
 
 --- This operation returns a handle to the source file of the given module
 --- together with the path to the source file.
@@ -99,7 +68,7 @@ getSourceFileHandle opts pkg vsn m = do
   mpath <- getSourceFilePath opts pkg vsn m
   case mpath of
     Nothing   -> return Nothing
-    Just (_,path) -> do
+    Just (_,_,path) -> do
       printDebugMessage opts $ "Path to source file: " ++ path
       b <- doesFileExist path
       case b of
@@ -111,43 +80,17 @@ getSourceFileHandle opts pkg vsn m = do
           hdl <- openFile path ReadMode
           return (Just (stripRootPath opts path, hdl))
 
--- This operation looks for the part of the source code that corresponds to
--- the given checker and returns a reference to that part.
-getSourceCodeRef :: Options -> Checker -> (String -> Bool) -> String -> Handle
-                 -> IO (Maybe Reference)
-getSourceCodeRef opts check belong path hdl = do
-  printDebugMessage opts "Taking source code from file..."
-  getDefinitionLine hdl check 0 >>= \mi -> case mi of
-    Nothing -> do
-      printDebugMessage opts "Could not find definition."
-      hClose hdl
-      return Nothing
-    Just start -> do
-      stop <- belongsLine hdl belong start
-      hClose hdl
-      return (Just (Reference path start stop))
-
--- This operation looks for the documentation that corresponds to the given
--- checker and returns a reference to that part.
-getDocumentationRef :: Options -> Checker -> String -> Handle
-                    -> IO (Maybe Reference)
-getDocumentationRef opts check path hdl = do
-  printDebugMessage opts "Taking documentation from file..."
-  mls <- getLinesUpTo hdl check
-  hClose hdl
-  case mls of
-    Nothing -> do
-      printDebugMessage opts "Could not find definition."
-      return Nothing
-    Just ls -> do
-      let rls  = dropWhile isSpaceOrPPLine (reverse ls)
-          stop = length rls
-      case takeWhile (isPrefixOf "--") rls of
-        [] -> do printDebugMessage opts "Could not find documentation."
-                 return Nothing
-        gs -> return (Just (Reference path (stop - length gs) stop))
+-- This operation returns the lines of the contents of the given handle
+-- up to the line where the predicate holds. This line is not included.
+getLinesUpTo :: Handle -> (String -> Bool) -> IO (Maybe [String])
+getLinesUpTo = findLines []
  where
-  isSpaceOrPPLine s = all isSpace s || take 1 s == "#"
+  findLines ls h check = do
+    eof <- hIsEOF h
+    if eof then return Nothing
+           else do l <- hGetLine h
+                   if check l then return (Just (reverse ls))
+                              else findLines (l:ls) h check
 
 ------------------------------------------------------------------------------
 
@@ -176,102 +119,75 @@ instance SourceCode CurryModule where
           Nothing  -> return Nothing
           Just doc -> return (Just (Reference path 0 (length doc)))
 
--- This operation returns a checker that looks for the definition
--- of the given type.
-checkType :: Type -> Checker
-checkType t l = checkTypeWords (words l)
- where
-  checkTypeWords ws = case ws of
-    x:y:zs -> (x == "external" && checkTypeWords (y:zs)) ||
-              (x `elem` ["data", "type", "newtype"] &&
-               t == takeWhile isAlphaNum y)
-    _      -> False
-
 instance SourceCode CurryType where
-  readSourceCode opts (CurryType pkg vsn m t) = do
-    mresult <- getSourceFileHandle opts pkg vsn m
-    case mresult of
-      Nothing       -> return Nothing
-      Just (path,h) -> getSourceCodeRef opts (checkType t) belongs path h
-  
-  readDocumentation opts (CurryType pkg vsn m t) = do
-    mresult <- getSourceFileHandle opts pkg vsn m
-    case mresult of
-      Nothing       -> return Nothing
-      Just (path,h) -> getDocumentationRef opts (checkType t) path h
+  readSourceCode opts (CurryType pkg vsn mn en) = do
+    srcrefs <- readSourceReferences opts pkg vsn mn
+                 (map (\(o,_,r) -> (o,r)) <$> getTypesInModule mn)
+                 (QueryType pkg vsn mn) "definition"
+    returnEntityRef en srcrefs
 
--- This operation returns a checker that look for the definition of the
--- given type class.
-checkClass :: Class -> Checker
-checkClass c l = let
-    ls = words l
-    classIndex = elemIndex "class" ls
-    nameIndex = elemIndex c ls
-    arrowIndex = elemIndex "=>" ls
-  in
-    if isPrefixOf "class" l && elem c ls
-      then
-        fromMaybe False ((<) <$> classIndex <*> nameIndex) &&
-        fromMaybe True ((<) <$> arrowIndex <*> nameIndex)
-      else False
+  readDocumentation opts (CurryType pkg vsn mn en) = do
+    docrefs <- readSourceReferences opts pkg vsn mn
+                 (map (\(o,r,_) -> (o,r)) <$> getTypesInModule mn)
+                 (QueryType pkg vsn mn) "documentation"
+    returnEntityRef en docrefs
 
 instance SourceCode CurryClass where
-  readSourceCode opts (CurryClass pkg vsn m c) = do
-    mresult <- getSourceFileHandle opts pkg vsn m
-    case mresult of
-      Nothing       -> return Nothing
-      Just (path,h) -> getSourceCodeRef opts (checkClass c) belongs path h
-  
-  readDocumentation opts (CurryClass pkg vsn m c) = do
-    mresult <- getSourceFileHandle opts pkg vsn m
-    case mresult of
-      Nothing       -> return Nothing
-      Just (path,h) -> getDocumentationRef opts (checkClass c) path h
+  readSourceCode opts (CurryClass pkg vsn mn en) = do
+    srcrefs <- readSourceReferences opts pkg vsn mn
+                 (map (\(o,_,r) -> (o,r)) <$> getClassesInModule mn)
+                 (QueryClass pkg vsn mn) "definition"
+    returnEntityRef en srcrefs
 
--- A checker which is satisfied if the given line of the source code
--- is the start of the definition of the given operation, i.e., the operation
--- occurs as the first token in the line.
--- In case of operations used as infix operator, the checker assumes
--- an occurrence in parentheses, which is usually the case in type signatures.
-checkOperationStart :: Operation -> Checker
-checkOperationStart o l = o `isPrefixOf` l || ("(" ++ o ++ ")") `isPrefixOf` l
-
--- A checker which is satisfied if the given line of the source code
--- belongs to the definition of the given operation.
--- Since the operation might be used as an infix operator,
--- it is checked whether the operation occurs before an equal or external token.
-checkOperationDefinition :: Operation -> Checker
-checkOperationDefinition o l = let
-    ls               = words l
-    operationIndex   = elemIndex o ls
-    paranthesisIndex = elemIndex ("(" ++ o ++ ")") ls
-    typingIndex      = elemIndex "::" ls
-    equalIndex       = elemIndex "=" ls
-    externalIndex    = elemIndex "external" ls
-  in checkOperationStart o l ||
-     if (elem o ls || elem ("(" ++ o ++ ")") ls) &&
-        (elem "::" ls || elem "=" ls || elem "external" ls)
-       then fromMaybe False ((<) <$> operationIndex   <*> typingIndex  ) ||
-            fromMaybe False ((<) <$> operationIndex   <*> equalIndex   ) ||
-            fromMaybe False ((<) <$> operationIndex   <*> externalIndex) ||
-            fromMaybe False ((<) <$> paranthesisIndex <*> typingIndex  ) ||
-            fromMaybe False ((<) <$> paranthesisIndex <*> equalIndex   ) ||
-            fromMaybe False ((<) <$> paranthesisIndex <*> externalIndex)
-       else False
+  readDocumentation opts (CurryClass pkg vsn mn en) = do
+    docrefs <- readSourceReferences opts pkg vsn mn
+                 (map (\(o,r,_) -> (o,r)) <$> getClassesInModule mn)
+                 (QueryClass pkg vsn mn) "documentation"
+    returnEntityRef en docrefs
 
 instance SourceCode CurryOperation where
-  readSourceCode opts (CurryOperation pkg vsn m o) = do
-    mresult <- getSourceFileHandle opts pkg vsn m
-    case mresult of
-      Nothing          -> return Nothing
-      Just (path, hdl) -> do
-        getSourceCodeRef opts (checkOperationStart o)
-          (\l -> belongs l || checkOperationDefinition o l || isPrefixOf "#" l)
-          path hdl
-  
-  readDocumentation opts (CurryOperation pkg vsn m o) = do
-    mresult <- getSourceFileHandle opts pkg vsn m
-    case mresult of
-      Nothing          -> return Nothing
-      Just (path, hdl) -> getDocumentationRef opts (checkOperationStart o)
-                                              path hdl
+  readSourceCode opts (CurryOperation pkg vsn mn op) = do
+    oprefs <- readSourceReferences opts pkg vsn mn
+                (map (\(o,_,r) -> (o,r)) <$> getOperationsInModule mn)
+                (QueryOperation pkg vsn mn) "definition"
+    returnEntityRef op oprefs
+
+  readDocumentation opts (CurryOperation pkg vsn mn op) = do
+    oprefs <- readSourceReferences opts pkg vsn mn
+                (map (\(o,r,_) -> (o,r)) <$> getOperationsInModule mn)
+                (QueryOperation pkg vsn mn) "documentation"
+    returnEntityRef op oprefs
+
+returnEntityRef :: String -> Maybe [(String,Reference)] -> IO (Maybe Reference)
+returnEntityRef ent refs = do
+  return $ if null ent then Just (Reference "" 0 0)
+                       else maybe Nothing (lookup ent) refs
+
+-- Generic operation which reads source code references of entities
+-- in a module and stores them.
+-- The parameters are the options, package, version, module,
+-- an IO actions which reads all source code references,
+-- a `QueryObject` constructor for entities, and the field/request name.
+-- The list of entities together with their references is returned.
+readSourceReferences :: Options -> Package -> Version -> Module
+                     -> IO [(String,(Int,Int))] -> (String -> QueryObject)
+                     -> String -> IO (Maybe [(String,Reference)])
+readSourceReferences opts pkg vsn mn readrefs qoconstr field = do
+  mpath <- getSourceFilePath opts pkg vsn mn
+  case mpath of
+    Nothing   -> return Nothing
+    Just (loadpath,_,path) -> do
+      unless (null loadpath) $
+        setEnv "CURRYPATH" (intercalate [searchPathSeparator] loadpath)
+      ops <- readrefs
+      printDebugMessage opts $
+        "Documentation lines in module " ++ quote mn ++ "\n" ++ show ops
+      let spath = stripRootPath opts path
+      orefs <- mapM (\(o,(from,to)) ->
+                        addReference o (Reference spath (from-1) (to-1)))
+                    ops
+      return (Just orefs)
+ where
+  addReference n r = do
+    updateObjectInformation opts (qoconstr n) [(field, toJSON r)]
+    return (n, r)

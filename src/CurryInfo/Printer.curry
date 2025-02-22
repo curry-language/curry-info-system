@@ -155,8 +155,8 @@ pOperationCASSDemand opts s
   prettyDemand :: [Int] -> String
   prettyDemand ds = case ds of
     []  -> "no demanded arguments"
-    [d] -> "demanded argument position: " ++ show d
-    _   -> "demand argument positions: " ++ unwords (map show ds) 
+    [d] -> "argument " ++ show d
+    _   -> "arguments " ++ unwords (map show ds)
 
 pOperationCASSIndeterministic :: Printer String
 pOperationCASSIndeterministic _ = return
@@ -177,7 +177,7 @@ pOperationCASSTotal opts  s
   | optOutFormat opts == OutText = return $ maybeRead s prettyTotal s
   | otherwise                    = return s
  where
-  prettyTotal True  = "yes (i.e., always reducible on ground data terms)"
+  prettyTotal True  = "yes"
   prettyTotal False = "possibly non-reducible"
 
 pOperationCASSValues :: Printer String
@@ -231,15 +231,20 @@ printSourceCode opts ref = do
                  | otherwise      = s
 
 -- This action returns the content of the file the given reference points to.
+-- If the file name is empty (used for dummy objects), the empty string
+-- is returned.
 printFromReference :: Options -> Reference -> IO String
-printFromReference opts (Reference rpath start end) = do
-  let path = addRootPath opts rpath
-  b <- doesFileExist path
-  case b of
-    False -> returnFileError path
-    True -> do
-      printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-      readSliceFromFile path start end
+printFromReference opts (Reference rpath start end) =
+  if null rpath
+    then return ""
+    else do
+      let path = addRootPath opts rpath
+      b <- doesFileExist path
+      case b of
+        False -> returnFileError path
+        True -> do
+          printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
+          readSliceFromFile path start end
 
 -- Reads a string and apply the function (second argument) to the value.
 -- If there is a read error, return the third argument.
