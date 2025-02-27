@@ -122,26 +122,26 @@ instance SourceCode CurryModule where
 instance SourceCode CurryType where
   readSourceCode opts (CurryType pkg vsn mn en) = do
     srcrefs <- readSourceReferences opts pkg vsn mn
-                 (map (\(o,_,r) -> (o,r)) <$> getTypesInModule mn)
+                 (map (\(t,_,r) -> (t,r)) <$> getTypesInModule mn)
                  (QueryType pkg vsn mn) "definition"
     returnEntityRef en srcrefs
 
   readDocumentation opts (CurryType pkg vsn mn en) = do
     docrefs <- readSourceReferences opts pkg vsn mn
-                 (map (\(o,r,_) -> (o,r)) <$> getTypesInModule mn)
+                 (map (\(t,r,_) -> (t,r)) <$> getTypesInModule mn)
                  (QueryType pkg vsn mn) "documentation"
     returnEntityRef en docrefs
 
 instance SourceCode CurryClass where
   readSourceCode opts (CurryClass pkg vsn mn en) = do
     srcrefs <- readSourceReferences opts pkg vsn mn
-                 (map (\(o,_,r) -> (o,r)) <$> getClassesInModule mn)
+                 (map (\(c,_,r) -> (c,r)) <$> getClassesInModule mn)
                  (QueryClass pkg vsn mn) "definition"
     returnEntityRef en srcrefs
 
   readDocumentation opts (CurryClass pkg vsn mn en) = do
     docrefs <- readSourceReferences opts pkg vsn mn
-                 (map (\(o,r,_) -> (o,r)) <$> getClassesInModule mn)
+                 (map (\(c,r,_) -> (c,r)) <$> getClassesInModule mn)
                  (QueryClass pkg vsn mn) "documentation"
     returnEntityRef en docrefs
 
@@ -166,7 +166,7 @@ returnEntityRef ent refs = do
 -- Generic operation which reads source code references of entities
 -- in a module and stores them.
 -- The parameters are the options, package, version, module,
--- an IO actions which reads all source code references,
+-- an IO action which reads all source code references,
 -- a `QueryObject` constructor for entities, and the field/request name.
 -- The list of entities together with their references is returned.
 readSourceReferences :: Options -> Package -> Version -> Module
@@ -179,14 +179,15 @@ readSourceReferences opts pkg vsn mn readrefs qoconstr field = do
     Just (loadpath,_,path) -> do
       unless (null loadpath) $
         setEnv "CURRYPATH" (intercalate [searchPathSeparator] loadpath)
-      ops <- readrefs
+      -- ignore entities with empty reference:
+      ents <- filter (\(_,(from,to)) -> to > from) <$> readrefs
       printDebugMessage opts $
-        "Documentation lines in module " ++ quote mn ++ "\n" ++ show ops
+        "Documentation lines in module " ++ quote mn ++ "\n" ++ show ents
       let spath = stripRootPath opts path
-      orefs <- mapM (\(o,(from,to)) ->
-                        addReference o (Reference spath (from-1) (to-1)))
-                    ops
-      return (Just orefs)
+      entrefs <- mapM (\(e,(from,to)) ->
+                          addReference e (Reference spath (from-1) (to-1)))
+                      ents
+      return (Just entrefs)
  where
   addReference n r = do
     updateObjectInformation opts (qoconstr n) [(field, toJSON r)]
