@@ -5,10 +5,11 @@
 module CurryInfo.Options where
 
 
-import Control.Monad ( when, unless, filterM )
-import Data.List     ( intercalate, intersperse, splitOn )
-import Data.Maybe    ( catMaybes )
-import Numeric       ( readNat )
+import Control.Monad      ( when, unless, filterM )
+import Data.List          ( intercalate, intersperse, splitOn )
+import Data.Maybe         ( catMaybes )
+import Numeric            ( readNat )
+import System.Environment ( getEnv )
 
 import System.Console.GetOpt
 import System.Process (exitWith, system)
@@ -74,7 +75,7 @@ getQueryOptions :: IO Options
 getQueryOptions =
   fmap (\opts -> opts { optOutFormat = OutTerm }) getSilentOptions
 
--- This action takes the agruments given to the program and processes them.
+-- This action takes the arguments given to the program and processes them.
 -- If the help option is True, it prints the usage text and stops.
 -- If some error happens, an error message is printed and the program stops.
 processOptions :: String -> [String] -> IO (Options, [String])
@@ -84,14 +85,22 @@ processOptions banner argv = do
   unless (null opterrors)
     (putStr (unlines opterrors) >> printUsage >> exitWith 1)
   when (optHelp opts) (printUsage >> exitWith 0)
-  when (optCGI opts && (optServer opts || not (null (optOutFile opts)))) $ do
-    putStrLn "Options '--server' or '--output' not allowed in CGI mode!"
-    exitWith 1
+  when (optCGI opts) $ do
+    when (optServer opts || not (null (optOutFile opts))) $ do
+      putStrLn "Options '--server' or '--output' not allowed in CGI mode!"
+      exitWith 1
+    raddr <- getEnv "REMOTE_ADDR"
+    when (raddr `notElem` managerAddrs &&
+          (optForce opts > 0 || optClean opts || optUpdate opts)) $ do
+      putStrLn $ "Options not allowed in CGI mode:\n" ++ unwords argv
+      exitWith 1
   opts1 <- replaceHomeInOptions opts
   when (optClean opts1) (getObject opts1 >>= cleanObject opts1 >> exitWith 0)
   return (opts1, args)
  where
   printUsage = putStrLn (banner ++ "\n" ++ usageText)
+
+  managerAddrs = ["134.245.252.75"] -- ip of cpm.curry-lang.org
 
 -- The usage text of the program.
 usageText :: String

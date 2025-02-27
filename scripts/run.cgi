@@ -6,10 +6,6 @@ export LANG
 ulimit -t 300
 export HOME=`pwd`
 export PATH=$HOME/bin:$PATH
-#echo "Content-type: text/plain; charset=utf-8"
-#echo
-#echo START:
-#exec $HOME/bin/cypm config
 
 QUERYLOGFILE=QUERY.LOG
 ERRORLOGFILE=ERROR.LOG
