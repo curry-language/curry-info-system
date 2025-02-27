@@ -4,7 +4,8 @@
 ------------------------------------------------------------------------------
 
 module CurryInfo.SourceCode
-  ( getSourceFilePath, SourceCode(..) )
+  ( getSourceFilePath, readModuleDocumentation, readModuleSourceCode
+  , SourceCode(..) )
  where
 
 import Control.Monad      ( unless )
@@ -93,13 +94,9 @@ getLinesUpTo = findLines []
                               else findLines (l:ls) h check
 
 ------------------------------------------------------------------------------
-
-class SourceCode a where
-  readSourceCode    :: Options -> a -> IO (Maybe Reference)
-  readDocumentation :: Options -> a -> IO (Maybe Reference)
-
-instance SourceCode CurryModule where
-  readSourceCode opts (CurryModule pkg vsn m) = do
+--- Get reference of the module source code.
+readModuleSourceCode :: Options -> CurryModule -> IO (Maybe Reference)
+readModuleSourceCode opts (CurryModule pkg vsn m) = do
     mresult <- getSourceFileHandle opts pkg vsn m
     case mresult of
       Nothing -> return Nothing
@@ -107,8 +104,10 @@ instance SourceCode CurryModule where
         ls <- fmap lines (hGetContents h)
         let srclines = takeWhile (isPrefixOf "--") ls
         return (Just (Reference path (length srclines) (length ls)))
-  
-  readDocumentation opts (CurryModule pkg vsn m) = do
+
+--- Get reference of the module documentation.
+readModuleDocumentation :: Options -> CurryModule -> IO (Maybe Reference)
+readModuleDocumentation opts (CurryModule pkg vsn m) = do
     mresult <- getSourceFileHandle opts pkg vsn m
     case mresult of
       Nothing       -> return Nothing
@@ -119,43 +118,53 @@ instance SourceCode CurryModule where
           Nothing  -> return Nothing
           Just doc -> return (Just (Reference path 0 (length doc)))
 
+------------------------------------------------------------------------------
+-- Operations to read the entities of a module.
+
+-- Type class for module entities supporting reading the documentation
+-- and source code of entities. The second argument of the methods
+-- are the possible list of exported entities.
+class SourceCode a where
+  readSourceCode    :: Options -> Maybe [String] -> a -> IO (Maybe Reference)
+  readDocumentation :: Options -> Maybe [String] -> a -> IO (Maybe Reference)
+
 instance SourceCode CurryType where
-  readSourceCode opts (CurryType pkg vsn mn en) = do
+  readSourceCode opts exports (CurryType pkg vsn mn en) = do
     srcrefs <- readSourceReferences opts pkg vsn mn
                  (map (\(t,_,r) -> (t,r)) <$> getTypesInModule mn)
-                 (QueryType pkg vsn mn) "definition"
+                 (QueryType pkg vsn mn) "definition" exports
     returnEntityRef en srcrefs
 
-  readDocumentation opts (CurryType pkg vsn mn en) = do
+  readDocumentation opts exports (CurryType pkg vsn mn en) = do
     docrefs <- readSourceReferences opts pkg vsn mn
                  (map (\(t,r,_) -> (t,r)) <$> getTypesInModule mn)
-                 (QueryType pkg vsn mn) "documentation"
+                 (QueryType pkg vsn mn) "documentation" exports
     returnEntityRef en docrefs
 
 instance SourceCode CurryClass where
-  readSourceCode opts (CurryClass pkg vsn mn en) = do
+  readSourceCode opts exports (CurryClass pkg vsn mn en) = do
     srcrefs <- readSourceReferences opts pkg vsn mn
                  (map (\(c,_,r) -> (c,r)) <$> getClassesInModule mn)
-                 (QueryClass pkg vsn mn) "definition"
+                 (QueryClass pkg vsn mn) "definition" exports
     returnEntityRef en srcrefs
 
-  readDocumentation opts (CurryClass pkg vsn mn en) = do
+  readDocumentation opts exports (CurryClass pkg vsn mn en) = do
     docrefs <- readSourceReferences opts pkg vsn mn
                  (map (\(c,r,_) -> (c,r)) <$> getClassesInModule mn)
-                 (QueryClass pkg vsn mn) "documentation"
+                 (QueryClass pkg vsn mn) "documentation" exports
     returnEntityRef en docrefs
 
 instance SourceCode CurryOperation where
-  readSourceCode opts (CurryOperation pkg vsn mn op) = do
+  readSourceCode opts exports (CurryOperation pkg vsn mn op) = do
     oprefs <- readSourceReferences opts pkg vsn mn
                 (map (\(o,_,r) -> (o,r)) <$> getOperationsInModule mn)
-                (QueryOperation pkg vsn mn) "definition"
+                (QueryOperation pkg vsn mn) "definition" exports
     returnEntityRef op oprefs
 
-  readDocumentation opts (CurryOperation pkg vsn mn op) = do
+  readDocumentation opts exports (CurryOperation pkg vsn mn op) = do
     oprefs <- readSourceReferences opts pkg vsn mn
                 (map (\(o,r,_) -> (o,r)) <$> getOperationsInModule mn)
-                (QueryOperation pkg vsn mn) "documentation"
+                (QueryOperation pkg vsn mn) "documentation" exports
     returnEntityRef op oprefs
 
 returnEntityRef :: String -> Maybe [(String,Reference)] -> IO (Maybe Reference)
@@ -167,12 +176,14 @@ returnEntityRef ent refs = do
 -- in a module and stores them.
 -- The parameters are the options, package, version, module,
 -- an IO action which reads all source code references,
--- a `QueryObject` constructor for entities, and the field/request name.
--- The list of entities together with their references is returned.
+-- a `QueryObject` constructor for entities, the field/request name,
+-- and a possible list of exported entity names.
+-- The list of exported entities together with their references is returned.
 readSourceReferences :: Options -> Package -> Version -> Module
                      -> IO [(String,(Int,Int))] -> (String -> QueryObject)
-                     -> String -> IO (Maybe [(String,Reference)])
-readSourceReferences opts pkg vsn mn readrefs qoconstr field = do
+                     -> String -> Maybe [String]
+                     -> IO (Maybe [(String,Reference)])
+readSourceReferences opts pkg vsn mn readrefs qoconstr field mbexports = do
   mpath <- getSourceFilePath opts pkg vsn mn
   case mpath of
     Nothing   -> return Nothing
@@ -181,12 +192,15 @@ readSourceReferences opts pkg vsn mn readrefs qoconstr field = do
         setEnv "CURRYPATH" (intercalate [searchPathSeparator] loadpath)
       -- ignore entities with empty reference:
       ents <- filter (\(_,(from,to)) -> to > from) <$> readrefs
+      let expents = maybe ents
+                          (\exports -> filter ((`elem` exports) . fst) ents)
+                          mbexports
       printDebugMessage opts $
-        "Documentation lines in module " ++ quote mn ++ "\n" ++ show ents
+        "Source code lines in module " ++ quote mn ++ "\n" ++ show expents
       let spath = stripRootPath opts path
       entrefs <- mapM (\(e,(from,to)) ->
                           addReference e (Reference spath (from-1) (to-1)))
-                      ents
+                      expents
       return (Just entrefs)
  where
   addReference n r = do

@@ -35,7 +35,8 @@ import CurryInfo.Interface
 import CurryInfo.Parser     ( parseVersionConstraints )
 import CurryInfo.Paths
 import CurryInfo.RequestTypes
-import CurryInfo.SourceCode ( SourceCode, readSourceCode, readDocumentation )
+import CurryInfo.SourceCode ( SourceCode(..)
+                            , readModuleDocumentation, readModuleSourceCode )
 import CurryInfo.Types
 import CurryInfo.Verbosity  ( printDetailMessage, printDebugMessage)
 import CurryInfo.Writer     ( updateObjectInformation )
@@ -153,12 +154,12 @@ gModuleName opts (CurryModule pkg vsn mn) = do
 gModuleDocumentation :: Generator CurryModule Reference
 gModuleDocumentation opts x@(CurryModule pkg vsn mn) = do
   printModuleGenMsg opts pkg vsn mn "documentation"
-  generateDocumentation opts x
+  generateReference readModuleDocumentation opts x
 
 gModuleSourceCode :: Generator CurryModule Reference
 gModuleSourceCode opts x@(CurryModule pkg vsn mn) = do
   printModuleGenMsg opts pkg vsn mn "source code"
-  generateSourceCode opts x
+  generateReference readModuleSourceCode opts x
 
 gModuleUnsafeModule :: Generator CurryModule String
 gModuleUnsafeModule opts (CurryModule pkg vsn mn) = do
@@ -192,6 +193,7 @@ gModuleTypes opts (CurryModule pkg vsn mn) = do
                         getDeclarations interface
     in Just (allTypes \\ hiddenTypes)
 
+--- Generator for exported operations of a module.
 gModuleOperations :: Generator CurryModule [String]
 gModuleOperations opts (CurryModule pkg vsn mn) = do
   printModuleGenMsg opts pkg vsn mn "exported operations"
@@ -227,7 +229,8 @@ gTypeName opts (CurryType pkg vsn mn t) = do
 gTypeDocumentation :: Generator CurryType Reference
 gTypeDocumentation opts x@(CurryType pkg vsn mn t) = do
   printModEntityGenMsg opts pkg vsn mn t "type" "documentation"
-  generateDocumentation opts x
+  exports <- gModuleTypes opts (CurryModule pkg vsn mn)
+  generateDocumentation exports opts x
 
 gTypeConstructors :: Generator CurryType [String]
 gTypeConstructors opts (CurryType pkg vsn mn t) = do
@@ -241,7 +244,8 @@ gTypeConstructors opts (CurryType pkg vsn mn t) = do
 gTypeDefinition :: Generator CurryType Reference
 gTypeDefinition opts x@(CurryType pkg vsn mn t) = do
   printModEntityGenMsg opts pkg vsn mn t "type" "definition"
-  generateSourceCode opts x
+  exports <- gModuleTypes opts (CurryModule pkg vsn mn)
+  generateSourceCode exports opts x
 
 -- TYPECLASS
 
@@ -254,7 +258,8 @@ gClassName opts (CurryClass pkg vsn mn c) = do
 gClassDocumentation :: Generator CurryClass Reference
 gClassDocumentation opts x@(CurryClass pkg vsn mn c) = do
   printModEntityGenMsg opts pkg vsn mn c "class" "documentation"
-  generateDocumentation opts x
+  exports <- gModuleClasses opts (CurryModule pkg vsn mn)
+  generateDocumentation exports opts x
 
 gClassMethods :: Generator CurryClass [String]
 gClassMethods opts (CurryClass pkg vsn mn c) = do
@@ -268,7 +273,8 @@ gClassMethods opts (CurryClass pkg vsn mn c) = do
 gClassDefinition :: Generator CurryClass Reference
 gClassDefinition opts x@(CurryClass pkg vsn mn c) = do
   printModEntityGenMsg opts pkg vsn mn c "class" "definition"
-  generateSourceCode opts x
+  exports <- gModuleClasses opts (CurryModule pkg vsn mn)
+  generateSourceCode exports opts x
 
 -- OPERATION
 
@@ -281,13 +287,15 @@ gOperationName opts (CurryOperation pkg vsn m o) = do
 gOperationDocumentation :: Generator CurryOperation Reference
 gOperationDocumentation opts cop@(CurryOperation pkg vsn m o) = do
   printModEntityGenMsg opts pkg vsn m o "operation" "documentation"
-  generateDocumentation opts cop
+  exports <- gModuleOperations opts (CurryModule pkg vsn m)
+  generateDocumentation exports opts cop
 
 gOperationSourceCode :: Generator CurryOperation Reference
 gOperationSourceCode opts x@(CurryOperation pkg vsn m o)
   | isCurryID o || null o
   = do printModEntityGenMsg opts pkg vsn m o "operation" "source code"
-       generateSourceCode opts x
+       exports <- gModuleOperations opts (CurryModule pkg vsn m)
+       generateSourceCode exports opts x
   | otherwise = return Nothing
 
 --- Generator for signatures of operations.
@@ -443,7 +451,7 @@ createInfoGeneratorWith anadescr anafun opts (CurryOperation pkg vsn m o) = do
 
 --- Generator function to get a reference information.
 --- The first argument is the operation, that generates the reference.
-generateReference :: SourceCode a => (Options -> a -> IO (Maybe Reference))
+generateReference :: (Options -> a -> IO (Maybe Reference))
                   -> Generator a Reference
 generateReference fun opts obj = do
   mres <- fun opts obj
@@ -457,12 +465,14 @@ generateReference fun opts obj = do
       return $ Just res
 
 --- Generator function to get a reference to the documentation.
-generateDocumentation :: SourceCode a => Generator a Reference
-generateDocumentation = generateReference readDocumentation
+generateDocumentation :: SourceCode a => Maybe [String] -> Generator a Reference
+generateDocumentation exports =
+  generateReference (\opts x -> readDocumentation opts exports x)
 
 --- Generator function to get a reference to the source code.
-generateSourceCode :: SourceCode a => Generator a Reference
-generateSourceCode = generateReference readSourceCode
+generateSourceCode :: SourceCode a => Maybe [String] -> Generator a Reference
+generateSourceCode exports =
+  generateReference (\opts x -> readSourceCode opts exports x)
 
 --- Generator function to create an information generator using an analysis
 --- action provided as the second argument.
