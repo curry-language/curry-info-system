@@ -8,8 +8,8 @@ module CurryInfo.Information ( getInfos, printResult ) where
 import Control.Monad      ( unless, when, zipWithM)
 import Data.Char          ( toLower )
 import Data.Either        ( partitionEithers )
-import Data.List          ( (\\), find, isSuffixOf, sort, union )
-import Data.Maybe         ( catMaybes, isJust )
+import Data.List          ( (\\), find, isSuffixOf, partition, sort, union )
+import Data.Maybe         ( catMaybes, isJust, isNothing )
 import System.Environment ( getArgs )
 
 import JSON.Convert        ( fromJSON )
@@ -369,24 +369,26 @@ getCheckedInfosConfig opts queryobject reqs conf configobject
           True -> do
             printDetailMessage opts
               "Returning all currently available information..."
-            let fieldNames = sort (map fst fields)
-            case mapM (flip lookupRequest conf) fieldNames of
-              Nothing -> do
-                return $ OutputError $
-                  "One of the fields is not a request: " ++ show fieldNames
-              Just allReqs -> do
-                results <- zipWithM
-                            (\(_, _, extractor, _) fieldname ->
-                              fmap (\x -> (fieldname, x))
-                               (extractRequest opts fieldname extractor fields))
-                            allReqs
-                            fieldNames :: IO [(String, Maybe (JValue, String))]
-                let results' = map (\(r, mr) ->
-                                    (r,
-                                     maybe RequestUnknown
-                                           (uncurry RequestResult) mr))
-                                  results
-                return $ createOutput opts queryobject results'
+            let (okreqs,noreqs) = partition (isJust . snd)
+                                    (map (\fn -> (fn, lookupRequest fn conf))
+                                         (sort (map fst fields)))
+            unless (null noreqs) $ do
+              printStatusMessage opts $
+                "Warning: entity has fields that are not a request: " ++
+                unwords (map fst noreqs) ++ " (ignored)"
+            let allReqs = catMaybes (map snd okreqs)
+            results <- zipWithM
+                        (\(_, _, extractor, _) fieldname ->
+                          fmap (\x -> (fieldname, x))
+                            (extractRequest opts fieldname extractor fields))
+                        allReqs
+                        (map fst okreqs) :: IO[(String, Maybe (JValue, String))]
+            let results' = map (\(r, mr) ->
+                                (r,
+                                  maybe RequestUnknown
+                                        (uncurry RequestResult) mr))
+                              results
+            return $ createOutput opts queryobject results'
           False -> do
             printDetailMessage opts $
               "Extracting/Generating requests '" ++ unwords reqs ++ "' for " ++

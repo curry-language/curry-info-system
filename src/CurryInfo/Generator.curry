@@ -350,7 +350,7 @@ gOperationPrecedence opts (CurryOperation pkg vsn m o) = do
   addPrecedence decls fn = do
     let fixity = getInfixDecl fn decls >>= getOperationPrecedence
     updateObjectInformation opts (QueryOperation pkg vsn m fn)
-                            [("prededence", toJSON fixity)]
+                            [("precedence", toJSON fixity)]
     return (fn,fixity)
 
 

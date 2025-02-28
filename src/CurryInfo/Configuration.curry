@@ -114,7 +114,7 @@ data RegisteredRequest a = RegisteredRequest
 
 -- This operation looks up a request with the given string, returning
 -- the parts of the request.
--- (name, description, extraction, generation)
+-- The result components are the name, description, extractor, and generator.
 lookupRequest :: String -> Configuration a
   -> Maybe (String, String,
             Options -> [(String, JValue)] -> IO (Maybe (JValue, String)),
