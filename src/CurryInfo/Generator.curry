@@ -104,7 +104,7 @@ gVersionDocumentation opts (CurryVersion pkg vsn) = do
   printDetailMessage opts $
     "Generating documentation for version '" ++ vsn ++ "' of package '" ++
     pkg ++ "'..."
-  path <- packageREADMEPath opts pkg vsn >>= return . stripRootPath opts
+  path <- (stripRootPath opts) <$> packageREADMEPath opts pkg vsn 
   printDetailMessage opts "Generating finished successfully."
   return $ Just path
 

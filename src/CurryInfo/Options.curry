@@ -118,11 +118,11 @@ usageText =
 getObject :: Options -> IO (Maybe QueryObject)
 getObject opts = do
   let entopts = catMaybes [ extractOpt "package"   (optPackage opts)
-                 , extractOpt "version"   (optVersion opts)
-                 , extractOpt "module"    (optModule opts)
-                 , extractOpt "type"      (optType opts)
-                 , extractOpt "class"     (optClass opts)
-                 , extractOpt "operation" (optOperation opts) ]
+                          , extractOpt "version"   (optVersion opts)
+                          , extractOpt "module"    (optModule opts)
+                          , extractOpt "type"      (optType opts)
+                          , extractOpt "class"     (optClass opts)
+                          , extractOpt "operation" (optOperation opts) ]
   case entopts of
     [] -> return Nothing
     [("package", pkg)] -> return $ Just $ QueryPackage pkg

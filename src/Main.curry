@@ -9,11 +9,13 @@ import System.Environment ( getArgs, getEnv )
 import System.Process     ( exitWith )
 
 import CurryInfo.Commands        ( runCmd, cmdCPMUpdate )
-import CurryInfo.Information     ( getInfos, printResult )
+import CurryInfo.Helper          ( quote )
+import CurryInfo.Information     ( getAllPackageNames, getInfos, printResult )
 import CurryInfo.Options         ( processOptions, getObject )
+import CurryInfo.Paths           ( getReducedDirectoryContents, packagesPath )
 import CurryInfo.Server.Server   ( startServer )
 import CurryInfo.Types
-import CurryInfo.Verbosity       ( printErrorMessage )
+import CurryInfo.Verbosity       ( printDebugMessage, printDetailMessage, printErrorMessage )
 
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
@@ -40,10 +42,8 @@ main = do
   if optServer opts
     then startServer opts
     else getObject opts >>=
-         maybe (printErrorMessage "Package name is required (use --help)"
-                  >> exitWith 1)
-               (\obj -> do res <- getInfos opts obj margs
-                           printResult opts res
+         maybe (getAllPackageNames opts >>= printResult opts >> return ())
+               (\obj -> do getInfos opts obj margs >>= printResult opts
                            return ())
 
 -- From HTML.Base:

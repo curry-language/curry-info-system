@@ -30,8 +30,7 @@ removeServerPortNumber opts = removeFile (serverPortFileName opts)
 
 --- This action reads the currently stored port from the server port file.
 readServerPortPid :: Options -> IO (Int, Int)
-readServerPortPid opts =
-  readCompleteFile (serverPortFileName opts) >>= return . read
+readServerPortPid opts = read <$> readCompleteFile (serverPortFileName opts)
 
 --- The wait time for accepting sockets.
 waitTime :: Int

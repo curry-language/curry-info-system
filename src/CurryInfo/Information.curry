@@ -3,7 +3,9 @@
 --- to get information about objects.
 -----------------------------------------------------------------------------
 
-module CurryInfo.Information ( getInfos, printResult ) where
+module CurryInfo.Information
+  ( getAllPackageNames, getInfos, printResult )
+ where
 
 import Control.Monad      ( unless, when, zipWithM)
 import Data.Char          ( toLower )
@@ -22,8 +24,9 @@ import System.FilePath     ( (</>), (<.>) )
 
 
 import CurryInfo.Configuration
-import CurryInfo.Paths     ( getCPMIndex, jsonFile2Name
-                           , objectDirectory, objectJSONPath, realNameField )
+import CurryInfo.Paths     ( getCPMIndex, getReducedDirectoryContents
+                           , jsonFile2Name, objectDirectory, objectJSONPath
+                           , packagesPath, realNameField )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Reader
@@ -60,6 +63,22 @@ generateOutputError opts err = do
                                      OutJSON -> OutputJSON (JString err)
                                      OutTerm -> OutputError err
 
+--- Get the names of all packages stored in CurryInfo.
+getAllPackageNames :: Options -> IO Output
+getAllPackageNames opts = do
+  let pkgdir = packagesPath opts
+  printDetailMessage opts $ "Reading content of directory " ++ quote pkgdir
+  contents <- sort <$> getReducedDirectoryContents pkgdir
+  printDebugMessage opts $ "Packages found: " ++ unwords contents
+  return $ case optOutFormat opts of
+    OutText -> OutputText $
+                withColor opts green "packages" ++ ": " ++ 
+                unwords contents
+    OutJSON -> OutputJSON $ JObject $ toJObject $
+                  [("packages", JArray (map JString contents))]
+    OutTerm -> OutputTerm [("packages", show contents)]
+
+------------------------------------------------------------------------------
 --- This action process the given requests for the given query object and
 --- returns the output for the requests.
 getInfos :: Options -> QueryObject -> [String] -> IO Output
@@ -373,7 +392,7 @@ getCheckedInfosConfig opts queryobject reqs conf configobject
                                     (map (\fn -> (fn, lookupRequest fn conf))
                                          (sort (map fst fields)))
             unless (null noreqs) $ do
-              printStatusMessage opts $
+              printErrorMessage $
                 "Warning: entity has fields that are not a request: " ++
                 unwords (map fst noreqs) ++ " (ignored)"
             let allReqs = catMaybes (map snd okreqs)

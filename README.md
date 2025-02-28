@@ -1,5 +1,5 @@
-A tool to manage analysis and verification information about Curry packages
-===========================================================================
+CurryInfo: A tool to manage analysis and verification information about Curry packages
+======================================================================================
 
 This package contains the implementation of a tool to collect and
 provide analysis and verification information about Curry modules
@@ -57,6 +57,12 @@ supported and used by `curry-info`, run the following commands:
     > cypm install cass              # installs executable cass
     > cypm install verify-non-fail   # installs executable curry-calltypes
 
+When `curry-info` is called without options, the list of all packages
+currently stored in CurryInfo is shown:
+
+    > curry-info
+    packages: abstract-curry abstract-haskell addtypes ...
+
 
 Technical notes
 ---------------
@@ -67,7 +73,7 @@ Technical notes
   can be changed by the option `--cache`.
 
 - The name of a module entity (operation, type, class) can also be
-  an empty string. In this case,   the analysis is performed
+  an empty string. In this case, the analysis is performed
   (if the value of the `force` option is non-zero)
   but a result is not shown. This is useful for program analyses
   which compute at once information about all operations of a module,
