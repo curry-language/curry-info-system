@@ -1,7 +1,7 @@
 module Main ( main )
  where
 
-import Control.Monad      ( when )
+import Control.Monad      ( unless, when )
 import Data.List          ( splitOn )
 import Numeric            ( readHex )
 import System.Directory   ( createDirectoryIfMissing )
@@ -14,13 +14,15 @@ import CurryInfo.Information     ( getAllPackageNames, getInfos, printResult )
 import CurryInfo.Options         ( processOptions, getObject )
 import CurryInfo.Paths           ( getReducedDirectoryContents, packagesPath )
 import CurryInfo.Server.Server   ( startServer )
+import CurryInfo.ToHTML          ( generateCurryInfoHTML )
 import CurryInfo.Types
-import CurryInfo.Verbosity       ( printDebugMessage, printDetailMessage, printErrorMessage )
+import CurryInfo.Verbosity       ( printDebugMessage, printDetailMessage
+                                 , printErrorMessage )
 
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
  where
-  bannerText = "Curry Package Information System (Version of 28/02/25)"
+  bannerText = "Curry Package Information System (Version of 02/03/25)"
   bannerLine = take (length bannerText) (repeat '=')
 
 main :: IO ()
@@ -39,6 +41,9 @@ main = do
     createDirectoryIfMissing True path
     (ec,_,_) <- runCmd opts (cmdCPMUpdate opts path)
     exitWith ec
+  unless (null (optHTMLDir opts)) $ do
+    generateCurryInfoHTML opts
+    exitWith 0
   if optServer opts
     then startServer opts
     else getObject opts >>=

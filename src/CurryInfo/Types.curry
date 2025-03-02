@@ -29,7 +29,8 @@ data Options = Options
   , optClass          :: Maybe String -- the requested type class
   , optOperation      :: Maybe String -- the requested operation
   , optOutFormat      :: OutFormat    -- the output format
-  , optOutFile        :: String       -- posible file name to store output
+  , optOutFile        :: String       -- possible file name to store output
+  , optHTMLDir        :: String       -- directory to generate HTML cache copy?
   , optClean          :: Bool         -- clean up information
   , optColor          :: Bool         -- use colors in text output
   , optShowAll        :: Bool         -- show all currently available infos

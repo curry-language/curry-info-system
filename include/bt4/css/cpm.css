@@ -1,0 +1,34 @@
+/* Changes to default bootstrap style: */
+
+body {
+  padding-top: 80px;
+  padding-bottom: 40px;
+}
+
+.jumbotron {
+  padding: 10px 20px;
+}
+
+/* padding for in-page bookmarks and fixed navbar */
+section {
+  padding-top: 30px;
+}
+
+.sidebar-nav > li > a {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  line-height: 15px;
+}
+
+.anchored {
+  padding-top: 40px;
+}
+
+/* type name at header positions */
+.typeheader {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+code { color:black }
+

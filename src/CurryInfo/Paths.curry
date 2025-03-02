@@ -40,12 +40,15 @@ objectJSONPath opts qo =
     QueryPackage pkg       -> path </> pkg <.> "json"
     QueryVersion _ vsn     -> path </> vsn <.> "json"
     QueryModule _ _ m      -> path </> m <.> "json"
-    QueryType _ _ _ t      -> path </> t <.> "json"
-    QueryClass _ _ _ c     -> path </> c <.> "json"
-    QueryOperation _ _ _ o ->
-      let name = if isSimpleID o then o
-                                 else '_': concatMap (intToHex . ord) o
-      in (path </> name <.> "json")
+    QueryType _ _ _ t      -> path </> encodeFilePath t <.> "json"
+    QueryClass _ _ _ c     -> path </> encodeFilePath c <.> "json"
+    QueryOperation _ _ _ o -> path </> encodeFilePath o <.> "json"
+
+--- Encode a file path if it contains special characters with a hexadecimal
+--- string encoding.
+encodeFilePath :: String -> String
+encodeFilePath s = if isSimpleID s then s
+                                   else '_': concatMap (intToHex . ord) s
  where
   isSimpleID []     = False
   isSimpleID (x:xs) = isAlpha x && all (\c -> isAlphaNum c || c `elem` ".'_") xs
@@ -57,7 +60,6 @@ objectJSONPath opts qo =
    where
     cs = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
           'A', 'B', 'C', 'D', 'E', 'F']
-
 
 --- Translates a JSON file name (without directory but with suffix `.json`)
 --- into name of corresponding entity.

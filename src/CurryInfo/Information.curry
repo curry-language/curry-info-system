@@ -72,8 +72,7 @@ getAllPackageNames opts = do
   printDebugMessage opts $ "Packages found: " ++ unwords contents
   return $ case optOutFormat opts of
     OutText -> OutputText $
-                withColor opts green "packages" ++ ": " ++ 
-                unwords contents
+                 withColor opts green "packages: " ++ unwords contents
     OutJSON -> OutputJSON $ JObject $ toJObject $
                   [("packages", JArray (map JString contents))]
     OutTerm -> OutputTerm [("packages", show contents)]
@@ -542,7 +541,7 @@ createOutput opts obj results = case optOutFormat opts of
   OutText -> OutputText $ unlines $
               (if outputSingleEntity then []
                                      else [object2StringTuple obj]) ++
-              map (\(r, ir) -> withColor opts green r ++ ": " ++ 
+              map (\(r, ir) -> withColor opts green (r ++ ": ") ++ 
                   fromRequestResult (withColor opts red "?") id (flip const) ir)
                   results
   OutJSON -> OutputJSON $ JObject $ toJObject $

@@ -2,7 +2,10 @@
 --- This modules defines sets of options and operations to process them.
 ------------------------------------------------------------------------------
 
-module CurryInfo.Options where
+module CurryInfo.Options
+  ( getDefaultOptions, getSilentOptions, getQueryOptions, withColor
+  , processOptions, getObject )
+ where
 
 
 import Control.Monad      ( when, unless, filterM )
@@ -44,8 +47,8 @@ withColor opts coloring = if optColor opts then coloring else id
 --- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions =
-  Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText ""
-          False False False False False Nothing False False False False
+  Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText
+          "" "" False False False False False Nothing False False False False
           defaultCacheRoot
 
 --- Get the default options used by the tool where occurrences of `$HOME`
@@ -91,7 +94,8 @@ processOptions banner argv = do
       exitWith 1
     raddr <- getEnv "REMOTE_ADDR"
     when (raddr `notElem` managerAddrs &&
-          (optForce opts > 0 || optClean opts || optUpdate opts)) $ do
+          (optForce opts > 0 || optClean opts || optUpdate opts ||
+           not (null (optHTMLDir opts)))) $ do
       putStrLn $ "Options not allowed in CGI mode:\n" ++ unwords argv
       exitWith 1
   opts1 <- replaceHomeInOptions opts
@@ -299,11 +303,14 @@ options =
        (NoArg (\opts -> opts { optServer = True }))
        "run the tool in server mode"
   , Option "" ["port"]
-       (ReqArg (\args opts -> opts { optPort = safeRead args }) "<port>")
+       (ReqArg (\arg opts -> opts { optPort = safeRead arg }) "<port>")
        "specify port used in server mode"
   , Option "" ["update"]
        (NoArg (\opts -> opts { optUpdate = True }))
        "update package index (by 'cypm update')"
+  , Option "" ["htmldir"]
+       (ReqArg (\arg opts -> opts { optHTMLDir = arg }) "<d>")
+       "generate HTML version of local cache into <d>"
   , Option "" ["cache"]
        (ReqArg (\arg opts -> opts { optCacheRoot = arg }) "<dir>")
        ("root of the local cache\n(default: " ++ defaultCacheRoot ++ ")")
