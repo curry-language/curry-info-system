@@ -16,25 +16,26 @@ import Data.List           ( intercalate, isPrefixOf, isSuffixOf, last, sort )
 import Data.Time           ( CalendarTime, calendarTimeToString, getLocalTime )
 import HTML.Base
 import HTML.Styles.Bootstrap4
-import JSON.Pretty         ( ppJSON )
+import JSON.Pretty              ( ppJSON )
 import Language.Curry.Resources ( cpmHomeURL, curryHomeURL )
-import System.Directory    ( doesDirectoryExist, getDirectoryContents
-                           , doesFileExist )
-import System.FilePath     ( (</>), (<.>) )
-import System.Process      ( exitWith, system )
+import System.Directory         ( doesDirectoryExist, getDirectoryContents
+                                , doesFileExist, getAbsolutePath )
+import System.FilePath          ( (</>), (<.>) )
+import System.Process           ( exitWith, system )
 
-import CurryInfo.Helper      ( isCurryID )
-import CurryInfo.Information ( getInfos, printResult )
-import CurryInfo.Options     ( getDefaultOptions, getDefaultOptions )
-import CurryInfo.Paths       ( jsonFile2Name, encodeFilePath )
-import CurryInfo.Types       ( Options(..), QueryObject(..), prettyObject
-                             , OutFormat(..), Output(..), optCacheRoot, optHTMLDir )
+import CurryInfo.ConfigPackage  ( getPackagePath )
+import CurryInfo.Helper         ( isCurryID )
+import CurryInfo.Information    ( getInfos, printResult )
+import CurryInfo.Options        ( getDefaultOptions, getDefaultOptions )
+import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath )
+import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
+                                , OutFormat(..), Output(..) )
 
 ------------------------------------------------------------------------------
 --- Generate HTML pages for the CurryInfo cache.
 generateCurryInfoHTML :: Options -> IO ()
 generateCurryInfoHTML opts = do
-  let basedir = optHTMLDir opts
+  basedir    <- getAbsolutePath (optHTMLDir opts)
   exbasedir  <- doesDirectoryExist basedir
   exbasefile <- doesFileExist basedir
   when (exbasedir || exbasefile) $ do
@@ -43,12 +44,15 @@ generateCurryInfoHTML opts = do
     exitWith 1
   putStrLn $ "Copying CurryInfo cache to '" ++ basedir ++ "'..."
   system $ "/bin/cp -a '" ++ optCacheRoot opts ++ "' '" ++ basedir ++ "'"
+  bt4dir <- (</> "include" </> "bt4") <$> getPackagePath
+  system $ "/bin/cp -a '" ++ bt4dir ++ "' '" ++ (basedir </> "bt4") ++ "'"
   directoryAsHTML opts ("index.html", [htxt $ "All Packages"])
                   1 basedir ["packages"]
 
 ------------------------------------------------------------------------------
--- Generates a HTML representation of the contents of a directory.
-directoryAsHTML :: Options -> (String,[BaseHtml]) -> Int -> FilePath -> [String] -> IO ()
+-- Generates HTML representation of the contents of a directory.
+directoryAsHTML :: Options -> (String,[BaseHtml]) -> Int -> FilePath -> [String]
+                -> IO ()
 directoryAsHTML opts (home,brand) d base dirs = do
   exdir <- doesDirectoryExist basedir
   when exdir $ do
