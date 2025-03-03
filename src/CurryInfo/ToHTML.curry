@@ -17,17 +17,18 @@ import Data.Time           ( CalendarTime, calendarTimeToString, getLocalTime )
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import JSON.Pretty              ( ppJSON )
-import Language.Curry.Resources ( cpmHomeURL, curryHomeURL )
-import System.Directory         ( doesDirectoryExist, getDirectoryContents
-                                , doesFileExist, getAbsolutePath )
+import Language.Curry.Resources ( cpmHomeURL, curryHomeURL, masalaHomeURL )
+import System.Directory         ( createDirectory, doesDirectoryExist
+                                , doesFileExist, getDirectoryContents
+                                , getAbsolutePath )
 import System.FilePath          ( (</>), (<.>) )
 import System.Process           ( exitWith, system )
 
 import CurryInfo.ConfigPackage  ( getPackagePath )
-import CurryInfo.Helper         ( isCurryID )
+import CurryInfo.Helper         ( isCurryID, quote )
 import CurryInfo.Information    ( getInfos, printResult )
 import CurryInfo.Options        ( getDefaultOptions, getDefaultOptions )
-import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath )
+import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath, packagesPath )
 import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
                                 , OutFormat(..), Output(..) )
 
@@ -35,19 +36,35 @@ import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
 --- Generate HTML pages for the CurryInfo cache.
 generateCurryInfoHTML :: Options -> IO ()
 generateCurryInfoHTML opts = do
-  basedir    <- getAbsolutePath (optHTMLDir opts)
-  exbasedir  <- doesDirectoryExist basedir
-  exbasefile <- doesFileExist basedir
-  when (exbasedir || exbasefile) $ do
-    putStrLn $ "'" ++ basedir ++ "' exists!"
+  htmldir    <- getAbsolutePath (optHTMLDir opts)
+  when (optForce opts > 1) $
+    (system ("/bin/rm -rf " ++ quote htmldir) >> return ())
+  exhtmldir  <- doesDirectoryExist htmldir
+  exhtmlfile <- doesFileExist htmldir
+  when (exhtmldir || exhtmlfile) $ do
+    putStrLn $ "'" ++ htmldir ++ "' exists!"
     putStrLn "Please delete it or select another target directory!"
     exitWith 1
-  putStrLn $ "Copying CurryInfo cache to '" ++ basedir ++ "'..."
-  system $ "/bin/cp -a '" ++ optCacheRoot opts ++ "' '" ++ basedir ++ "'"
-  bt4dir <- (</> "include" </> "bt4") <$> getPackagePath
-  system $ "/bin/cp -a '" ++ bt4dir ++ "' '" ++ (basedir </> "bt4") ++ "'"
+  putStrLn $ "Copying CurryInfo cache to " ++ quote htmldir ++ "..."
+  createDirectory htmldir
+  system $ "/bin/cp -a " ++ quote (packagesPath opts) ++ " " ++ quote htmldir
+  putStrLn $ "Creating HTML files in " ++ quote htmldir ++ "..."
   directoryAsHTML opts ("index.html", [htxt $ "All Packages"])
-                  1 basedir ["packages"]
+                  1 htmldir ["packages"]
+  pipath <- (</> "include") <$> getPackagePath
+  ec <- copyIncludes pipath htmldir
+  unless (ec == 0) $ (copyIncludes "include" htmldir >> return ())
+  return ()
+ where
+  copyIncludes idir htmldir = do
+    exidir <- doesDirectoryExist idir
+    if exidir
+      then do
+        system $ "/bin/cp -a " ++ quote (idir </> "bt4") ++ " " ++ quote htmldir
+        system $
+          "/bin/cp " ++ quote (idir </> "index.html") ++ " " ++ quote htmldir
+        system $ "chmod -R go+rX " ++ quote htmldir
+      else return 1
 
 ------------------------------------------------------------------------------
 -- Generates HTML representation of the contents of a directory.
@@ -70,7 +87,7 @@ directoryAsHTML opts (home,brand) d base dirs = do
     htmldoc <- subdirHtmlPage navobj (home,brand) d
                 [h1 [smallMutedText navobj]] doc 
     let htmlsrcfile = basedir </> "index.html"
-    writeReadableFile htmlsrcfile htmldoc
+    writeFile htmlsrcfile htmldoc
     putStrLn $ htmlsrcfile ++ " written"
  where
   isReal fn = not ("." `isPrefixOf` fn) && not (".html" `isSuffixOf` fn) &&
@@ -113,7 +130,7 @@ directoryAsHTML opts (home,brand) d base dirs = do
         docs <- subdirHtmlPage navobj (home,brand) d
                   [h1 [smallMutedText navobj]] (structureText infotxt)
         let htmlfile = encodeFilePath n <.> "html"
-        writeReadableFile (basedir </> htmlfile) docs
+        writeFile (basedir </> htmlfile) docs
         return htmlfile
 
 -- Use the coloring of CurryInfo results to structure the result text.
@@ -190,11 +207,6 @@ dirs2Object dirs = case dirs of
 ------------------------------------------------------------------------------
 -- Helpers:
 
---- Writes a file readable for all:
-writeReadableFile :: String -> String -> IO ()
-writeReadableFile f s =
-  writeFile f s >> system ("chmod 644 '" ++ f ++ "'") >> return ()
-
 --- A small muted text (used in the title):
 smallMutedText :: String -> BaseHtml
 smallMutedText s = htmlStruct "small" [("class","text-muted")] [htxt s]
@@ -228,8 +240,6 @@ rightTopMenu =
   , [ehrefNav cpmHomeURL    [htxt "Curry Package Manager"]]
   , [ehrefNav curryHomeURL  [htxt "Curry Homepage"]]
   ]
- where
-  masalaHomeURL = "https://cpm.curry-lang.org/masala/run.cgi"
 
 -- Standard footer information for generated web pages:
 curryDocFooter :: CalendarTime -> [BaseHtml]
