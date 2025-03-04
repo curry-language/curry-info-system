@@ -45,15 +45,18 @@ pVersionVersion :: Printer Version
 pVersionVersion _ vsn = return vsn
 
 pVersionDocumentation :: Printer String
-pVersionDocumentation opts vpath = do
-  let path = addRootPath opts vpath
-  b <- doesFileExist path
-  case b of
-    False -> returnFileError path
-    True -> do
-      printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
-      content <- readCompleteFile path
-      return $ (if optOutFormat opts == OutText then "\n" else "") ++ content
+pVersionDocumentation opts vpath =
+  if null vpath
+    then return "" -- no README file in package
+    else do
+      let path = addRootPath opts vpath
+      b <- doesFileExist path
+      case b of
+        False -> returnFileError path
+        True -> do
+          printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
+          vdoc <- readCompleteFile path
+          return $ (if optOutFormat opts == OutText then "\n" else "") ++ vdoc
 
 pVersionCategories :: Printer [Category]
 pVersionCategories _ cats = return (show cats)
