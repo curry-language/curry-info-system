@@ -31,6 +31,7 @@ import CurryInfo.Options        ( getDefaultOptions, getDefaultOptions )
 import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath, packagesPath )
 import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
                                 , OutFormat(..), Output(..) )
+import CurryInfo.Verbosity      ( printStatusMessage, printErrorMessage )
 
 ------------------------------------------------------------------------------
 --- Generate HTML pages for the CurryInfo cache.
@@ -42,13 +43,15 @@ generateCurryInfoHTML opts = do
   exhtmldir  <- doesDirectoryExist htmldir
   exhtmlfile <- doesFileExist htmldir
   when (exhtmldir || exhtmlfile) $ do
-    putStrLn $ "'" ++ htmldir ++ "' exists!"
-    putStrLn "Please delete it or select another target directory!"
+    printErrorMessage $ "'" ++ htmldir ++ "' exists!"
+    printErrorMessage
+      "Use '-f2' to  delete it or select another target directory!"
     exitWith 1
-  putStrLn $ "Copying CurryInfo cache to " ++ quote htmldir ++ "..."
+  printStatusMessage opts $
+    "Copying CurryInfo cache to " ++ quote htmldir ++ "..."
   createDirectory htmldir
   system $ "/bin/cp -a " ++ quote (packagesPath opts) ++ " " ++ quote htmldir
-  putStrLn $ "Creating HTML files in " ++ quote htmldir ++ "..."
+  printStatusMessage opts $ "Creating HTML files in " ++ quote htmldir ++ "..."
   directoryAsHTML opts ("index.html", [htxt $ "All Packages"])
                   1 htmldir ["packages"]
   pipath <- (</> "include") <$> getPackagePath
@@ -88,7 +91,7 @@ directoryAsHTML opts (home,brand) d base dirs = do
                 [h1 [smallMutedText navobj]] doc 
     let htmlsrcfile = basedir </> "index.html"
     writeFile htmlsrcfile htmldoc
-    putStrLn $ htmlsrcfile ++ " written"
+    printStatusMessage opts $ htmlsrcfile ++ " written"
  where
   isReal fn = not ("." `isPrefixOf` fn) && not (".html" `isSuffixOf` fn) &&
               not (".txt" `isSuffixOf` fn)
@@ -122,7 +125,8 @@ directoryAsHTML opts (home,brand) d base dirs = do
       = return filename
      where
       genInfoResult obj = do
-        putStrLn $ "Generating infos for object: " ++ prettyObject obj
+        printStatusMessage opts $
+          "Generating infos for object: " ++ prettyObject obj
         let htmlopts = opts { optShowAll = True, optOutFormat = OutText
                             , optColor = True }
         infotxt <- resultText <$> getInfos htmlopts obj []
