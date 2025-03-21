@@ -5,6 +5,7 @@
 
 module CurryInfo.Printer where
 
+import Data.Char           ( toLower )
 import Data.List           ( init, last )
 import System.Directory    ( doesFileExist )
 import System.IOExts       ( readCompleteFile )
@@ -37,7 +38,7 @@ pPackageName :: Printer Package
 pPackageName _ s = return s
 
 pPackageVersions :: Printer [Version]
-pPackageVersions _ vsns = return (show vsns)
+pPackageVersions opts vsns = pStringList opts vsns
 
 -- VERSION
 
@@ -56,13 +57,13 @@ pVersionDocumentation opts vpath =
         True -> do
           printDebugMessage opts $ "Reading from file '" ++ path ++ "'..."
           vdoc <- readCompleteFile path
-          return $ (if optOutFormat opts == OutText then "\n" else "") ++ vdoc
+          return $ (if isTextFormat opts then "\n" else "") ++ vdoc
 
 pVersionCategories :: Printer [Category]
-pVersionCategories _ cats = return (show cats)
+pVersionCategories opts cats = pStringList opts cats
 
 pVersionModules :: Printer [String]
-pVersionModules _ mods = return (show mods)
+pVersionModules opts mods = pStringList opts mods
 
 pVersionDependencies :: Printer [Dependency]
 pVersionDependencies _ deps = return (show deps)
@@ -80,8 +81,8 @@ pModuleSourceCode = printSourceCode
 
 pModuleUnsafeModule :: Printer String
 pModuleUnsafeModule opts safe
-  | optOutFormat opts == OutText = return $ maybeRead safe showUnsafeMods safe
-  | otherwise                    = return safe
+  | isTextFormat opts = return $ maybeRead safe showUnsafeMods safe
+  | otherwise         = return safe
  where
   showUnsafeMods ms =
     if null ms then "safe"
@@ -89,13 +90,13 @@ pModuleUnsafeModule opts safe
                     (if length ms > 1 then "s " else " ") ++ unwords ms
 
 pModuleClasses :: Printer [Class]
-pModuleClasses _ cs = return (show cs)
+pModuleClasses opts cs = pStringList opts cs
 
 pModuleTypes :: Printer [Type]
-pModuleTypes _ ts = return (show ts)
+pModuleTypes opts ts = pStringList opts ts
 
 pModuleOperations :: Printer [Operation]
-pModuleOperations _ os = return (show os)
+pModuleOperations opts os = pStringList opts os
 
 -- TYPE
 
@@ -140,20 +141,25 @@ pOperationSignature :: Printer Signature
 pOperationSignature _ = return
 
 pOperationInfix :: Printer (Maybe Infix)
-pOperationInfix _ inf = return (show inf)
+pOperationInfix opts inf
+  | isTextFormat opts = return $ maybe "no fixity defined" (map toLower . show)
+                                       inf
+  | otherwise         = return $ show inf
 
 pOperationPrecedence :: Printer (Maybe Precedence)
-pOperationPrecedence _ p = return (show p)
+pOperationPrecedence opts p
+  | isTextFormat opts = return $ maybe "no precedence defined" show p
+  | otherwise         = return $ show p
 
 pOperationCASSDeterministic :: Printer String
 pOperationCASSDeterministic opts s
-  | optOutFormat opts == OutText = return $ maybeRead s prettyDeterministic s
-  | otherwise                    = return s
+  | isTextFormat opts = return $ maybeRead s prettyDeterministic s
+  | otherwise         = return s
 
 pOperationCASSDemand :: Printer String
 pOperationCASSDemand opts s
-  | optOutFormat opts == OutText = return $ maybeRead s prettyDemand s
-  | otherwise                    = return s
+  | isTextFormat opts = return $ maybeRead s prettyDemand s
+  | otherwise         = return s
  where
   prettyDemand :: [Int] -> String
   prettyDemand ds = case ds of
@@ -162,35 +168,45 @@ pOperationCASSDemand opts s
     _   -> "arguments " ++ unwords (map show ds)
 
 pOperationCASSIndeterministic :: Printer String
-pOperationCASSIndeterministic _ = return
+pOperationCASSIndeterministic opts s
+  | isTextFormat opts = return $ maybeRead s prettyIndet s
+  | otherwise         = return s
+ where
+  prettyIndet True  = "might be indeterministic"
+  prettyIndet False = "referentially transparent operation"
 
 pOperationCASSSolComplete :: Printer String
-pOperationCASSSolComplete _ = return
+pOperationCASSSolComplete opts s
+  | isTextFormat opts = return $ maybeRead s prettySolComplete s
+  | otherwise         = return s
+ where
+  prettySolComplete True  = "operationally complete operation"
+  prettySolComplete False = "operation might suspend on free variables"
 
 pOperationCASSTerminating :: Printer String
-pOperationCASSTerminating opts  s
-  | optOutFormat opts == OutText = return $ maybeRead s prettyTerminate s
-  | otherwise                    = return s
+pOperationCASSTerminating opts s
+  | isTextFormat opts = return $ maybeRead s prettyTerminate s
+  | otherwise         = return s
  where
   prettyTerminate True  = "yes"
   prettyTerminate False = "possibly non-terminating"
 
 pOperationCASSTotal :: Printer String
-pOperationCASSTotal opts  s
-  | optOutFormat opts == OutText = return $ maybeRead s prettyTotal s
-  | otherwise                    = return s
+pOperationCASSTotal opts s
+  | isTextFormat opts = return $ maybeRead s prettyTotal s
+  | otherwise         = return s
  where
-  prettyTotal True  = "yes"
-  prettyTotal False = "possibly non-reducible"
+  prettyTotal True  = "reducible on all ground data terms"
+  prettyTotal False = "possibly non-reducible on same data term"
 
 pOperationCASSValues :: Printer String
 pOperationCASSValues opts s
-  | optOutFormat opts == OutText = return $ maybeRead s prettyAType s
-  | otherwise                    = return s
+  | isTextFormat opts = return $ maybeRead s prettyAType s
+  | otherwise         = return s
 
 pOperationFailFree :: Printer String
 pOperationFailFree opts s
-  | optOutFormat opts == OutText
+  | isTextFormat opts
   = case s of
      c1:c2:cs | [c1,c2] == "0:" -> return $ maybeRead cs showACallType cs
               | [c1,c2] == "1:" -> return $ maybeRead cs showFuncDeclAsLambda cs
@@ -200,17 +216,27 @@ pOperationFailFree opts s
 
 pOperationIOType :: Printer String
 pOperationIOType opts s
-  | optOutFormat opts == OutText = return $ maybeRead s showIOT s
-  | otherwise                    = return s
+  | isTextFormat opts = return $ maybeRead s showIOT s
+  | otherwise         = return s
 
 ------------------------------------------------------------------------------
 -- Auxililiaries.
+
+-- Is the output format `Text`?
+isTextFormat :: Options -> Bool
+isTextFormat opts = optOutFormat opts == OutText
+
+-- Print a list of string as words if output format is `Text`.
+pStringList :: Options -> [String] -> IO String
+pStringList opts ws =
+  return $ if isTextFormat opts then unwords ws
+                                else show ws
 
 -- Pretty print a documentation string.
 -- If the output mode is text, the leading comment characters are deleted.
 printDocumentation :: Options -> Reference -> IO String
 printDocumentation opts ref =
-  fmap (if optOutFormat opts == OutText
+  fmap (if isTextFormat opts
           then concatMap ("\n" ++) . map stripDocCmt . lines
           else id)
        (printFromReference opts ref)
@@ -225,7 +251,7 @@ printDocumentation opts ref =
 printSourceCode :: Options -> Reference -> IO String
 printSourceCode opts ref = do
   slice <- printFromReference opts ref
-  return $ if optOutFormat opts == OutText
+  return $ if isTextFormat opts
              then "\n" ++ removeLastCR slice
              else slice
  where

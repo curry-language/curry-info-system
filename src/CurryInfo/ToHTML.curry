@@ -77,13 +77,14 @@ directoryAsHTML opts (home,brand) d base dirs = do
   exdir <- doesDirectoryExist basedir
   when exdir $ do
     let (mbobj,cmt) = dirs2Object dirs
-        navobj = maybe "" prettyObject mbobj ++ cmt
-    dirfiles <- filter isReal <$> getDirectoryContents basedir
-    doc <- if null dirfiles
+        navobj      = maybe "" prettyObject mbobj ++ cmt
+    files <- getRealFilesInDir base dirs
+    doc <- if null files
              then return []
              else do
-               hfiles <- mapM (fileAsHTML cmt) (sort dirfiles)
-               subdirs <- concat <$> mapM returnExDir dirfiles
+               hfiles <- filter (not . null) <$>
+                           mapM (fileAsHTML cmt) (sort files)
+               subdirs <- concat <$> mapM returnExDir files
                mapM_ (\sd -> directoryAsHTML opts ("../" ++ home, brand) (d+1)
                                              base (dirs ++ [sd])) subdirs
                return [ulist hfiles `addAttr` ("style","list-style: none")]
@@ -93,26 +94,23 @@ directoryAsHTML opts (home,brand) d base dirs = do
     writeFile htmlsrcfile htmldoc
     printStatusMessage opts $ htmlsrcfile ++ " written"
  where
-  isReal fn = not ("." `isPrefixOf` fn) && not (".html" `isSuffixOf` fn) &&
-              not (".txt" `isSuffixOf` fn)
+  basedir = foldr1 (</>) (base:dirs)
 
   returnExDir f = do exdir <- doesDirectoryExist (basedir </> f)
                      return $ if exdir then [f] else []
 
-  basedir = foldr1 (</>) (base:dirs)
-
   fileAsHTML cmt filename =
-    maybe (return [toHtml filename filename])
-          (\n -> if n == "_DUMMY_" ||
-                    (last dirs == "operations" && not (isCurryID n))
-                   then return []
-                   else do fn <- genFromJSON n
-                           return [code [hrefInfoBadge fn [htxt n]]])
+    maybe (do nfs <- length <$> getRealFilesInDir base (dirs ++ [filename])
+              return $ if nfs == 0
+                         then []
+                         else [toHtml hrefScndBadge filename filename])
+          (\n -> do fn <- generateFromJSON n
+                    return [toHtml hrefPrimBadge fn n])
           (jsonFile2Name filename)
    where
-    toHtml ref name = code [href ref [htxt name]]
+    toHtml hrefkind ref name = code [hrefkind ref [htxt name]]
 
-    genFromJSON n
+    generateFromJSON n
       | any (`isSuffixOf` cmt) ["operations", "types", "classes"]
       = case dirs2Object (dirs ++ [n]) of
           (Just obj,_) -> genInfoResult obj
@@ -136,6 +134,24 @@ directoryAsHTML opts (home,brand) d base dirs = do
         let htmlfile = encodeFilePath n <.> "html"
         writeFile (basedir </> htmlfile) docs
         return htmlfile
+
+-- Returns the "real" entity files in a directory (represented as a list).
+-- The first argument is the base directory preprended to the directory files.
+getRealFilesInDir :: String -> [String] -> IO [String]
+getRealFilesInDir base dirs = do
+  let dirname = foldr1 (</>) (base:dirs)
+  exdir <- doesDirectoryExist dirname
+  if exdir then filter isReal <$> getDirectoryContents dirname
+           else return []
+ where
+  isOperation = last dirs == "operations"
+
+  isReal fn = not ("." `isPrefixOf` fn) &&
+              not (".html" `isSuffixOf` fn) &&
+              not (".txt" `isSuffixOf` fn) &&
+              maybe True
+                    (\n -> n /= "_DUMMY_" && (not isOperation || isCurryID n))
+                    (jsonFile2Name fn)
 
 -- Use the coloring of CurryInfo results to structure the result text.
 structureText :: HTML a => String -> [a]
@@ -183,7 +199,8 @@ subdirHtmlPage pagetitle homebrand d header maindoc = do
       maindoc (curryDocFooter time)
 
 
--- This operation returns the requested object from the given options.
+-- Maps a path as used in the CurryInfo cache into a `QueryObject` and
+-- a possible title suffix for the generated HTML page.
 dirs2Object :: [String] -> (Maybe QueryObject, String)
 dirs2Object dirs = case dirs of
   ["packages"]      -> (Nothing, "All packages")
