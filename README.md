@@ -16,11 +16,11 @@ The tool itself can be simply installed by
     > cd curry-info-system
     > cypm install
 
-This install the executable `curry-info` which organizes the generation of
+This installs the executable `curry-info` which organizes the generation of
 and access to various information about Curry module contained in packages.
 
-Usage
------
+Basic usage examples
+--------------------
 
 The following command outputs the list of
 all operations defined in the module `Data.List` of package `base`
@@ -62,6 +62,42 @@ currently stored in CurryInfo is shown:
 
     > curry-info
     packages: abstract-curry abstract-haskell addtypes ...
+
+
+CGI mode
+--------
+
+If the option `--cgi` is given, `curry-info` is executed in CGI mode.
+In this mode, the parameters are obtained from the value of the
+environment variable `QUERY_STRING` which must contain all parameters
+as URL-encoded strings separated by the character `&`.
+The CGI mode is useful to maintain a web server containing
+the infos about all packages. An example installation of such a server
+can be accessed at URL
+
+    https://cpm.curry-lang.org/webapps/curry-info/run.cgi
+
+For instance, the following URL retrieves all versions of the package `base`:
+
+    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f0&--package=base&versions
+
+The CGI mode and this server is used by the tool `cpm-query`
+(see Curry package [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html))
+to query information about Curry entities defined in a module of some
+existing Curry package.
+
+
+HTML generation
+---------------
+
+If the option `--htmldir=DIR` is given, `curry-info` generates an HTML
+representation of all entities stored in its cache in the directory `DIR`.
+For instance, the representation of the entities stored in the
+`curry-info` web service mention above can be accessed at URL
+
+    https://cpm.curry-lang.org/webapps/curry-info/HTML
+
+These web pages are nightly updated when new package versions arrive.
 
 
 Technical notes

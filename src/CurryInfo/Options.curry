@@ -56,7 +56,7 @@ defaultOptions =
 getDefaultOptions :: IO Options
 getDefaultOptions = replaceHomeInOptions defaultOptions
 
---- Replace substring `$HOME` by the actual home directory.
+--- Replace substring `$HOME` (in `optCacheRoot`) by the actual home directory.
 replaceHomeInOptions :: Options -> IO Options
 replaceHomeInOptions opts = do
   homedir <- getHomeDirectory
@@ -85,8 +85,10 @@ processOptions :: String -> [String] -> IO (Options, [String])
 processOptions banner argv = do
   let (funopts, args, opterrors) = getOpt Permute options argv
       opts = foldl (flip id) defaultOptions funopts
-  unless (null opterrors)
-    (putStr (unlines opterrors) >> printUsage >> exitWith 1)
+  unless (null opterrors) $ do
+    putStr $ unlines $
+      opterrors ++ ["Use option `--help' to see the list of all options"]
+    exitWith 1
   when (optHelp opts) (printUsage >> exitWith 0)
   when (optCGI opts) $ do
     when (optServer opts || not (null (optOutFile opts))) $ do
@@ -318,16 +320,18 @@ options =
   where
     safeReadNat opttrans s opts = case readNat s of
       [(n, "")] -> opttrans n opts
-      _         -> error "Illegal number argument (try '-h' for help)"
+      _         -> helpError "Illegal number argument"
     
     checkVerb n opts =
       if n >= 0 && n <= 3
         then opts { optVerb = n }
-        else error "Illegal verbosity level (try '-h' for help)"
+        else helpError "Illegal verbosity level"
 
     checkForce n opts =
       if n >= 0 && n <= 2
         then opts { optForce = n }
-        else error "Illegal force level (try '-h' for help)"
+        else helpError "Illegal force level"
+
+    helpError s = error $ s ++ " (try `--help' for help)"
 
 ------------------------------------------------------------------------------
