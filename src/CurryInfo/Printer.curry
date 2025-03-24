@@ -237,7 +237,7 @@ pStringList opts ws =
 printDocumentation :: Options -> Reference -> IO String
 printDocumentation opts ref =
   fmap (if isTextFormat opts
-          then concatMap ("\n" ++) . map stripDocCmt . lines
+          then concatMap ("\n" ++) . map id {- stripDocCmt -} . lines
           else id)
        (printFromReference opts ref)
  where
