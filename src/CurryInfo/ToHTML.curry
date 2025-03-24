@@ -11,13 +11,14 @@ module CurryInfo.ToHTML
 
 import Control.Monad       ( unless, when )
 import Data.Char           ( toLower )
+import Data.Either         ( partitionEithers )
 import Data.List           ( intercalate, isPrefixOf, isSuffixOf, last, sort )
 
 import Data.Time           ( CalendarTime, calendarTimeToString, getLocalTime )
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import JSON.Pretty              ( ppJSON )
-import Language.Curry.Resources ( cpmHomeURL, curryHomeURL, masalaHomeURL )
+import Language.Curry.Resources ( cpmHomeURL, curryHomeURL, masalaHomeURL, curryPackagesURL )
 import System.Directory         ( createDirectory, doesDirectoryExist
                                 , doesFileExist, getDirectoryContents
                                 , getAbsolutePath )
@@ -52,7 +53,7 @@ generateCurryInfoHTML opts = do
   createDirectory htmldir
   system $ "/bin/cp -a " ++ quote (packagesPath opts) ++ " " ++ quote htmldir
   printStatusMessage opts $ "Creating HTML files in " ++ quote htmldir ++ "..."
-  directoryAsHTML opts ("index.html", [htxt $ "All Packages"])
+  directoryAsHTML opts ("index.html", [htxt $ "CurryInfo: All Packages"])
                   1 htmldir ["packages"]
   pipath <- (</> "include") <$> getPackagePath
   ec <- copyIncludes pipath htmldir
@@ -70,7 +71,8 @@ generateCurryInfoHTML opts = do
       else return 1
 
 ------------------------------------------------------------------------------
--- Generates HTML representation of the contents of a directory.
+-- Generates HTML representation of the contents of a directory of the
+-- CurryInfo cache.
 directoryAsHTML :: Options -> (String,[BaseHtml]) -> Int -> FilePath -> [String]
                 -> IO ()
 directoryAsHTML opts (home,brand) d base dirs = do
@@ -78,26 +80,33 @@ directoryAsHTML opts (home,brand) d base dirs = do
   when exdir $ do
     let (mbobj,cmt) = dirs2Object dirs
         navobj      = maybe "" prettyObject mbobj ++ cmt
-    files <- getRealFilesInDir base dirs
-    doc <- if null files
-             then return []
-             else do
-               hfiles <- filter (not . null) <$>
-                           mapM (fileAsHTML cmt) (sort files)
-               subdirs <- concat <$> mapM returnExDir files
-               mapM_ (\sd -> directoryAsHTML opts ("../" ++ home, brand) (d+1)
-                                             base (dirs ++ [sd])) subdirs
-               return [ulist hfiles `addAttr` ("style","list-style: none")]
-    htmldoc <- subdirHtmlPage navobj (home,brand) d
-                [h1 [smallMutedText navobj]] doc 
+    direlems <- sort <$> getRealFilesInDir base dirs
+    (dirfiles,subdirs) <- partitionEithers <$>
+                            mapM returnEitherFileOrDir direlems
+    mapM_ (\sd -> directoryAsHTML opts ("../" ++ home, brand) (d+1)
+                                  base (dirs ++ [sd])) subdirs
+    hfiles <- dirElems2HTML cmt dirfiles
+    hdirs  <- dirElems2HTML cmt subdirs
+    htmldoc <- subdirHtmlPage navobj (home,brand) d navobj (hfiles ++ hdirs)
     let htmlsrcfile = basedir </> "index.html"
     writeFile htmlsrcfile htmldoc
     printStatusMessage opts $ htmlsrcfile ++ " written"
  where
   basedir = foldr1 (</>) (base:dirs)
 
-  returnExDir f = do exdir <- doesDirectoryExist (basedir </> f)
-                     return $ if exdir then [f] else []
+  returnEitherFileOrDir f = do
+    exdir <- doesDirectoryExist (basedir </> f)
+    return $ if exdir then Right f else Left f
+
+  -- shows references to a list of directory elements either as an HTML list
+  -- or a paragraph of words, if the list contains more than 10 elements
+  dirElems2HTML cmt ds = do
+    hrefs <- filter (not . null) <$> mapM (fileAsHTML cmt) ds
+    return $ if null hrefs
+               then []
+               else if length hrefs <= 10
+                      then [ulist hrefs `addAttr` ("style","list-style: none")]
+                      else [par (intercalate [nbsp] hrefs)]
 
   fileAsHTML cmt filename =
     maybe (do nfs <- length <$> getRealFilesInDir base (dirs ++ [filename])
@@ -129,8 +138,8 @@ directoryAsHTML opts (home,brand) d base dirs = do
                             , optColor = True }
         infotxt <- resultText <$> getInfos htmlopts obj []
         let navobj = prettyObject obj
-        docs <- subdirHtmlPage navobj (home,brand) d
-                  [h1 [smallMutedText navobj]] (structureText infotxt)
+        docs <- subdirHtmlPage navobj (home,brand) d navobj
+                               (structureText infotxt)
         let htmlfile = encodeFilePath n <.> "html"
         writeFile (basedir </> htmlfile) docs
         return htmlfile
@@ -188,11 +197,12 @@ resultText (OutputError err) = "Error: " ++ err
 
 -- Generates a HTML page in a subdirectory of CurryInfo with a given page title,
 -- home brand, header and contents.
-subdirHtmlPage :: String -> (String,[BaseHtml]) -> Int -> [BaseHtml]
-               -> [BaseHtml] -> IO String
-subdirHtmlPage pagetitle homebrand d header maindoc = do
+subdirHtmlPage :: String -> (String,[BaseHtml]) -> Int -> String -> [BaseHtml]
+               -> IO String
+subdirHtmlPage pagetitle homebrand d headerinfo maindoc = do
   time <- getLocalTime
   let btbase = concat (take d (repeat "../")) ++ "bt4"
+      header = [h1 [htxt "CurryInfo: ", smallMutedText headerinfo]]
   return $ showHtmlPage $
     bootstrapPage (favIcon btbase) (cssIncludes btbase) (jsIncludes btbase)
       pagetitle homebrand leftTopMenu rightTopMenu 0 [] header
@@ -252,7 +262,11 @@ jsIncludes btdir =
 --- The second argument indicates the index of the active link
 --- (negative value = no active link)
 leftTopMenu :: [[BaseHtml]]
-leftTopMenu = []
+leftTopMenu =
+  [ [ehrefNav "https://github.com/curry-language/curry-info-system/blob/main/README.md"
+              [htxt "About CurryInfo"]]
+  , [ehrefNav curryPackagesURL [htxt "CPM Repository"]]
+  ]
 
 --- The standard right top menu.
 rightTopMenu :: [[BaseHtml]]
