@@ -1,15 +1,23 @@
 # Server Commands
 
+When `curry-info` is started with option `--server`,
+it runs in server mode, i.e., one can communicate with `curry-info`
+via sockets. To specify the communication port, use option `--port=N`.
+If this option is not used, `curry-info` selects a free port
+which is shown after starting the server.
+The commands which can be used to communicate with the server
+are described below.
+
 * GetRequests *obj?*
 * GetCommands
 * RequestPackageInformation *outform* *force* *pkg* *[reqs]*
 * RequestVersionInformation *outform* *force* *pkg* *vsn* *[reqs]*
 * RequestModuleInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
 * RequestTypeInformation *outform* *force* *pkg* *vsn* *mod* *type* *[reqs]*
-* RequestTypeclassInformation *outform* *force* *pkg* *vsn* *mod* *class* *[reqs]*
+* RequestClassInformation *outform* *force* *pkg* *vsn* *mod* *class* *[reqs]*
 * RequestOperationInformation *outform* *force* *pkg* *vsn* *mod* *op* *[reqs]*
 * RequestAllTypesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
-* RequestAllTypeclassesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
+* RequestAllClassesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
 * RequestAllOperationsInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
 * StopServer
 
@@ -63,9 +71,9 @@ When you send this message to the server, you have to also add the output format
 
 * RequestTypeInformation text 0 json 3.0.0 JSON.Data JValue constructors    - Returns the list of constructors for the type 'JValue' using text as output format. The information is only looked up, not generated if it is missing.
 
-## RequestTypeclassInformation *outform* *force* *pkg* *vsn* *mod* *class* *[reqs]*
+## RequestClassInformation *outform* *force* *pkg* *vsn* *mod* *class* *[reqs]*
 
-When you send this message to the server, you have to also add the output format of the answer and the force option you want to be used. For the object you need to add the package, the version, the module and the typeclass. Lastly, you add the list of requests you want to do.
+When you send this message to the server, you have to also add the output format of the answer and the force option you want to be used. For the object you need to add the package, the version, the module and the type class. Lastly, you add the list of requests you want to do.
 
 ### Example
 
@@ -83,9 +91,9 @@ When you send this message to the server, you have to also add the output format
 
 When you send this message to the server, it is equivalent to requesting the same information for all types in the module. Therefore, you don't need to name a type, as the same requests are processed for all types found in the given module.
 
-## RequestAllTypeclassesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
+## RequestAllClassesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
 
-When you send this message to the server, it is equivalent to requesting the same information for all typeclasses in the module. Therefore, you don't need to name a type, as the same requests are processed for all types found in the given module.
+When you send this message to the server, it is equivalent to requesting the same information for all type classes in the module. Therefore, you don't need to name a type, as the same requests are processed for all types found in the given module.
 
 ## RequestAllOperationsInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
 

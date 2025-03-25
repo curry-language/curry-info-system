@@ -103,11 +103,6 @@ These web pages are nightly updated when new package versions arrive.
 Technical notes
 ---------------
 
-- `curry-info` maintains a file cache with all available information.
-  As a default, these files are stored in the directory `~/.curry_info_cache`.
-  This path is defined in `CurryInfo.Options.defaultCacheRoot` but
-  can be changed by the option `--cache`.
-
 - The name of a module entity (operation, type, class) can also be
   an empty string. In this case, the analysis is performed
   (if the value of the `force` option is non-zero)
@@ -118,3 +113,42 @@ Technical notes
   for all operations of the prelude:
 
       > curry-info -f2 -p base -x 3.3.0 -m Prelude -o '' cass-deterministic
+
+
+Files
+-----
+
+CurryInfo maintains a file cache containing all currently available
+analysis and verification information.
+As a default, these files are stored in the directory `~/.curry_info_cache`.
+This path is defined in `CurryInfo.Options.defaultCacheRoot` but
+can be changed by the option `--cache`.
+
+The contents of the cache directory has the following structure:
+
+- `checkouts` (contains clones of packages checked out by `cypm checkout`)
+    - *package1*-*version1*
+    - *package2*-*version2*
+    - ...
+- `packages`
+    - *pkg*
+        - *pkg*.json
+        - `versions`
+            - *vsn*
+                - *vsn*.json
+                - `modules`
+                    - *mod*
+                        - *mod*.json
+                        - `types`
+                            - *type*.json
+                        - `classes`
+                            - *class*.json
+                        - `operations`
+                            - *op*.json
+
+For instance, the information about the prelude operation `foldr1`
+contained in version 3.3.0 of the base` package is stored in file
+
+`.../packages/base/versions/3.3.0/modules/Prelude/operations/foldr1.json`
+
+
