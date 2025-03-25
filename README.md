@@ -114,6 +114,16 @@ Technical notes
 
       > curry-info -f2 -p base -x 3.3.0 -m Prelude -o '' cass-deterministic
 
+- CurryInfo is designed as a generic and extensible system to collect and
+  manage information about Curry entities. Thus, it is also possible to
+  [add new information requests to CurryInfo](specifications/AddingRequests.md).
+
+- The easiest way to use CurryInfo and the information stored in the central
+  [CurryInfo server](https://cpm.curry-lang.org/webapps/curry-info/HTML/)
+  is provided by the tool `cpm-query`
+  (see Curry package [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html)).
+  CurryInfo provides also a socket connection with a specific
+  [server protocol](specifications/ServerProtocol.md).
 
 Files
 -----

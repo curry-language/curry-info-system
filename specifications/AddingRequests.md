@@ -2,13 +2,14 @@ Adding Information Requests to CurryInfo
 ========================================
 
 This document explains the process of how to add new requests to CurryInfo.
-Since the whole program is implemented using Curry,
-new request need to be implemented in Curry (see below).
+Since CurryInfo is implemented in Curry,
+new requests must also be implemented in Curry but might use
+other external tools to analyse or verify programs.
 
 Each request returns a piece of information about an object of a Curry
 package and also saves this in a JSON file.
-The possible objects are Package, Version, Module, Type, Class and
-Operation. Each object has its own type (see module `CurryInfo.Types`)
+The possible objects are package, version, module, type, class, and
+operation. Each object has its own type (see module `CurryInfo.Types`)
 with components to specify the exact object.
 For example, a module object is specified by a value of type `CurryModule`
 which has three string components, one being the name of the package,
