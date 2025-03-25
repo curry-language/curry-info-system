@@ -184,11 +184,11 @@ Return a list of available information for given version of given package. Also 
 
 Return a list of available information for given module in given version of given package. Also return a list of information that can be generated.
 
-## Queries for typeclasses
+## Queries for classes
 
-### /packages/*pkg*/versions/*vsn*/modules/*mod*/typeclasses/*typeclass*?information
+### /packages/*pkg*/versions/*vsn*/modules/*mod*/classes/*typeclass*?information
 
-Return a list of available information for given typeclass of given module in given version of given package. Also return a list of information that can be generated.
+Return a list of available information for given type class of given module in given version of given package. Also return a list of information that can be generated.
 
 ## Queries for types
 

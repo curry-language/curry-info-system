@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/class.schema.json",
+    "title": "Class",
+    "description": "A type class defined in a module.",
+    "type": "object",
+    "properties": {
+        "name": {
+            "description": "The name of the type class.",
+            "type": "string"
+        },
+        "documentation": {
+            "description": "The documentation of the type class.",
+            "type": "string"
+        },
+        "definition": {
+            "description": "The definition of the type class.",
+            "type": "string"
+        },
+        "methods": {
+            "description": "The methods of the type class.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["name", "documentation", "definition", "methods"]
+}

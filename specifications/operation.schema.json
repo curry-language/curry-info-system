@@ -5,7 +5,7 @@
     "description": "An operation defined in a module.",
     "type": "object",
     "properties": {
-        "operation": {
+        "name": {
             "description": "The name of the operation.",
             "type": "string"
         },
@@ -37,7 +37,7 @@
             "type": "string",
             "pattern": "(Det|NDet)"
         },
-        "demandness": {
+        "demand": {
             "description": "List of argument indeces that are required to compute a result.",
             "type": "array",
             "items": {
@@ -49,7 +49,7 @@
             "description": "Whether the operation is indeterministic.",
             "type": "boolean"
         },
-        "solutionCompleteness": {
+        "solution-complete": {
             "description": "Whether the operation is solution complete.",
             "type": "boolean"
         },
@@ -57,10 +57,10 @@
             "description": "Whether the operation is sure to always terminate.",
             "type": "boolean"
         },
-        "totallyDefined": {
+        "totally-defined": {
             "description": "Whether the operation is totally defined.",
             "type": "boolean"
         }
     },
-    "required": ["operation", "documentation", "signature"]
+    "required": ["name", "documentation", "signature"]
 }

@@ -70,6 +70,7 @@ instance Read OutFormat where
     "curryterm" -> [(OutTerm, "")]
     _           -> []
 
+------------------------------------------------------------------------------
 -- Types used to configure the request for various kinds of entities.
 
 data CurryPackage = CurryPackage Package

@@ -5,7 +5,7 @@
     "description": "A type defined in a module.",
     "type": "object",
     "properties": {
-        "typeName": {
+        "name": {
             "description": "The name of the type.",
             "type": "string"
         },
@@ -25,5 +25,5 @@
             }
         }
     },
-    "required": ["typeName", "documentation", "definition"]
+    "required": ["name", "documentation", "definition"]
 }
