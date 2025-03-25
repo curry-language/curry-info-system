@@ -31,5 +31,6 @@
   "executable": {
     "name": "curry-info",
     "main": "Main"
-  }
+  },
+  "repository": "https://github.com/curry-language/curry-info-system.git"
 }

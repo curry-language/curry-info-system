@@ -18,6 +18,7 @@ import CurryInfo.RequestTypes
 data Options = Options
   { optVerb           :: Int          -- verbosity level
   , optHelp           :: Bool         -- show usage info?
+  , optShowVersion    :: Bool         -- show version?
   , optForce          :: Int          -- force information generation:
                                       -- 0: no generation
                                       -- 1: only generate when missing

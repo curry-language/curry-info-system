@@ -47,9 +47,9 @@ withColor opts coloring = if optColor opts then coloring else id
 --- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions =
-  Options 1 False 1 Nothing Nothing Nothing Nothing Nothing Nothing OutText
-          "" "" False False False False False Nothing False False False False
-          defaultCacheRoot
+  Options 1 False False 1 Nothing Nothing Nothing Nothing Nothing Nothing
+          OutText "" "" False False False False False Nothing False False
+          False False defaultCacheRoot
 
 --- Get the default options used by the tool where occurrences of `$HOME`
 --- are expanded.
@@ -90,6 +90,7 @@ processOptions banner argv = do
       opterrors ++ ["Use option `--help' to see the list of all options"]
     exitWith 1
   when (optHelp opts) (printUsage >> exitWith 0)
+  when (optShowVersion opts) (putStrLn banner >> exitWith 0)
   when (optCGI opts) $ do
     when (optServer opts || not (null (optOutFile opts))) $ do
       putStrLn "Options '--server' or '--output' not allowed in CGI mode!"
@@ -245,6 +246,9 @@ options =
   [ Option "h?" ["help"]
        (NoArg (\opts -> opts { optHelp = True }))
        "print help and exit"
+  , Option "V" []
+       (NoArg (\opts -> opts { optShowVersion = True }))
+       "print version and exit"
   , Option "v" ["verbosity"]
        (OptArg (maybe (checkVerb 2) (safeReadNat checkVerb)) "<n>")
        "verbosity level:\n0: quiet (no output besides info result)\n1: show status messages (default)\n2: show actions performed (same as '-v')\n3: show all details (commands, files,...)"
