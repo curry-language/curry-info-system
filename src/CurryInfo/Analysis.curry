@@ -9,8 +9,6 @@ import JSON.Data
 import JSON.Parser (parseJSON)
 import JSON.Convert
 
-import XML
-
 import CurryInfo.Checkout
 import CurryInfo.Commands
 import CurryInfo.Helper       ( quote )

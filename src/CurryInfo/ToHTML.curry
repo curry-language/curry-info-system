@@ -6,7 +6,7 @@
 --- @version March 2025
 ------------------------------------------------------------------------------
 
-module CurryInfo.ToHTML
+module CurryInfo.ToHTML ( generateCurryInfoHTML )
  where
 
 import Control.Monad       ( unless, when )

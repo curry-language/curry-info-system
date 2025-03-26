@@ -5,6 +5,12 @@
 
 module CurryInfo.Configuration where
 
+import Data.List           ( find )
+
+import JSON.Data
+import JSON.Pretty         ( ppJSON )
+import JSON.Convert
+
 import CurryInfo.Types
 import CurryInfo.Generator
 import CurryInfo.Printer
@@ -13,12 +19,6 @@ import CurryInfo.Verbosity
 import CurryInfo.Reader
 import CurryInfo.Paths
 import CurryInfo.Helper    ( quote )
-
-import JSON.Data
-import JSON.Pretty (ppJSON)
-import JSON.Convert
-
-import Data.List (find)
 
 ----------------------------
 
