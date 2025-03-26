@@ -26,74 +26,74 @@ import Data.List (find)
 
 packageConfiguration :: Configuration CurryPackage
 packageConfiguration =
-  [ registerRequest "name"      "\t\t\tName of the package"               gPackageName        pPackageName
-  , registerRequest "versions"  "\t\tAvailable versions of the package"   gPackageVersions    pPackageVersions
+  [ registerRequest "name"      "Name of the package"               gPackageName     pPackageName
+  , registerRequest "versions"  "Available versions of the package" gPackageVersions pPackageVersions
   ]
 
 -- VERSION
 
 versionConfiguration :: Configuration CurryVersion
 versionConfiguration =
-  [ registerRequest "version"         "\t\tVersion number of the version"   gVersionVersion         pVersionVersion
-  , registerRequest "documentation"   "\t\tDocumentation of the version"    gVersionDocumentation   pVersionDocumentation
-  , registerRequest "categories"      "\t\tCategories of the version"       gVersionCategories      pVersionCategories
-  , registerRequest "modules"         "\t\tAll modules of the version"      gVersionModules         pVersionModules
-  , registerRequest "exportedmodules" "\tExported modules of the version"   gVersionExportedModules pVersionModules
-  , registerRequest "dependencies"    "\t\tDependencies of the version"     gVersionDependencies    pVersionDependencies
+  [ registerRequest "version"         "Version number of the version"   gVersionVersion         pVersionVersion
+  , registerRequest "documentation"   "Documentation of the version"    gVersionDocumentation   pVersionDocumentation
+  , registerRequest "categories"      "Categories of the version"       gVersionCategories      pVersionCategories
+  , registerRequest "modules"         "All modules of the version"      gVersionModules         pVersionModules
+  , registerRequest "exportedmodules" "Exported modules of the version" gVersionExportedModules pVersionModules
+  , registerRequest "dependencies"    "Dependencies of the version"     gVersionDependencies    pVersionDependencies
   ]
 
 -- MODULE
 
 moduleConfiguration :: Configuration CurryModule
 moduleConfiguration =
-  [ registerRequest "name"          "\t\t\tName of the module"                gModuleName           pModuleName 
-  , registerRequest "documentation" "\t\tDocumentation comment of the module" gModuleDocumentation  pModuleDocumentation
-  , registerRequest "sourcecode"    "\t\tSource code of the module"           gModuleSourceCode     pModuleSourceCode
-  , registerRequest "unsafe"        "\t\t\tAnalysis: is the module unsafe?"   gModuleUnsafeModule   pModuleUnsafeModule
-  , registerRequest "classes"       "\t\tExported classes of the module"      gModuleClasses        pModuleClasses
-  , registerRequest "types"         "\t\t\tExported types of the module"      gModuleTypes          pModuleTypes
-  , registerRequest "operations"    "\t\tExported operations of the module"   gModuleOperations     pModuleOperations
+  [ registerRequest "name"          "Name of the module"                  gModuleName           pModuleName 
+  , registerRequest "documentation" "Documentation comment of the module" gModuleDocumentation  pModuleDocumentation
+  , registerRequest "sourcecode"    "Source code of the module"           gModuleSourceCode     pModuleSourceCode
+  , registerRequest "unsafe"        "Analysis: is the module unsafe?"     gModuleUnsafeModule   pModuleUnsafeModule
+  , registerRequest "classes"       "Exported classes of the module"      gModuleClasses        pModuleClasses
+  , registerRequest "types"         "Exported types of the module"        gModuleTypes          pModuleTypes
+  , registerRequest "operations"    "Exported operations of the module"   gModuleOperations     pModuleOperations
   ]
 
 -- TYPE
 
 typeConfiguration :: Configuration CurryType
 typeConfiguration =
-  [ registerRequest "name"          "\t\t\tName of the type"                       gTypeName           pTypeName
-  , registerRequest "documentation" "\t\tDocumentation comment of the type"        gTypeDocumentation  pTypeDocumentation
-  , registerRequest "constructors"  "\t\tThe list of the constructors of the type" gTypeConstructors   pTypeConstructors
-  , registerRequest "definition"    "\t\tDefinition of the type"                   gTypeDefinition     pTypeDefinition
+  [ registerRequest "name"          "Name of the type"                         gTypeName           pTypeName
+  , registerRequest "documentation" "Documentation comment of the type"        gTypeDocumentation  pTypeDocumentation
+  , registerRequest "definition"    "Definition of the type"                   gTypeDefinition     pTypeDefinition
+  , registerRequest "constructors"  "The list of the constructors of the type" gTypeConstructors   pTypeConstructors
   ]
 
 -- CLASS
 
 classConfiguration :: Configuration CurryClass
 classConfiguration =
-  [ registerRequest "name"          "\t\t\tName of the type class"                   gClassName          pClassName
-  , registerRequest "documentation" "\t\tDocumentation comment of the type class"    gClassDocumentation pClassDocumentation
-  , registerRequest "methods"       "\t\tThe list of the methods of the type class"  gClassMethods       pClassMethods
-  , registerRequest "definition"    "\t\tDefinition of the type class"               gClassDefinition    pClassDefinition
+  [ registerRequest "name"          "Name of the type class"                    gClassName          pClassName
+  , registerRequest "documentation" "Documentation comment of the type class"   gClassDocumentation pClassDocumentation
+  , registerRequest "definition"    "Definition of the type class"              gClassDefinition    pClassDefinition
+  , registerRequest "methods"       "The list of the methods of the type class" gClassMethods       pClassMethods
   ]
 
 -- OPERATION
 
 operationConfiguration :: Configuration CurryOperation
 operationConfiguration =
-  [ registerRequest "name"              "\t\t\tThe name of the operation"                    gOperationName                pOperationName
-  , registerRequest "documentation"     "\t\tDocumentation comment of the operation"         gOperationDocumentation       pOperationDocumentation
-  , registerRequest "definition"        "\t\tDefinition of the operation"                    gOperationSourceCode          pOperationSourceCode
-  , registerRequest "signature"         "\t\tSignature of the operation"                     gOperationSignature           pOperationSignature
-  , registerRequest "infix"             "\t\t\tAssociativity of operation"                   gOperationInfix               pOperationInfix
-  , registerRequest "precedence"        "\t\tPrecedence of the operation when used infix"    gOperationPrecedence          pOperationPrecedence
-  , registerRequest "deterministic"     "\t\tAnalysis: deterministic operation?"             gOperationCASSDeterministic   pOperationCASSDeterministic
-  , registerRequest "demand"            "\t\t\tAnalysis: demanded arguments"                 gOperationCASSDemand          pOperationCASSDemand
-  , registerRequest "indeterministic"   "\tAnalysis: indeterministic operation?"             gOperationCASSIndeterministic pOperationCASSIndeterministic
-  , registerRequest "solution-complete" "\tAnalysis: solution complete operation?"           gOperationCASSSolComplete     pOperationCASSSolComplete
-  , registerRequest "terminating"       "\t\tAnalysis: operation always terminating?"        gOperationCASSTerminating     pOperationCASSTerminating
-  , registerRequest "totally-defined"   "\tAnalysis: operation totally defined?"             gOperationCASSTotal           pOperationCASSTotal
-  , registerRequest "result-values"     "\t\tAnalysis: result values (top constructors)"     gOperationCASSValues          pOperationCASSValues
-  , registerRequest "failfree"          "\t\tVerification: non-fail conditions on arguments" gOperationFailFree            pOperationFailFree
-  , registerRequest "iotype"            "\t\t\tInference: in/out type of the operation"      gOperationIOType              pOperationIOType  
+  [ registerRequest "name"              "The name of the operation"                      gOperationName                pOperationName
+  , registerRequest "documentation"     "Documentation comment of the operation"         gOperationDocumentation       pOperationDocumentation
+  , registerRequest "definition"        "Definition of the operation"                    gOperationSourceCode          pOperationSourceCode
+  , registerRequest "signature"         "Signature of the operation"                     gOperationSignature           pOperationSignature
+  , registerRequest "infix"             "Associativity of operation"                     gOperationInfix               pOperationInfix
+  , registerRequest "precedence"        "Precedence of the operation when used infix"    gOperationPrecedence          pOperationPrecedence
+  , registerRequest "deterministic"     "Analysis: deterministic operation?"             gOperationCASSDeterministic   pOperationCASSDeterministic
+  , registerRequest "demand"            "Analysis: demanded arguments"                   gOperationCASSDemand          pOperationCASSDemand
+  , registerRequest "indeterministic"   "Analysis: indeterministic operation?"           gOperationCASSIndeterministic pOperationCASSIndeterministic
+  , registerRequest "solution-complete" "Analysis: solution complete operation?"         gOperationCASSSolComplete     pOperationCASSSolComplete
+  , registerRequest "terminating"       "Analysis: operation always terminating?"        gOperationCASSTerminating     pOperationCASSTerminating
+  , registerRequest "totally-defined"   "Analysis: operation totally defined?"           gOperationCASSTotal           pOperationCASSTotal
+  , registerRequest "result-values"     "Analysis: result values (top constructors)"     gOperationCASSValues          pOperationCASSValues
+  , registerRequest "failfree"          "Verification: non-fail conditions on arguments" gOperationFailFree            pOperationFailFree
+  , registerRequest "iotype"            "Inference: in/out type of the operation"        gOperationIOType              pOperationIOType  
   ]
 
 ------------------------------------------------------------------------------
@@ -178,4 +178,8 @@ registerRequest req desc generator printer =
 -- This operation returns a list of strings, each one being a request
 -- of the given configuration with their descriptions.
 listRequests :: Configuration a -> [String]
-listRequests = map (\r -> request r ++ ":" ++ description r)
+listRequests = map showReq
+ where
+  showReq r =
+    let req = request r
+    in req ++ ":" ++ take (19 - length req) (repeat ' ') ++ description r

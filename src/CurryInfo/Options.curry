@@ -38,7 +38,8 @@ defaultCacheRoot = "$HOME/.curry_info_cache"
 -- This operation returns a string representing the requests of the given
 -- configuration using the given string as prefix.
 printRequests :: String -> Configuration a -> String
-printRequests s conf = s ++ "\n\n" ++ unlines (listRequests conf) ++ "\n\n"
+printRequests s conf =
+  s ++ " requests:\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 
 --- Use some coloring (from System.Console.ANSI.Codes) if color option is on.
 withColor :: Options -> (String -> String) -> String -> String
