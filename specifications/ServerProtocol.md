@@ -5,31 +5,52 @@ it runs in server mode, i.e., one can communicate with `curry-info`
 via sockets. To specify the communication port, use option `--port=N`.
 If this option is not used, `curry-info` selects a free port
 which is shown after starting the server.
-The commands which can be used to communicate with the server
-are described below.
+For instance, if one starts the server in some terminal by
 
-* GetRequests *obj?*
-* GetCommands
-* RequestPackageInformation *outform* *force* *pkg* *[reqs]*
-* RequestVersionInformation *outform* *force* *pkg* *vsn* *[reqs]*
-* RequestModuleInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
-* RequestTypeInformation *outform* *force* *pkg* *vsn* *mod* *type* *[reqs]*
-* RequestClassInformation *outform* *force* *pkg* *vsn* *mod* *class* *[reqs]*
-* RequestOperationInformation *outform* *force* *pkg* *vsn* *mod* *op* *[reqs]*
-* RequestAllTypesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
-* RequestAllClassesInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
-* RequestAllOperationsInformation *outform* *force* *pkg* *vsn* *mod* *[reqs]*
-* StopServer
+    > curry-info --server
+    ...
+    Server Port: 36529
 
-Output formats (*outform*) are:
+then one can connect to the server on the same host by
+
+    > telnet localhost 36529
+    ...Connected...
+    GetCommands
+    ...
+    RequestAllOperationsInformation json 0 base 3.3.0 Data.List demand
+    ...
+
+The answer to a command starts with a line "ok _n_", where _n_ is the number 
+of the subsequent content lines, or a line "ERROR: ..." containing an
+error message.
+
+The commands to communicate with the server are
+(more detailed descriptions are given below)
+
+* `GetRequests` *obj?*
+* `GetCommands`
+* `RequestPackageInformation` *outform* *force* *pkg* *[reqs]*
+* `RequestVersionInformation` *outform* *force* *pkg* *vsn* *[reqs]*
+* `RequestModuleInformation` *outform* *force* *pkg* *vsn* *mod* *[reqs]*
+* `RequestTypeInformation` *outform* *force* *pkg* *vsn* *mod* *type* *[reqs]*
+* `RequestClassInformation` *outform* *force* *pkg* *vsn* *mod* *class* *[reqs]*
+* `RequestOperationInformation` *outform* *force* *pkg* *vsn* *mod* *op* *[reqs]*
+* `RequestAllTypesInformation` *outform* *force* *pkg* *vsn* *mod* *[reqs]*
+* `RequestAllClassesInformation` *outform* *force* *pkg* *vsn* *mod* *[reqs]*
+* `RequestAllOperationsInformation` *outform* *force* *pkg* *vsn* *mod* *[reqs]*
+* `StopServer`
+
+The output formats (parameter *outform*) are:
 * `text` for plain text
 * `json` for a json value
 * `curryterm` for a list of Curry terms
 
-Force options (*force*) are:
+The force options (parameter *force*) are:
 * 0 for lookup only
 * 1 for lookup and generating if necessary
 * 2 for always generating
+
+In the following, each command is described in more detail.
 
 ## GetRequests *obj?*
 
