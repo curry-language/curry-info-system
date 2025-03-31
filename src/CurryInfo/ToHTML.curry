@@ -15,7 +15,8 @@ import Data.Either         ( partitionEithers )
 import Data.List           ( intercalate, isPrefixOf, isSuffixOf, last, sort )
 import System.IO           ( hFlush, stdout )
 
-import Data.Time           ( CalendarTime, calendarTimeToString, getLocalTime )
+import Data.Time           ( CalendarTime, calendarTimeToString, ctDay
+                           , ctMonth, ctYear, getLocalTime )
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import JSON.Pretty              ( ppJSON )
@@ -23,7 +24,8 @@ import Language.Curry.Resources ( cpmHomeURL, curryHomeURL, curryPackagesURL
                                 , masalaHomeURL )
 import System.Directory         ( createDirectory, doesDirectoryExist
                                 , doesFileExist, getDirectoryContents
-                                , getAbsolutePath )
+                                , getAbsolutePath, getCurrentDirectory
+                                , removeFile, renameFile, setCurrentDirectory )
 import System.FilePath          ( (</>), (<.>) )
 import System.Process           ( exitWith, system )
 
@@ -35,10 +37,15 @@ import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
                                 , OutFormat(..), Output(..) )
 
 ------------------------------------------------------------------------------
+--- Name of the tar file containing the CurryInfo cache.
+curryInfoCacheTar :: String
+curryInfoCacheTar = "CURRYINFOCACHE.tgz"
+
+------------------------------------------------------------------------------
 --- Generate HTML pages for the CurryInfo cache.
 generateCurryInfoHTML :: Options -> IO ()
 generateCurryInfoHTML opts = do
-  htmldir    <- getAbsolutePath (optHTMLDir opts)
+  htmldir <- getAbsolutePath (optHTMLDir opts)
   when (optForce opts > 1) $
     (system ("/bin/rm -rf " ++ quote htmldir) >> return ())
   exhtmldir  <- doesDirectoryExist htmldir
@@ -56,8 +63,9 @@ generateCurryInfoHTML opts = do
   pipath <- (</> "include") <$> getPackagePath
   ec <- copyIncludes pipath htmldir
   unless (ec == 0) $ (copyIncludes "include" htmldir >> return ())
-  return ()
+  createTarCache (htmldir </> curryInfoCacheTar)
  where
+  -- copy include files (`bt4/`, `index.html`) from idir to htmldir
   copyIncludes idir htmldir = do
     exidir <- doesDirectoryExist idir
     if exidir
@@ -67,6 +75,27 @@ generateCurryInfoHTML opts = do
           "/bin/cp " ++ quote (idir </> "index.html") ++ " " ++ quote htmldir
         system $ "chmod -R go+rX " ++ quote htmldir
       else return 1
+
+  -- create tar file with contents of CurryInfo cache
+  createTarCache tarfile = do
+    printStatus opts $ "Storing CurryInfo cache in tar file..."
+    curdir <- getCurrentDirectory
+    setCurrentDirectory (optCacheRoot opts)
+    saveExistingFile tarfile
+    system $ "tar czf '" ++ tarfile ++ "' --exclude=.cpm/CURRYPATH_CACHE ."
+    setCurrentDirectory curdir
+    printStatus opts $ "CurryInfo cache stored in tar file " ++ tarfile
+
+  saveExistingFile fn = do
+    exfn <- doesFileExist fn
+    when exfn $ do
+      ltime <- getLocalTime
+      let sfn = fn ++ "_" ++
+                intercalate "-"
+                  (map (\ct -> show (ct ltime)) [ctYear, ctMonth, ctDay])
+      exsfn <- doesFileExist sfn
+      when exsfn $ removeFile sfn
+      renameFile fn sfn
 
 ------------------------------------------------------------------------------
 -- Generates HTML representation of the contents of a directory of the
@@ -198,11 +227,13 @@ subdirHtmlPage :: String -> (String,[BaseHtml]) -> Int -> String -> [BaseHtml]
                -> IO String
 subdirHtmlPage pagetitle homebrand d headerinfo maindoc = do
   time <- getLocalTime
-  let btbase = concat (take d (repeat "../")) ++ "bt4"
+  let base   = concat (take d (repeat "../"))
+      btbase = base ++ "bt4"
+      citar  = base ++ curryInfoCacheTar
       header = [h1 [htxt "CurryInfo: ", smallMutedText headerinfo]]
   return $ showHtmlPage $
     bootstrapPage (favIcon btbase) (cssIncludes btbase) (jsIncludes btbase)
-      pagetitle homebrand leftTopMenu rightTopMenu 0 [] header
+      pagetitle homebrand (leftTopMenu citar) rightTopMenu 0 [] header
       maindoc (curryDocFooter time)
 
 
@@ -266,10 +297,11 @@ jsIncludes btdir =
 --- The first argument is true if we are inside a package documentation.
 --- The second argument indicates the index of the active link
 --- (negative value = no active link)
-leftTopMenu :: [[BaseHtml]]
-leftTopMenu =
+leftTopMenu :: String -> [[BaseHtml]]
+leftTopMenu citar =
   [ [ehrefNav "https://github.com/curry-language/curry-info-system/blob/main/README.md"
               [htxt "About CurryInfo"]]
+  , [ehrefNav citar [htxt "CurryInfo Cache (.tgz)"]]
   , [ehrefNav curryPackagesURL [htxt "CPM Repository"]]
   ]
 
