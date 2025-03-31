@@ -13,12 +13,14 @@ import Control.Monad       ( unless, when )
 import Data.Char           ( toLower )
 import Data.Either         ( partitionEithers )
 import Data.List           ( intercalate, isPrefixOf, isSuffixOf, last, sort )
+import System.IO           ( hFlush, stdout )
 
 import Data.Time           ( CalendarTime, calendarTimeToString, getLocalTime )
 import HTML.Base
 import HTML.Styles.Bootstrap4
 import JSON.Pretty              ( ppJSON )
-import Language.Curry.Resources ( cpmHomeURL, curryHomeURL, masalaHomeURL, curryPackagesURL )
+import Language.Curry.Resources ( cpmHomeURL, curryHomeURL, curryPackagesURL
+                                , masalaHomeURL )
 import System.Directory         ( createDirectory, doesDirectoryExist
                                 , doesFileExist, getDirectoryContents
                                 , getAbsolutePath )
@@ -27,12 +29,10 @@ import System.Process           ( exitWith, system )
 
 import CurryInfo.ConfigPackage  ( getPackagePath )
 import CurryInfo.Helper         ( isCurryID, quote )
-import CurryInfo.Information    ( getInfos, printResult )
-import CurryInfo.Options        ( getDefaultOptions, getDefaultOptions )
+import CurryInfo.Information    ( getInfos )
 import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath, packagesPath )
 import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
                                 , OutFormat(..), Output(..) )
-import CurryInfo.Verbosity      ( printStatusMessage, printErrorMessage )
 
 ------------------------------------------------------------------------------
 --- Generate HTML pages for the CurryInfo cache.
@@ -44,15 +44,13 @@ generateCurryInfoHTML opts = do
   exhtmldir  <- doesDirectoryExist htmldir
   exhtmlfile <- doesFileExist htmldir
   when (exhtmldir || exhtmlfile) $ do
-    printErrorMessage $ "'" ++ htmldir ++ "' exists!"
-    printErrorMessage
-      "Use '-f2' to  delete it or select another target directory!"
+    putStrLn $ "'" ++ htmldir ++ "' exists!"
+    putStrLn "Use '-f2' to  delete it or select another target directory!"
     exitWith 1
-  printStatusMessage opts $
-    "Copying CurryInfo cache to " ++ quote htmldir ++ "..."
+  printStatus opts $ "Copying CurryInfo cache to " ++ quote htmldir ++ "..."
   createDirectory htmldir
   system $ "/bin/cp -a " ++ quote (packagesPath opts) ++ " " ++ quote htmldir
-  printStatusMessage opts $ "Creating HTML files in " ++ quote htmldir ++ "..."
+  printStatus opts $ "Creating HTML files in " ++ quote htmldir ++ "..."
   directoryAsHTML opts ("index.html", [htxt $ "CurryInfo: All Packages"])
                   1 htmldir ["packages"]
   pipath <- (</> "include") <$> getPackagePath
@@ -90,7 +88,7 @@ directoryAsHTML opts (home,brand) d base dirs = do
     htmldoc <- subdirHtmlPage navobj (home,brand) d navobj (hfiles ++ hdirs)
     let htmlsrcfile = basedir </> "index.html"
     writeFile htmlsrcfile htmldoc
-    printStatusMessage opts $ htmlsrcfile ++ " written"
+    printStatus opts $ htmlsrcfile ++ " written"
  where
   basedir = foldr1 (</>) (base:dirs)
 
@@ -132,8 +130,7 @@ directoryAsHTML opts (home,brand) d base dirs = do
       = return filename
      where
       genInfoResult obj = do
-        printStatusMessage opts $
-          "Generating infos for object: " ++ prettyObject obj
+        printDetail opts $ "Generating infos for object: " ++ prettyObject obj
         let htmlopts = opts { optShowAll = True, optOutFormat = OutText
                             , optColor = True }
         infotxt <- resultText <$> getInfos htmlopts obj []
@@ -237,6 +234,14 @@ dirs2Object dirs = case dirs of
 
 ------------------------------------------------------------------------------
 -- Helpers:
+
+--- If verbosity is at least status, write to stdout and flush.
+printStatus :: Options -> String -> IO ()
+printStatus opts s = when (optVerb opts > 0) $ (putStrLn s >> hFlush stdout)
+
+--- If verbosity is at least detail, write to stdout and flush.
+printDetail :: Options -> String -> IO ()
+printDetail opts s = when (optVerb opts > 1) $ (putStrLn s >> hFlush stdout)
 
 --- A small muted text (used in the title):
 smallMutedText :: String -> BaseHtml
