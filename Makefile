@@ -6,8 +6,7 @@
 TARFILE := $(CURDIR)/WEBCURRYINFO.tgz
 
 # Target installation directory
-WEBDIR=$(HOME)/public_html/webapps/CI
-#WEBDIR=$(HOME)/public_html/webapps/curry-info
+WEBDIR=$(HOME)/public_html/webapps/curry-info
 
 # Executable of the Curry Package Manager to install the tools
 TOOLCPM := /opt/kics2/kics2-3.3.0/bin/cypm
@@ -46,33 +45,31 @@ installtools:
 	$(MAKE) $(TOOLBINCASS)
 	$(MAKE) $(TOOLBINCALLTYPES)
 
-$(TOOLBINCURRYINFO):
+$(TOOLBINCURRYINFO): | $(WEBDIR)
 	/bin/rm -f $(HOME)/.cpmrc  # remove possible cpmrc file
-	$(MAKE) $(WEBDIR)
 	# install required tool locally in WEBDIR/bin:
 	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install
+	# install directory `include` (required to make it relocatable):
+	/bin/cp -a include $(WEBDIR)
 
-$(TOOLBINCASS):
+
+$(TOOLBINCASS): | $(WEBDIR)
 	/bin/rm -f $(HOME)/.cpmrc  # remove possible cpmrc file
-	$(MAKE) $(WEBDIR)
 	# install required tool locally in WEBDIR/bin:
 	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install cass
 
-$(TOOLBINCALLTYPES):
+$(TOOLBINCALLTYPES): | $(WEBDIR)
 	/bin/rm -f $(HOME)/.cpmrc  # remove possible cpmrc file
-	$(MAKE) $(WEBDIR)
-	# install required tool locally in WEBDIRbin:
+	# install required tool locally in WEBDIR/bin:
 	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install verify-non-fail
 	# install directory `include` (required to make it relocatable):
-	rm -rf $(WEBDIR)/include
-	cp -ar $(WEBDIR)/CPMAPPS/verify-non-fail/include $(WEBDIR)/include
+	/bin/cp -a $(WEBDIR)/CPMAPPS/verify-non-fail/include $(WEBDIR)
 
 .PHONY: install
-install: $(WEBDIR)
+install: | $(WEBDIR)
 	$(MAKE) $(WEBDIR)/run.cgi
 	$(MAKE) $(WEBDIR)/bin/cypm
 	$(MAKE) installtools
-	cp -a include $(WEBDIR)/
 	chmod 755 $(WEBDIR)
 
 $(WEBDIR)/run.cgi: scripts/run.cgi
@@ -80,9 +77,12 @@ $(WEBDIR)/run.cgi: scripts/run.cgi
 	cp $< $@
 	chmod 755 $@
 
-$(TOOLBINCYPM): scripts/cypm
+$(TOOLBINCYPM): scripts/cypm | $(WEBDIR)
+	/bin/rm -f $(HOME)/.cpmrc  # remove possible cpmrc file
+	# install a local version of CPM:
+	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin/.local --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install cpm
 	mkdir -p $(@D)
-	cat $< | sed "s|XXXCYPMXXX|$(shell realpath $(TOOLCPM))|" > $@
+	cp $< $@
 	chmod 755 $@
 
 # create tar file with complete web app

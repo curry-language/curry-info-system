@@ -125,6 +125,10 @@ There are two options to fill the cache:
   CurryInfo web server (see `CurryInfo.Options.managerAddrs`)
   since data changes are generally not allowed in CGI mode.
 
+  Furthermore, `cpm-query` generates a configuration file `~/.cpmqueryrc`
+  where one has to set the option `curryinfourl` to the URL of the
+  CurryInfo web server.
+
 
 HTML generation
 ---------------
