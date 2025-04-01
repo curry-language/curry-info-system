@@ -108,7 +108,10 @@ processOptions banner argv = do
  where
   printUsage = putStrLn (banner ++ "\n" ++ usageText)
 
-  managerAddrs = ["134.245.252.75"] -- ip of cpm.curry-lang.org
+-- IP address of cpm.curry-lang.org and cpm.curry-language.org
+-- from where data changes are allowed in CGI mode.
+managerAddrs :: [String]
+managerAddrs = ["134.245.252.75", "87.106.116.135"]
 
 -- The usage text of the program.
 usageText :: String

@@ -30,11 +30,11 @@ Install CGI scripts at https://cpm.curry-lang.org/webapps/curry-info
 
 Test with loading URL
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f2&--package=base&versions
+    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f0&--package=base&versions
 
 or
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f2&--package=base&--version=3.3.0&modules
+    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f0&--package=base&--version=3.3.0&modules
 
 
 Generating analysis information

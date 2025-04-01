@@ -62,6 +62,7 @@ generateCurryInfoHTML opts = do
                   1 htmldir ["packages"]
   pipath <- (</> "include") <$> getPackagePath
   ec <- copyIncludes pipath htmldir
+  -- if the package path does not work (e.g., after relocation), try local one:
   unless (ec == 0) $ (copyIncludes "include" htmldir >> return ())
   createTarCache (htmldir </> curryInfoCacheTar)
  where
@@ -86,6 +87,7 @@ generateCurryInfoHTML opts = do
     setCurrentDirectory curdir
     printStatus opts $ "CurryInfo cache stored in tar file " ++ tarfile
 
+  -- move the argument file, if it exists, to a date-extended version
   saveExistingFile fn = do
     exfn <- doesFileExist fn
     when exfn $ do

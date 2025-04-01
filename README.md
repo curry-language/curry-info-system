@@ -87,6 +87,45 @@ to query information about Curry entities defined in a module of some
 existing Curry package.
 
 
+Installing a CurryInfo Web Application
+--------------------------------------
+
+In order to install a CurryInfo web server to be used as shown above, run
+
+    > make install
+
+This compiles the tools and install them in a local directory (see definition
+of `WEBDIR` in the Makefile or run `make showconfig` to see its value).
+Note that this should be done on the web server or a compatible machine.
+
+After this local installation, run
+
+    > make tar
+
+to generate a tar file `WEBCURRYINFO.tgz` with the necessary contents of
+`WEBDIR`. Now copy and unpack it in the desired directory of the web server
+(e.g., `.../webapps/curry-info`).
+
+Note that the cache of this installed web server is empty.
+There are two options to fill the cache:
+
+* Copy an [existing CurryInfo cache](https://cpm.curry-lang.org/webapps/curry-info/HTML/CURRYINFOCACHE.tgz)
+  into the directory `.curry_info_cache` of the web server.
+
+* Updating/generating analysis information for single package versions by
+
+      > cpm-query --remote --generate <PACKAGE> <VERSION>
+
+  or updating/generating analysis infos for all (newest compatible) package
+  versions by
+
+      > cpm-manage packagelist | cpm-query --remote --generate --from=-
+
+  Note that these commands need to be executed on the host of the
+  CurryInfo web server (see `CurryInfo.Options.managerAddrs`)
+  since data changes are generally not allowed in CGI mode.
+
+
 HTML generation
 ---------------
 
@@ -97,7 +136,9 @@ For instance, the representation of the entities stored in the
 
     https://cpm.curry-lang.org/webapps/curry-info/HTML
 
-These web pages are nightly updated when new package versions arrive.
+On the
+[standard CurryInfo web server](https://cpm.curry-lang.org/webapps/curry-info/),
+these web pages are nightly updated when new package versions arrive.
 
 
 Technical notes
