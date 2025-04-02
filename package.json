@@ -25,6 +25,7 @@
     "socket"         : " >= 3.0.0, < 4.0.0",
     "process"        : " >= 3.0.0, < 4.0.0",
     "time"           : " >= 3.0.0, < 4.0.0",
+    "url-base"       : " >= 0.1.0",
     "wl-pprint"      : " >= 3.0.0, < 4.0.0"
   },
   "configModule": "CurryInfo.ConfigPackage",

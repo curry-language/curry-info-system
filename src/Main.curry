@@ -4,8 +4,10 @@ module Main ( main )
 import Control.Monad      ( unless, when )
 import Data.List          ( splitOn )
 import Numeric            ( readHex )
-import System.Directory   ( createDirectoryIfMissing )
 import System.Environment ( getArgs, getEnv )
+
+import Network.URL        ( urlencoded2string )
+import System.Directory   ( createDirectoryIfMissing )
 import System.Process     ( exitWith )
 
 import CurryInfo.Commands        ( runCmd, cmdCPMUpdate )
@@ -22,7 +24,7 @@ import CurryInfo.Verbosity       ( printDebugMessage, printDetailMessage
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
  where
-  bannerText = "Curry Package Information System (Version of 31/03/25)"
+  bannerText = "Curry Package Information System (Version of 02/04/25)"
   bannerLine = take (length bannerText) (repeat '=')
 
 main :: IO ()
@@ -50,15 +52,3 @@ main = do
          maybe (getAllPackageNames opts >>= printResult opts >> return ())
                (\obj -> do getInfos opts obj margs >>= printResult opts
                            return ())
-
--- From HTML.Base:
---- Translates an URL encoded string into equivalent ASCII string.
-urlencoded2string :: String -> String
-urlencoded2string []     = []
-urlencoded2string (c:cs)
-  | c == '+'  = ' ' : urlencoded2string cs
-  | c == '%'  = chr (case readHex (take 2 cs) of [(n,"")] -> n
-                                                 _        -> 0)
-                 : urlencoded2string (drop 2 cs)
-  | otherwise = c : urlencoded2string cs
-
