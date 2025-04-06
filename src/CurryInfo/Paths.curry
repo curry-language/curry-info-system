@@ -32,6 +32,14 @@ objectDirectory opts (QueryClass pkg vsn m _) =
 objectDirectory opts (QueryOperation pkg vsn m _) = do
   objectDirectory opts (QueryModule pkg vsn m) </> "operations"
 
+--- Returns the file where information about a request of all operations
+--- in a package/version/module are store.
+allOperationsReqFile :: Options -> Package -> Version -> Module -> String
+                     -> FilePath
+allOperationsReqFile opts pkg vsn mn req =
+  objectDirectory opts (QueryOperation pkg vsn mn "") </>
+  "ALL_" ++ req <.> ".txt"
+
 --- Gets the path of the JSON file containing all information about an object.
 objectJSONPath :: Options -> QueryObject -> FilePath
 objectJSONPath opts qo =

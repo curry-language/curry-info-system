@@ -206,4 +206,7 @@ contained in version 3.3.0 of the base` package is stored in file
 
 `.../packages/base/versions/3.3.0/modules/Prelude/operations/foldr1.json`
 
-
+To speed up the access to CASS-requests for all operations,
+CurryInfo also writes files named `ALL_<req>.txt` is `operations`
+directories. These files contains the `CurryTerm` output format
+of these requests.

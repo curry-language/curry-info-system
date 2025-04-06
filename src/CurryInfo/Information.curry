@@ -19,14 +19,15 @@ import JSON.Data
 import JSON.Pretty         ( ppJSON )
 import System.Console.ANSI.Codes
 import System.Directory    ( doesDirectoryExist, doesFileExist
-                           , getDirectoryContents )
+                           , getDirectoryContents, removeFile )
 import System.FilePath     ( (</>), (<.>) )
 
 
+import CurryInfo.Analysis  ( curryInfoRequest2CASS )
 import CurryInfo.Configuration
 import CurryInfo.Paths     ( getCPMIndex, getReducedDirectoryContents
                            , jsonFile2Name, objectDirectory, objectJSONPath
-                           , packagesPath, realNameField )
+                           , packagesPath, realNameField, allOperationsReqFile )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Reader
@@ -37,21 +38,23 @@ import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
                            , readPackageModules)
 import CurryInfo.Helper    ( RequestResult(..), fromQName
-                           , quote, fromRequestResult )
+                           , fromRequestResult, quote, safeRead )
 
 
 --- This action prints the given output to stdout and also returns
 --- the string as result.
 printResult :: Options -> Output -> IO String
-printResult opts (OutputText txt)  = printAndReturn opts txt
-printResult opts (OutputJSON jv)   = printAndReturn opts (ppJSON jv)
-printResult opts (OutputTerm ts)   = printAndReturn opts (show ts)
-printResult opts (OutputError err) = printAndReturn opts ("Error: " ++ err)
-
-printAndReturn :: Options -> String -> IO String
-printAndReturn opts s =
+printResult opts o =
   let ofile = optOutFile opts
+      s     = output2string o
   in (if null ofile then putStrLn else writeFile ofile) s >> return s
+
+--- Transform a given output to a string.
+output2string :: Output -> String
+output2string (OutputText txt)  = txt
+output2string (OutputJSON jv)   = ppJSON jv
+output2string (OutputTerm ts)   = show ts
+output2string (OutputError err) = "Error: " ++ err
 
 --- This action returns a failed output with the given error message.
 --- In case of a Curry `OutTerm`, we generate an error message so that
@@ -115,50 +118,13 @@ getInfos opts qobj reqs = do
         True  -> do
           printDetailMessage opts "Module entity exists."
           case (optAllTypes opts, optAllClasses opts, optAllOperations opts) of
-            (True, _, _) -> checkRequests opts reqs typeConfiguration $ do
-              mts <- queryAllEntities pkg vsn m (QueryType pkg vsn m "?")
-                                      "types"
-              case mts of
-                Nothing -> do
-                  generateOutputError opts "Could not find types"
-                Just ts -> do
-                  outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
-                                             typeConfiguration o)
-                               (map (\t -> (QueryType pkg vsn m t,
-                                            CurryType pkg vsn m t)) ts)
-                  return $ combineOutput outs
-            (_, True, _) -> checkRequests opts reqs classConfiguration $ do
-              mcs <- queryAllEntities pkg vsn m (QueryClass pkg vsn m "?")
-                                      "classes"
-              case mcs of
-                Nothing -> do
-                  generateOutputError opts "Could not find type classes"
-                Just cs -> do
-                  outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
-                                             classConfiguration o)
-                               (map (\t -> (QueryClass pkg vsn m t,
-                                            CurryClass pkg vsn m t)) cs)
-                  return $ combineOutput outs
-            (_, _, True) -> checkRequests opts reqs operationConfiguration $ do
-              mos <- queryAllEntities pkg vsn m (QueryOperation pkg vsn m "?")
-                                      "operations"
-              case mos of
-                Nothing ->
-                  generateOutputError opts "Could not find operations."
-                Just [] -> do
-                  printDetailMessage opts "No operations found in module."
-                  outs <- mapM (checkDummyAndGetInfosConfig
-                                  operationConfiguration
-                                  (QueryOperation pkg vsn m "")
-                                  (CurryOperation pkg vsn m "")) reqs
-                  return $ combineOutput outs
-                Just os -> do
-                  outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
-                                             operationConfiguration o)
-                               (map (\op -> (QueryOperation pkg vsn m op,
-                                             CurryOperation pkg vsn m op)) os)
-                  return $ combineOutput outs
-            (False, False, False) -> do
+            (True, _, _) -> checkRequests opts reqs typeConfiguration $
+                              queryAllTypes opts pkg vsn m reqs
+            (_, True, _) -> checkRequests opts reqs classConfiguration $
+                              queryAllClasses opts pkg vsn m reqs
+            (_, _, True) -> checkRequests opts reqs operationConfiguration $
+                              queryAllOperations opts pkg vsn m reqs
+            (False, False, False) ->
               getInfosConfig opts qobj reqs
                              moduleConfiguration (CurryModule pkg vsn m)
     QueryType pkg vsn m t -> do
@@ -177,117 +143,26 @@ getInfos opts qobj reqs = do
         getInfosConfig opts qobj reqs operationConfiguration
                        (CurryOperation pkg vsn m o)
  where
-  -- Check whether the _DUMMY_ entity contains the request. If not,
-  -- compute the requested information with `getInfosConfig`.
-  -- This is necessary since a module might not contain explicitly
-  -- exported operations but have operations which are generated and exported
-  -- (e.g., operations for class instances).
-  checkDummyAndGetInfosConfig entityconfig dqo emptyent req = do
-    let dummyqo = setDummyEntityName dqo
-    mfields <- readObjectInformation opts dummyqo
-    case mfields of
-      Nothing -> do
-        printDetailMessage opts $
-          "Entity " ++ quote dummyEntityName ++ " does not exist."
-        getInfosConfig opts dqo reqs entityconfig emptyent
-      Just jobject -> do
-        printDetailMessage opts "Reading DUMMY object information succeeded."
-        case lookupName req jobject of
-          Just js -> maybe (return $ OutputError $
-                              "Illegal value in field " ++ quote req ++
-                              " in entity " ++ quotePrettyObject dummyqo)
-                           (\qn -> do
-                               printDetailMessage opts $ "Request " ++
-                                  quote req ++ " exists in entity " ++
-                                  quotePrettyObject dummyqo ++
-                                  "Get infos from real name '" ++ qn ++ "'..."
-                               return $ combineOutput [])
-                           (fromJSON js)
-          Nothing -> do
-            printDetailMessage opts $ "Entity " ++ quotePrettyObject dummyqo ++
-              " does not contain field " ++ quote req
-            getInfosConfig opts dqo reqs entityconfig emptyent
-
   printDebugAndOutputError err = do printDetailMessage opts err
                                     generateOutputError opts err
 
-  -- Return all entities of the query object currently stored in json files:
-  queryAllStoredEntities :: QueryObject -> IO [String]
-  queryAllStoredEntities qo = do
-    let dir = objectDirectory opts qo
-    exdir <- doesDirectoryExist dir
-    if exdir then fmap (catMaybes . map jsonFile2Name)
-                       (getDirectoryContents dir)
-             else return []
-
-  -- Return all entities of the query object.
-  queryAllEntities pkg vsn m entqobj entreq =
-    query (QueryModule pkg vsn m) entreq >>=
-      maybe (return Nothing)
-        (\opnames -> do
-           let qopnames = map fromQName opnames
-           mapM_ (\(mn,en) -> initializeObjectWithRealName opts
-                                (setEName entqobj en) mn en)
-                 (filter (not . null . fst) qopnames)
-           stnames <- queryAllStoredEntities entqobj
-           return $ Just $ 
-             filter (/= dummyEntityName) $ union stnames $ map snd qopnames)
-
-  query :: Read a => QueryObject -> String -> IO (Maybe a)
-  query obj req = do
-    printDetailMessage opts $ "Query for object " ++ quotePrettyObject obj ++
-                              " and request " ++ quote req
-    qopts <- getQueryOptions
-    res <- getInfos qopts obj [req]
-    printDebugMessage opts $ "Query result: " ++ show res
-    case res of
-      -- OutputTerm [("obj", [("req", "res")])]
-      OutputTerm [(_, x)] -> case lookup req (read x) of
-                               Nothing -> return Nothing
-                               Just y  -> return (Just (read y))
-      _                   -> return Nothing
-
-  combineOutput :: [Output] -> Output
-  combineOutput outs = case optOutFormat opts of
-    OutText -> OutputText (unlines (map fromOutputText outs))
-    OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
-    OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
-  
-  fromOutputText :: Output -> String
-  fromOutputText out = case out of
-    OutputText txt -> txt
-    _              -> "ERROR IN TEXT OUTPUT FORMAT: " ++ show out
-
-  fromOutputJSON :: Output -> JValue
-  fromOutputJSON out = case out of
-    OutputJSON jv -> jv
-    _             -> JString $ "ERROR IN JSON OUTPUT FORMAT: " ++ show out
-
-  fromOutputTerm :: Output -> [(String, String)]
-  fromOutputTerm out = case out of
-    OutputTerm ts -> ts
-    _             -> [("ERROR", "ERROR IN TERM OUTPUT FORMAT: " ++ show out)]
-
   checkPackageExists :: Package -> IO Bool
-  checkPackageExists pkg = do
-    let jpath = objectJSONPath opts (QueryPackage pkg)
-    whenFileDoesNotExist jpath $do
+  checkPackageExists pkg =
+    whenFileDoesNotExist (objectJSONPath opts (QueryPackage pkg)) $ do
       path <- getCPMIndex
       printDebugMessage opts $ "Looking for package in index..."
       doesDirectoryExist (path </> pkg)
 
   checkVersionExists :: Package -> Version -> IO Bool
-  checkVersionExists pkg vsn = do
-    let jpath = objectJSONPath opts (QueryVersion pkg vsn)
-    whenFileDoesNotExist jpath $ do
+  checkVersionExists pkg vsn =
+    whenFileDoesNotExist (objectJSONPath opts (QueryVersion pkg vsn)) $ do
       path <- getCPMIndex
       printDebugMessage opts $ "Looking for version in index..."
       doesDirectoryExist (path </> pkg </> vsn)
 
   checkModuleExists :: Package -> Version -> Module -> IO Bool
-  checkModuleExists pkg vsn m = do
-    let jpath = objectJSONPath opts (QueryModule pkg vsn m)
-    whenFileDoesNotExist jpath $ do
+  checkModuleExists pkg vsn m =
+    whenFileDoesNotExist (objectJSONPath opts (QueryModule pkg vsn m)) $ do
       allmods <- readPackageModules opts pkg vsn
       return (elem m allmods)
 
@@ -299,7 +174,7 @@ getInfos opts qobj reqs = do
       if exf
         then msgCont
         else do
-          res <- query (QueryModule pkg vsn m) ereq
+          res <- query opts (QueryModule pkg vsn m) ereq
           case res of
             Nothing -> returnError
             Just es ->
@@ -316,6 +191,175 @@ getInfos opts qobj reqs = do
       [ ename, quote e, "of module", quote m, "of version", quote vsn
       , "of package", quote pkg, "is not exported."]
 
+-- Check whether the _DUMMY_ entity contains the request. If not,
+-- compute the requested information with `getInfosConfig`.
+-- This is necessary since a module might not contain explicitly
+-- exported operations but have operations which are generated and exported
+-- (e.g., operations for class instances).
+checkDummyAndGetInfosConfig :: Options -> [RegisteredRequest CurryOperation]
+  -> QueryObject -> CurryOperation -> [String] -> String -> IO Output
+checkDummyAndGetInfosConfig opts entityconfig dqo emptyent reqs req = do
+  let dummyqo = setDummyEntityName dqo
+  mfields <- readObjectInformation opts dummyqo
+  case mfields of
+    Nothing -> do
+      printDetailMessage opts $
+        "Entity " ++ quote dummyEntityName ++ " does not exist."
+      getInfosConfig opts dqo reqs entityconfig emptyent
+    Just jobject -> do
+      printDetailMessage opts "Reading DUMMY object information succeeded."
+      case lookupName req jobject of
+        Just js -> maybe (return $ OutputError $
+                            "Illegal value in field " ++ quote req ++
+                            " in entity " ++ quotePrettyObject dummyqo)
+                         (\qn -> do
+                            printDetailMessage opts $ "Request " ++
+                                quote req ++ " exists in entity " ++
+                                quotePrettyObject dummyqo ++
+                                "Get infos from real name '" ++ qn ++ "'..."
+                            return $ combineOutput opts [])
+                         (fromJSON js)
+        Nothing -> do
+          printDetailMessage opts $ "Entity " ++ quotePrettyObject dummyqo ++
+            " does not contain field " ++ quote req
+          getInfosConfig opts dqo reqs entityconfig emptyent
+
+-- Return all entities of the query object.
+queryAllEntities :: Options -> Package -> Version -> Module -> QueryObject
+                 -> String -> IO (Maybe [String])
+queryAllEntities opts pkg vsn m entqobj entreq =
+  query opts (QueryModule pkg vsn m) entreq >>=
+    maybe (return Nothing)
+      (\opnames -> do
+          let qopnames = map fromQName opnames
+          mapM_ (\(mn,en) -> initializeObjectWithRealName opts
+                              (setEName entqobj en) mn en)
+                (filter (not . null . fst) qopnames)
+          stnames <- queryAllStoredEntities entqobj
+          return $ Just $ 
+            filter (/= dummyEntityName) $ union stnames $ map snd qopnames)
+ where
+  -- Return all entities of the query object currently stored in json files:
+  queryAllStoredEntities :: QueryObject -> IO [String]
+  queryAllStoredEntities qo = do
+    let dir = objectDirectory opts qo
+    exdir <- doesDirectoryExist dir
+    if exdir then fmap (catMaybes . map jsonFile2Name)
+                       (getDirectoryContents dir)
+             else return []
+
+-- Query all types in the given package/version/module for the given requests.
+queryAllTypes :: Options -> Package -> Version -> Module -> [String]
+              -> IO Output
+queryAllTypes opts pkg vsn m reqs = do
+  mts <- queryAllEntities opts pkg vsn m (QueryType pkg vsn m "?") "types"
+  case mts of
+    Nothing -> generateOutputError opts "Could not find types"
+    Just ts -> do
+      outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs typeConfiguration o)
+                   (map (\t -> (QueryType pkg vsn m t, CurryType pkg vsn m t))
+                        ts)
+      return $ combineOutput opts outs
+
+-- Query all classes in the given package/version/module for the given requests.
+queryAllClasses :: Options -> Package -> Version -> Module -> [String]
+                -> IO Output
+queryAllClasses opts pkg vsn m reqs = do
+  mcs <- queryAllEntities opts pkg vsn m (QueryClass pkg vsn m "?") "classes"
+  case mcs of
+    Nothing -> generateOutputError opts "Could not find type classes"
+    Just cs -> do
+      outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs classConfiguration o)
+                   (map (\t -> (QueryClass pkg vsn m t, CurryClass pkg vsn m t))
+                        cs)
+      return $ combineOutput opts outs
+
+-- Query all operations in the given package/version/module for the given
+-- requests.
+-- If there is only one request computed by CASS in output format CurryTerm,
+-- the result is stored in a cache file (see `allOperationsReqFile`)
+-- for faster lookup when results are required by CASS.
+queryAllOperations :: Options -> Package -> Version -> Module -> [String]
+                   -> IO Output
+queryAllOperations opts pkg vsn m reqs = do
+  case reqs of
+    [req] | req `elem` map fst curryInfoRequest2CASS &&
+            optOutFormat opts == OutTerm
+          -> do let reqfile = allOperationsReqFile opts pkg vsn m req
+                exreqfile <- doesFileExist reqfile
+                if exreqfile
+                  then do cnt <- readFile reqfile
+                          case safeRead cnt of
+                            Nothing -> do removeFile reqfile --remove buggy file
+                                          queryAllOperations opts pkg vsn m reqs
+                            Just t  -> return (OutputTerm t)
+                  else do result <- queryAllOps
+                          writeFile reqfile (output2string result)
+                          printStatusMessage opts $ "All operation request '" ++
+                                                    req ++ "' cached in file"
+                          printDetailMessage opts $ reqfile
+                          return result
+    _     -> queryAllOps
+ where
+  queryAllOps = do
+    mos <- queryAllEntities opts pkg vsn m (QueryOperation pkg vsn m "?")
+                            "operations"
+    case mos of
+      Nothing ->
+        generateOutputError opts "Could not find operations."
+      Just [] -> do
+        printDetailMessage opts "No operations found in module."
+        outs <- mapM (checkDummyAndGetInfosConfig opts
+                        operationConfiguration
+                        (QueryOperation pkg vsn m "")
+                        (CurryOperation pkg vsn m "") reqs) reqs
+        return $ combineOutput opts outs
+      Just os -> do
+        outs <- mapM (\(qo,o) -> getInfosConfig opts qo reqs
+                                    operationConfiguration o)
+                      (map (\op -> (QueryOperation pkg vsn m op,
+                                    CurryOperation pkg vsn m op)) os)
+        return $ combineOutput opts outs
+
+-- Query a given object for a given request.
+query :: Read a => Options -> QueryObject -> String -> IO (Maybe a)
+query opts obj req = do
+  printDetailMessage opts $ "Query for object " ++ quotePrettyObject obj ++
+                            " and request " ++ quote req
+  qopts <- getQueryOptions
+  res <- getInfos qopts obj [req]
+  printDebugMessage opts $ "Query result: " ++ show res
+  case res of
+    -- OutputTerm [("obj", [("req", "res")])]
+    OutputTerm [(_, x)] -> case lookup req (read x) of
+                              Nothing -> return Nothing
+                              Just y  -> return (Just (read y))
+    _                   -> return Nothing
+
+--- Combines a sequence of output into a single output in the required format.
+combineOutput :: Options -> [Output] -> Output
+combineOutput opts outs = case optOutFormat opts of
+    OutText -> OutputText (unlines (map fromOutputText outs))
+    OutJSON -> OutputJSON (JArray (map fromOutputJSON outs))
+    OutTerm -> OutputTerm (concatMap fromOutputTerm outs)
+ where
+  fromOutputText :: Output -> String
+  fromOutputText out = case out of
+    OutputText txt -> txt
+    _              -> "ERROR IN TEXT OUTPUT FORMAT: " ++ show out
+
+  fromOutputJSON :: Output -> JValue
+  fromOutputJSON out = case out of
+    OutputJSON jv -> jv
+    _             -> JString $ "ERROR IN JSON OUTPUT FORMAT: " ++ show out
+
+fromOutputTerm :: Output -> [(String, String)]
+fromOutputTerm out = case out of
+  OutputTerm ts -> ts
+  _             -> [("ERROR", "ERROR IN TERM OUTPUT FORMAT: " ++ show out)]
+
+--- When the given files does not exist, execute the given Boolean action,
+--- other return `True`.
 whenFileDoesNotExist :: FilePath -> IO Bool -> IO Bool
 whenFileDoesNotExist path act = do
   exf <- doesFileExist path
