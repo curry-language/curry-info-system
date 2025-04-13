@@ -75,11 +75,11 @@ The CGI mode is useful to maintain a web server containing
 the infos about all packages. An example installation of such a server
 can be accessed at URL
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi
+    https://cpm.curry-lang.org/curry-info/run.cgi
 
 For instance, the following URL retrieves all versions of the package `base`:
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f0&--package=base&versions
+    https://cpm.curry-lang.org/curry-info/run.cgi?-f0&--package=base&versions
 
 The CGI mode and this server is used by the tool `cpm-query`
 (see Curry package [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html))
@@ -104,12 +104,12 @@ After this local installation, run
 
 to generate a tar file `WEBCURRYINFO.tgz` with the necessary contents of
 `WEBDIR`. Now copy and unpack it in the desired directory of the web server
-(e.g., `.../webapps/curry-info`).
+(e.g., `.../curry-info`).
 
 Note that the cache of this installed web server is empty.
 There are two options to fill the cache:
 
-* Copy an [existing CurryInfo cache](https://cpm.curry-lang.org/webapps/curry-info/HTML/CURRYINFOCACHE.tgz)
+* Copy an [existing CurryInfo cache](https://cpm.curry-lang.org/curry-info/HTML/CURRYINFOCACHE.tgz)
   into the directory `.curry_info_cache` of the web server.
 
 * Updating/generating analysis information for single package versions by
@@ -138,10 +138,10 @@ representation of all entities stored in its cache in the directory `DIR`.
 For instance, the representation of the entities stored in the
 `curry-info` web service mention above can be accessed at URL
 
-    https://cpm.curry-lang.org/webapps/curry-info/HTML
+    https://cpm.curry-lang.org/curry-info/HTML
 
 On the
-[standard CurryInfo web server](https://cpm.curry-lang.org/webapps/curry-info/),
+[standard CurryInfo web server](https://cpm.curry-lang.org/curry-info/),
 these web pages are nightly updated when new package versions arrive.
 
 
@@ -164,7 +164,7 @@ Technical notes
   [add new information requests to CurryInfo](specifications/AddingRequests.md).
 
 - The easiest way to use CurryInfo and the information stored in the central
-  [CurryInfo server](https://cpm.curry-lang.org/webapps/curry-info/HTML/)
+  [CurryInfo server](https://cpm.curry-lang.org/curry-info/HTML/)
   is provided by the tool `cpm-query`
   (see Curry package [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html)).
   CurryInfo provides also a socket connection with a specific

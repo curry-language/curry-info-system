@@ -6,7 +6,7 @@
 TARFILE := $(CURDIR)/WEBCURRYINFO.tgz
 
 # Target installation directory
-WEBDIR=$(HOME)/public_html/webapps/curry-info
+WEBDIR=$(HOME)/public_html/curry-info
 
 # Executable of the Curry Package Manager to install the tools
 TOOLCPM := /opt/kics2/kics2-3.3.0/bin/cypm
