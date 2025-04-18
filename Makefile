@@ -49,7 +49,7 @@ installtools:
 	$(MAKE) $(TOOLBINCASS)
 	$(MAKE) $(TOOLBINCALLTYPES)
 
-$(TOOLBINCURRYINFO): | $(WEBDIR)
+$(TOOLBINCURRYINFO): src/*.curry src/*/*.curry src/*/*/*.curry | $(WEBDIR)
 	/bin/rm -f $(HOME)/.cpmrc  # remove possible cpmrc file
 	# install required tool locally in WEBDIR/bin:
 	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install
