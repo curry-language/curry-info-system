@@ -1,4 +1,4 @@
-Install CGI scripts at https://cpm.curry-lang.org/webapps/curry-info
+Install CGI scripts at https://cpm.curry-lang.org/curry-info
 ====================================================================
 
 1. Login to `talbot.informatik.uni-kiel.de`
@@ -18,27 +18,27 @@ Install CGI scripts at https://cpm.curry-lang.org/webapps/curry-info
 
        > cypm install
 
-5. Run `make` to install the CGI scripts to `~/public_html/webapps/curry-info`
+5. Run `make` to install the CGI scripts to `~/public_html/curry-info`
 
 6. Login to `cpm` aka `marbuzet.informatik.uni-kiel.de` and execute:
 
-       > cp -ar public_html/webapps/curry-info /tmp/curry-info
+       > cp -ar public_html/curry-info /tmp/curry-info
        > sudo -s
        ...
-       > mv /tmp/curry-info /var/www/webapps/curry-info
-       > chown -R www-data:www-data /var/www/webapps/curry-info
+       > mv /tmp/curry-info /var/www/curry-info
+       > chown -R www-data:www-data /var/www/curry-info
 
 Test with loading URL
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-V
+    https://cpm.curry-lang.org/curry-info/run.cgi?-V
 
 or
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f0&--package=base&versions
+    https://cpm.curry-lang.org/curry-info/run.cgi?-f0&--package=base&versions
 
 or
 
-    https://cpm.curry-lang.org/webapps/curry-info/run.cgi?-f0&--package=base&--version=3.3.0&modules
+    https://cpm.curry-lang.org/curry-info/run.cgi?-f0&--package=base&--version=3.3.0&modules
 
 
 Generating analysis information
