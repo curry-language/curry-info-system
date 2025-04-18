@@ -6,7 +6,7 @@
 module CurryInfo.Printer where
 
 import Data.Char           ( toLower )
-import Data.List           ( init, last )
+import Data.List           ( init, last, sort )
 import System.Directory    ( doesFileExist )
 import System.IOExts       ( readCompleteFile )
 
@@ -38,7 +38,7 @@ pPackageName :: Printer Package
 pPackageName _ s = return s
 
 pPackageVersions :: Printer [Version]
-pPackageVersions opts vsns = pStringList opts vsns
+pPackageVersions opts vsns = pSortedStringList opts vsns
 
 -- VERSION
 
@@ -60,10 +60,10 @@ pVersionDocumentation opts vpath =
           return $ (if isTextFormat opts then "\n" else "") ++ vdoc
 
 pVersionCategories :: Printer [Category]
-pVersionCategories opts cats = pStringList opts cats
+pVersionCategories opts cats = pSortedStringList opts cats
 
 pVersionModules :: Printer [String]
-pVersionModules opts mods = pStringList opts mods
+pVersionModules opts mods = pSortedStringList opts mods
 
 pVersionDependencies :: Printer [Dependency]
 pVersionDependencies _ deps = return (show deps)
@@ -226,10 +226,18 @@ pOperationIOType opts s
 isTextFormat :: Options -> Bool
 isTextFormat opts = optOutFormat opts == OutText
 
--- Print a list of string as words if output format is `Text`.
+-- Print a list of string as words if output format is `Text`, otherwise
+-- just show the list.
 pStringList :: Options -> [String] -> IO String
 pStringList opts ws =
   return $ if isTextFormat opts then unwords ws
+                                else show ws
+
+-- Print a list of string as sorted words if output format is `Text`,
+-- otherwise just show the list.
+pSortedStringList :: Options -> [String] -> IO String
+pSortedStringList opts ws =
+  return $ if isTextFormat opts then unwords (sort ws)
                                 else show ws
 
 -- Pretty print a documentation string.

@@ -6,7 +6,7 @@
 TARFILE := $(CURDIR)/WEBCURRYINFO.tgz
 
 # Target installation directory
-WEBDIR=$(HOME)/public_html/curry-info
+WEBDIR=$(HOME)/public_html/curry/curry-info
 
 # Executable of the Curry Package Manager to install the tools
 TOOLCPM := /opt/kics2/kics2-3.3.0/bin/cypm
@@ -33,7 +33,11 @@ showconfig:
 
 # Install the packages required by CurryInfo:
 .PHONY: install
-install:
+install: | $(WEBDIR)
+	$(MAKE) $(WEBDIR)/run.cgi
+	$(MAKE) $(WEBDIR)/bin/cypm
+	$(MAKE) installtools
+	chmod 755 $(WEBDIR)
 
 $(WEBDIR):
 	mkdir -p $(WEBDIR)
@@ -64,13 +68,6 @@ $(TOOLBINCALLTYPES): | $(WEBDIR)
 	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install verify-non-fail
 	# install directory `include` (required to make it relocatable):
 	/bin/cp -a $(WEBDIR)/CPMAPPS/verify-non-fail/include $(WEBDIR)
-
-.PHONY: install
-install: | $(WEBDIR)
-	$(MAKE) $(WEBDIR)/run.cgi
-	$(MAKE) $(WEBDIR)/bin/cypm
-	$(MAKE) installtools
-	chmod 755 $(WEBDIR)
 
 $(WEBDIR)/run.cgi: scripts/run.cgi
 	mkdir -p $(@D)
