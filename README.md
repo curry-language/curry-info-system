@@ -164,7 +164,7 @@ Technical notes
   [add new information requests to CurryInfo](specifications/AddingRequests.md).
 
 - The easiest way to use CurryInfo and the information stored in the central
-  [CurryInfo server](https://cpm.curry-lang.org/curry-info/HTML/)
+  [CurryInfo server](https://cpm.curry-lang.org/curry-info/)
   is provided by the tool `cpm-query`
   (see Curry package [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html)).
   CurryInfo provides also a socket connection with a specific
