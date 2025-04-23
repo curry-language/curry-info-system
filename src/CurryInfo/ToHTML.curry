@@ -58,7 +58,7 @@ generateCurryInfoHTML opts = do
   createDirectory htmldir
   system $ "/bin/cp -a " ++ quote (packagesPath opts) ++ " " ++ quote htmldir
   printStatus opts $ "Creating HTML files in " ++ quote htmldir ++ "..."
-  directoryAsHTML opts ("index.html", [htxt $ "CurryInfo: All Packages"])
+  directoryAsHTML opts ("index.html", [htxt $ "CurryInfo"])
                   1 htmldir ["packages"]
   pipath <- (</> "include") <$> getPackagePath
   ec <- copyIncludes pipath htmldir
@@ -227,7 +227,7 @@ resultText (OutputError err) = "Error: " ++ err
 -- home brand, header and contents.
 subdirHtmlPage :: String -> (String,[BaseHtml]) -> Int -> String -> [BaseHtml]
                -> IO String
-subdirHtmlPage pagetitle homebrand d headerinfo maindoc = do
+subdirHtmlPage pagetitle (home,brand) d headerinfo maindoc = do
   time <- getLocalTime
   let base   = concat (take d (repeat "../"))
       btbase = base ++ "bt4"
@@ -235,8 +235,8 @@ subdirHtmlPage pagetitle homebrand d headerinfo maindoc = do
       header = [h1 [htxt "CurryInfo: ", smallMutedText headerinfo]]
   return $ showHtmlPage $
     bootstrapPage (favIcon btbase) (cssIncludes btbase) (jsIncludes btbase)
-      pagetitle homebrand (leftTopMenu citar) rightTopMenu 0 [] header
-      maindoc (curryDocFooter time)
+      pagetitle ("../../" ++ home, brand) (leftTopMenu home citar) rightTopMenu
+      0 [] header maindoc (curryDocFooter time)
 
 
 -- Maps a path as used in the CurryInfo cache into a `QueryObject` and
@@ -299,10 +299,11 @@ jsIncludes btdir =
 --- The first argument is true if we are inside a package documentation.
 --- The second argument indicates the index of the active link
 --- (negative value = no active link)
-leftTopMenu :: String -> [[BaseHtml]]
-leftTopMenu citar =
-  [ [ehrefNav "https://github.com/curry-language/curry-info-system/blob/main/README.md"
-              [htxt "About CurryInfo"]]
+leftTopMenu :: String -> String -> [[BaseHtml]]
+leftTopMenu home citar =
+  [ [hrefNav home [htxt "All Packages"]]
+  --, ehrefNav "https://github.com/curry-language/curry-info-system/blob/main/README.md"
+  --            [htxt "About CurryInfo"]]
   , [ehrefNav citar [htxt "CurryInfo Cache (.tgz)"]]
   , [ehrefNav curryPackagesURL [htxt "CPM Repository"]]
   ]
