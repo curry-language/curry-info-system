@@ -38,7 +38,7 @@ install: | $(WEBDIR)
 	$(MAKE) $(WEBDIR)/bin/cypm
 	$(MAKE) installtools
 	$(MAKE) installstatic
-	chmod 755 $(WEBDIR)
+	chmod -R go+rX $(WEBDIR)
 
 $(WEBDIR):
 	mkdir -p $(WEBDIR)
@@ -46,7 +46,8 @@ $(WEBDIR):
 
 # Install the static parts of the website:
 installstatic:
-	/bin/cp include/index.html $(WEBDIR)
+	/bin/cp include/*.html include/*.sh $(WEBDIR)
+	/bin/cp -a include/images $(WEBDIR)
 
 # Install the tools used by the webapp in the WEBDIR:
 .PHONY: installtools

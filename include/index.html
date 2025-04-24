@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  
+  <head>
+    <title>CurryInfo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <link rel="shortcut icon" href="HTML/bt4/img/favicon.ico"/>
+    <link rel="stylesheet" type="text/css" href="HTML/bt4/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="HTML/bt4/css/cpm.css"/>
+  </head>
+  
+<script>
+function copyDownloadCmd() {
+  navigator.clipboard.writeText("curl -sSL https://cpm.curry-lang.org/curry-info/download-curry-info-cache.sh | sh");
+} 
+</script>
+
+  <body>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+     <a href="index.html" class="navbar-brand">CurryInfo</a>
+     <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#topnavbar" aria-expanded="false" aria-controls="topnavbar" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div id="topnavbar" class="collapse navbar-collapse">
+        
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a href="HTML/packages/index.html" class="nav-link">All Packages</a>
+          </li>
+          <li class="nav-item">
+            <a href="HTML/CURRYINFOCACHE.tgz" target="_blank" class="nav-link">CurryInfo Cache (.tgz)</a>
+          </li>
+          <li class="nav-item">
+            <a href="https://cpm.curry-lang.org/" target="_blank" class="nav-link">CPM Repository</a>
+          </li>
+        </ul>
+        
+        <ul class="navbar-nav navbar-right">
+          <li class="nav-item">
+            <a href="https://cpm.curry-lang.org/masala/" target="_blank" class="nav-link">Masala</a>
+          </li>
+          <li class="nav-item">
+            <a href="http://www.curry-lang.org/tools/cpm" target="_blank" class="nav-link">Curry Package Manager</a>
+          </li>
+          <li class="nav-item">
+            <a href="http://www.curry-lang.org" target="_blank" class="nav-link">Curry Homepage</a>
+          </li>
+        </ul>
+        
+      </div>
+      </nav>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-12 col-md-12">
+          <header class="jumbotron">
+            <h1>
+              CurryInfo: <small class="text-muted">Analysis and Verification Information about Curry Packages</small>
+            </h1>
+          </header>
+          <p>
+            CurryInfo is a tool to collect and provide analysis and
+            verification information about entities (operations,
+            types, classes) defined Curry modules which are contained
+            in <a href="https://cpm.curry-lang.org/" target="_blank">Curry packages</a>.
+            It can be used by other Curry tools which require such information,
+            like a REPL or a Curry Language Server.
+          </p>
+          
+          <p>
+            Here is some more information about CurryInfo and this website.
+          </p>
+          
+          <ul>
+            <li>
+              The header link "<a href="HTML/packages/index.html" target="_blank">All Packages</a>"
+              leads to an overview page containing information about all packages as stored
+              in the CurryInfo web service.
+              This information is nightly updated when new packages or versions are uploaded by the
+              <a href="https://cpm.curry-lang.org/masala/" target="_blank">Masala</a>
+              package management system.
+              One can browse through these packages to see the available information.
+              Instead of browsing through these web pages, it is easier to use
+              the tool <a href="https://cpm.curry-lang.org/pkgs/cpm-query.html" target="_blank">cpm-query</a>
+              to access information about operations, types, and classes in
+              an interactive Curry system or the
+              <a href="https://github.com/fwcd/curry-language-server">Curry Language Server</a>
+              (see below for more details).
+            </li>
+            <li>
+              The header link
+              "<a href="HTML/CURRYINFOCACHE.tgz" target="_blank">CurryInfo Cache (.tgz)</a>"
+              refers to a gzipped tar file containing the CurryInfo cache of the CurryInfo web service.
+              One can download and install it (in <code>~/.curry_info_cache</code>)
+              in order to use CurryInfo on the local machine instead of this
+              CurryInfo web service. This can easily be done by the command<br>
+              <kbd>curl -sSL https://cpm.curry-lang.org/curry-info/download-curry-info-cache.sh | sh</kbd>
+              <button class="badge badge-info" onclick="copyDownloadCmd()">Copy to Clipboard</button>
+            </li>
+            <li>
+              Some more
+              <a href="https://github.com/curry-language/curry-info-system/blob/main/README.md" target="_blank">details about CurryInfo</a>
+              and its installation are available in the
+              <a href="https://github.com/curry-language/curry-info-system" target="_blank">CurryInfo repository</a>.
+            </li>
+          </ul>
+
+          <h3>
+            Use CurryInfo in the Curry Language Server
+          </h3>
+          <p>
+            The <a href="https://github.com/fwcd/curry-language-server" target="_blank">Curry Language Server</a>
+            supports an extension for invoking programs when hovering over
+            particular program entities, like operations or types.
+            If one uses the tool
+            <a href="https://cpm.curry-lang.org/pkgs/cpm-query.html" target="_blank">cpm-query</a>,
+            one can see analysis and verification
+            information when hovering over an entity defined in some module
+            of an existing Curry package.
+            The image below shows a screenshot when hovering over
+            the standard Prelude operation <code>length</code>.
+            <img src="images/cpm-query-length.png" alt="Analysis infos for length" class="img-fluid mx-auto d-block" width="75%">
+            See the description of the Curry package
+            <a href="https://cpm.curry-lang.org/pkgs/cpm-query.html" target="_blank">cpm-query</a>
+            for more information how to configure the
+            <a href="https://github.com/fwcd/curry-language-server" target="_blank">Curry Language Server</a>
+            to show this information.
+          </p>
+
+          <h3>
+            Use CurryInfo in a Curry REPL
+          </h3>
+          <p>
+            One can also show information from CurryInfo in a REPL of a Curry
+            system, e.g.,
+            <a href="https://www.curry-lang.org/pakcs" target="_blank">PAKCS</a>.
+            This is supported by the command <code>:info</code>
+            which invokes the tool
+            <a href="https://cpm.curry-lang.org/pkgs/cpm-query.html" target="_blank">cpm-query</a>
+            to show the information.
+            In the screenshot below, the command
+            <kbd>:info length</kbd> shows information about operation
+            <code>length</code> (the operation must be in the scope of the REPL,
+            otherwise it needs to be qualified) and
+            the command <kbd>:info class Prelude.Eq</kbd> shows information
+            about the class <code>Eq</code> defined in module
+            <code>Prelude</code> (the module must be in some package of the
+            current application).
+            <img src="images/pakcs-length.png" alt="Analysis infos shown in PAKCS" class="img-fluid mx-auto d-block" width="75%">
+            Note that only a subset of all available information is shown
+            in the default case. One can adjust the information to be shown
+            by modifying the file <code>~/.cpmqueryrc</code> which is
+            generated when <code>cpm-query</code> is invoked for the
+            first time. One can also show all available information
+            by adding the option <code>--showall</code> in the
+            <code>:info</code> command, as shown in the screenshot below.
+            <img src="images/pakcs-showall.png" alt="All analysis infos shown in PAKCS" class="img-fluid mx-auto d-block" width="75%">
+          </p>
+
+        </div>
+      </div>
+      
+      <hr/>
+      <footer>
+        <i><a href="https://www.michaelhanus.de/">Michael Hanus</a></i>
+      </footer>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+    <script src="HTML/bt4/js/bootstrap.bundle.min.js"></script>
+    
+  </body>
+</html>
