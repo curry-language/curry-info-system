@@ -23,7 +23,7 @@ endif
 
 .PHONY: all
 all:
-	@echo "showconfig, install, installtools, tar, clean, or cleanall?"
+	@echo "showconfig, install, installtools, installstatic, tar, clean, or cleanall?"
 
 .PHONY: showconfig
 showconfig:
@@ -37,10 +37,16 @@ install: | $(WEBDIR)
 	$(MAKE) $(WEBDIR)/run.cgi
 	$(MAKE) $(WEBDIR)/bin/cypm
 	$(MAKE) installtools
+	$(MAKE) installstatic
 	chmod 755 $(WEBDIR)
 
 $(WEBDIR):
 	mkdir -p $(WEBDIR)
+	mkdir -p $(WEBDIR)/include
+
+# Install the static parts of the website:
+installstatic:
+	/bin/cp include/index.html $(WEBDIR)
 
 # Install the tools used by the webapp in the WEBDIR:
 .PHONY: installtools
@@ -54,7 +60,7 @@ $(TOOLBINCURRYINFO): src/*.curry src/*/*.curry src/*/*/*.curry | $(WEBDIR)
 	# install required tool locally in WEBDIR/bin:
 	$(TOOLCPM) --define BIN_INSTALL_PATH=$(WEBDIR)/bin --define APP_PACKAGE_PATH=$(WEBDIR)/CPMAPPS install
 	# install directory `include` (required to make it relocatable):
-	/bin/cp -a include $(WEBDIR)
+	/bin/cp -a include/HTML $(WEBDIR)/include
 
 
 $(TOOLBINCASS): | $(WEBDIR)

@@ -60,10 +60,10 @@ generateCurryInfoHTML opts = do
   printStatus opts $ "Creating HTML files in " ++ quote htmldir ++ "..."
   directoryAsHTML opts ("index.html", [htxt $ "CurryInfo"])
                   1 htmldir ["packages"]
-  pipath <- (</> "include") <$> getPackagePath
+  pipath <- (</> "include" </> "HTML") <$> getPackagePath
   ec <- copyIncludes pipath htmldir
   -- if the package path does not work (e.g., after relocation), try local one:
-  unless (ec == 0) $ (copyIncludes "include" htmldir >> return ())
+  unless (ec == 0) $ (copyIncludes ("include" </> "HTML") htmldir >> return ())
   createTarCache (htmldir </> curryInfoCacheTar)
  where
   -- copy include files (`bt4/`, `index.html`) from idir to htmldir

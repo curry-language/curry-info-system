@@ -24,7 +24,7 @@ import CurryInfo.Verbosity       ( printDebugMessage, printDetailMessage
 banner :: String
 banner = unlines [bannerLine, bannerText, bannerLine]
  where
-  bannerText = "Curry Package Information System (Version of 23/04/25)"
+  bannerText = "Curry Package Information System (Version of 24/04/25)"
   bannerLine = take (length bannerText) (repeat '=')
 
 main :: IO ()
