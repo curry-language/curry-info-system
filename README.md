@@ -136,7 +136,7 @@ HTML generation
 If the option `--htmldir=DIR` is given, `curry-info` generates an HTML
 representation of all entities stored in its cache in the directory `DIR`.
 For instance, the representation of the entities stored in the
-`curry-info` web service mention above can be accessed at URL
+`curry-info` web service mentioned above can be accessed at URL
 
     https://cpm.curry-lang.org/curry-info/HTML
 
@@ -207,6 +207,6 @@ contained in version 3.3.0 of the base` package is stored in file
 `.../packages/base/versions/3.3.0/modules/Prelude/operations/foldr1.json`
 
 To speed up the access to CASS-requests for all operations,
-CurryInfo also writes files named `ALL_<req>.txt` is `operations`
+CurryInfo also writes files named `ALL_<req>.txt` in `operations`
 directories. These files contains the `CurryTerm` output format
 of these requests.

@@ -42,6 +42,7 @@ data Options = Options
   , optAllClasses     :: Bool         -- process requests for all type classes
   , optAllOperations  :: Bool         -- process requests for all operations
   , optUpdate         :: Bool         -- update package index (by `cypm update`)
+  , optRequests       :: Bool         -- only show the list of all requests
   , optCacheRoot      :: FilePath     -- root of local cache files
   }
   deriving Show 

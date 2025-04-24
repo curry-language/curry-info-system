@@ -47,10 +47,33 @@ withColor opts coloring = if optColor opts then coloring else id
 
 --- The default options used by the tool.
 defaultOptions :: Options
-defaultOptions =
-  Options 1 False False 1 Nothing Nothing Nothing Nothing Nothing Nothing
-          OutText "" "" False False False False False Nothing False False
-          False False defaultCacheRoot
+defaultOptions = Options
+  { optVerb          = 1
+  , optHelp          = False
+  , optShowVersion   = False
+  , optForce         = 1
+  , optPackage       = Nothing
+  , optVersion       = Nothing
+  , optModule        = Nothing
+  , optType          = Nothing
+  , optClass         = Nothing
+  , optOperation     = Nothing
+  , optOutFormat     = OutText
+  , optOutFile       = ""
+  , optHTMLDir       = ""
+  , optClean         = False
+  , optColor         = False
+  , optShowAll       = False
+  , optCGI           = False
+  , optServer        = False
+  , optPort          = Nothing
+  , optAllTypes      = False
+  , optAllClasses    = False
+  , optAllOperations = False
+  , optUpdate        = False
+  , optRequests      = False
+  , optCacheRoot     = defaultCacheRoot
+  }
 
 --- Get the default options used by the tool where occurrences of `$HOME`
 --- are expanded.
@@ -90,7 +113,8 @@ processOptions banner argv = do
     putStr $ unlines $
       opterrors ++ ["Use option `--help' to see the list of all options"]
     exitWith 1
-  when (optHelp opts) (printUsage >> exitWith 0)
+  when (optHelp opts)     (printUsage True  >> exitWith 0)
+  when (optRequests opts) (printUsage False >> exitWith 0)
   when (optShowVersion opts) (putStrLn banner >> exitWith 0)
   when (optCGI opts) $ do
     when (optServer opts || not (null (optOutFile opts))) $ do
@@ -106,7 +130,7 @@ processOptions banner argv = do
   when (optClean opts1) (getObject opts1 >>= cleanObject opts1 >> exitWith 0)
   return (opts1, args)
  where
-  printUsage = putStrLn (banner ++ "\n" ++ usageText)
+  printUsage showall = putStr (banner ++ "\n" ++ usageText showall)
 
 -- IP address of cpm.curry-lang.org and cpm.curry-language.org
 -- from where data changes are allowed in CGI mode.
@@ -114,10 +138,12 @@ managerAddrs :: [String]
 managerAddrs = ["134.245.252.75", "87.106.116.135"]
 
 -- The usage text of the program.
-usageText :: String
-usageText =
-  usageInfo ("Usage: curry-info [options] <requests>\n") options ++
-  "\nRequests for different kinds of entities:\n\n" ++
+usageText :: Bool -> String
+usageText showall =
+  (if showall
+     then usageInfo ("Usage: curry-info [options] <requests>\n") options ++ "\n"
+     else "") ++
+  "Requests for different kinds of entities:\n\n" ++
   printRequests "Package"   packageConfiguration ++
   printRequests "Version"   versionConfiguration ++
   printRequests "Module"    moduleConfiguration ++
@@ -303,6 +329,12 @@ options =
   , Option "" ["color"]
        (NoArg (\opts -> opts { optColor = True }))
        "use colors in text output"
+  , Option "" ["htmldir"]
+       (ReqArg (\arg opts -> opts { optHTMLDir = arg }) "<d>")
+       "generate HTML version of local cache into <d>"
+  , Option "" ["requests"]
+       (NoArg (\opts -> opts { optRequests = True }))
+       "show all requests currently supported"
   , Option "" ["showall"]
        (NoArg (\opts -> opts { optShowAll = True }))
        "show all available information (no generation)"
@@ -318,9 +350,6 @@ options =
   , Option "" ["update"]
        (NoArg (\opts -> opts { optUpdate = True }))
        "update package index (by 'cypm update')"
-  , Option "" ["htmldir"]
-       (ReqArg (\arg opts -> opts { optHTMLDir = arg }) "<d>")
-       "generate HTML version of local cache into <d>"
   , Option "" ["cache"]
        (ReqArg (\arg opts -> opts { optCacheRoot = arg }) "<dir>")
        ("root of the local cache\n(default: " ++ defaultCacheRoot ++ ")")
