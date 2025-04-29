@@ -288,7 +288,11 @@ queryAllOperations opts pkg vsn m reqs = do
           -> do let reqfile = allOperationsReqFile opts pkg vsn m req
                 exreqfile <- doesFileExist reqfile
                 if exreqfile
-                  then do cnt <- readFile reqfile
+                  then do printStatusMessage opts $
+                            "Reading all operation request '" ++ req ++
+                            "' from file"
+                          printDetailMessage opts $ reqfile
+                          cnt <- readFile reqfile
                           case safeRead cnt of
                             Nothing -> do removeFile reqfile --remove buggy file
                                           queryAllOperations opts pkg vsn m reqs
@@ -461,7 +465,7 @@ getCheckedInfosConfig opts queryobject reqs conf configobject
                               :: IO [(String, RequestResult)]
 
             let newInformation = createNewInformation results
-            unless (null newInformation) $
+            unless (null newInformation || optForce opts == 0) $
               updateObjectInformation opts queryobject newInformation
             return $ createOutput opts queryobject results
  where

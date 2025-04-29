@@ -35,7 +35,7 @@ showconfig:
 .PHONY: install
 install: | $(WEBDIR)
 	$(MAKE) $(WEBDIR)/run.cgi
-	$(MAKE) $(WEBDIR)/bin/cypm
+	$(MAKE) $(TOOLBINCYPM)
 	$(MAKE) installtools
 	$(MAKE) installstatic
 	chmod -R go+rX $(WEBDIR)

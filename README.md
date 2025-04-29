@@ -64,8 +64,8 @@ currently stored in CurryInfo is shown:
     packages: abstract-curry abstract-haskell addtypes ...
 
 
-CGI mode
---------
+Web service / CGI mode
+----------------------
 
 If the option `--cgi` is given, `curry-info` is executed in CGI mode.
 In this mode, the parameters are obtained from the value of the
