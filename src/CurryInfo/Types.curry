@@ -7,8 +7,9 @@ module CurryInfo.Types where
 import Data.Char (toLower)
 import Data.List (intercalate)
 
-import JSON.Data (JValue)
-import Text.Pretty (Doc)
+import JSON.Data   ( JValue )
+import JSON.Pretty ( ppJSON )
+import Text.Pretty ( Doc )
 
 import CurryInfo.Helper       ( parenthesize, quote )
 import CurryInfo.RequestTypes
@@ -46,16 +47,26 @@ data Options = Options
   , optCacheRoot      :: FilePath     -- root of local cache files
   }
   deriving Show 
-------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------
 --- The type of output data in various formats.
 data Output
   = OutputText String
   | OutputJSON JValue
   | OutputTerm [(String, String)]
   | OutputError String
+  | OutputFile FilePath  -- output the contents of a file
   deriving Show
 
+--- Transform a given output to a string.
+getOutputString :: Output -> IO String
+getOutputString (OutputText txt)  = return txt
+getOutputString (OutputJSON jv)   = return $ ppJSON jv
+getOutputString (OutputTerm ts)   = return $ show ts
+getOutputString (OutputError err) = return $ "Error: " ++ err
+getOutputString (OutputFile fn)   = readFile fn
+
+------------------------------------------------------------------------------
 --- The type of output formats.
 data OutFormat = OutText | OutJSON | OutTerm
   deriving Eq

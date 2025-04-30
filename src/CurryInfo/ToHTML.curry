@@ -34,7 +34,7 @@ import CurryInfo.Helper         ( isCurryID, quote )
 import CurryInfo.Information    ( getInfos )
 import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath, packagesPath )
 import CurryInfo.Types          ( Options(..), QueryObject(..), prettyObject
-                                , OutFormat(..), Output(..) )
+                                , OutFormat(..), Output(..), getOutputString )
 
 ------------------------------------------------------------------------------
 --- Name of the tar file containing the CurryInfo cache.
@@ -164,7 +164,7 @@ directoryAsHTML opts (home,brand) d base dirs = do
         printDetail opts $ "Generating infos for object: " ++ prettyObject obj
         let htmlopts = opts { optShowAll = True, optOutFormat = OutText
                             , optColor = True }
-        infotxt <- resultText <$> getInfos htmlopts obj []
+        infotxt <- getInfos htmlopts obj [] >>= getOutputString
         let navobj = prettyObject obj
         docs <- subdirHtmlPage navobj (home,brand) d navobj
                                (structureText infotxt)
@@ -186,6 +186,7 @@ getRealFilesInDir base dirs = do
   isReal fn = not ("." `isPrefixOf` fn) &&
               not (".html" `isSuffixOf` fn) &&
               not (".txt" `isSuffixOf` fn) &&
+              not (".map" `isSuffixOf` fn) &&
               maybe True
                     (\n -> n /= "_DUMMY_" && (not isOperation || isCurryID n))
                     (jsonFile2Name fn)
@@ -215,12 +216,6 @@ structureText t =
 
  strip = reverse . dropWhile (==' ') . reverse . dropWhile (==' ')
  stripCR = reverse . dropWhile (=='\n') . reverse . dropWhile (=='\n')
-
-resultText :: Output -> String
-resultText (OutputText txt)  = txt
-resultText (OutputJSON jv)   = ppJSON jv
-resultText (OutputTerm ts)   = show ts
-resultText (OutputError err) = "Error: " ++ err
 
 
 -- Generates a HTML page in a subdirectory of CurryInfo with a given page title,

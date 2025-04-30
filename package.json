@@ -10,6 +10,7 @@
   "dependencies": {
     "base"           : " ^3.3.0",
     "ansi-terminal"  : " >= 3.0.0, < 4.0.0",
+    "containers"     : " >= 3.0.0, < 4.0.0",
     "currypath"      : " >= 3.0.0, < 4.0.0",
     "curry-interface": " >= 2.0.1, < 3.0.0",
     "curry-resources": " >= 1.0.0",

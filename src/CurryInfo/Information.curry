@@ -16,18 +16,17 @@ import System.Environment ( getArgs )
 
 import JSON.Convert        ( fromJSON )
 import JSON.Data
-import JSON.Pretty         ( ppJSON )
 import System.Console.ANSI.Codes
 import System.Directory    ( doesDirectoryExist, doesFileExist
                            , getDirectoryContents, removeFile )
 import System.FilePath     ( (</>), (<.>) )
 
-
 import CurryInfo.Analysis  ( curryInfoRequest2CASS )
 import CurryInfo.Configuration
 import CurryInfo.Paths     ( getCPMIndex, getReducedDirectoryContents
                            , jsonFile2Name, objectDirectory, objectJSONPath
-                           , packagesPath, realNameField, allOperationsReqFile )
+                           , packagesPath, realNameField
+                           , allOperationsReqMapFile )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Reader
@@ -44,17 +43,10 @@ import CurryInfo.Helper    ( RequestResult(..), fromQName
 --- This action prints the given output to stdout and also returns
 --- the string as result.
 printResult :: Options -> Output -> IO String
-printResult opts o =
+printResult opts o = do
   let ofile = optOutFile opts
-      s     = output2string o
-  in (if null ofile then putStrLn else writeFile ofile) s >> return s
-
---- Transform a given output to a string.
-output2string :: Output -> String
-output2string (OutputText txt)  = txt
-output2string (OutputJSON jv)   = ppJSON jv
-output2string (OutputTerm ts)   = show ts
-output2string (OutputError err) = "Error: " ++ err
+  s <- getOutputString o
+  (if null ofile then putStrLn else writeFile ofile) s >> return s
 
 --- This action returns a failed output with the given error message.
 --- In case of a Curry `OutTerm`, we generate an error message so that
@@ -277,7 +269,7 @@ queryAllClasses opts pkg vsn m reqs = do
 -- Query all operations in the given package/version/module for the given
 -- requests.
 -- If there is only one request computed by CASS in output format CurryTerm,
--- the result is stored in a cache file (see `allOperationsReqFile`)
+-- the result is stored in a cache file (see `allOperationsReqMapFile`)
 -- for faster lookup when results are required by CASS.
 queryAllOperations :: Options -> Package -> Version -> Module -> [String]
                    -> IO Output
@@ -285,24 +277,22 @@ queryAllOperations opts pkg vsn m reqs = do
   case reqs of
     [req] | req `elem` map fst curryInfoRequest2CASS &&
             optOutFormat opts == OutTerm
-          -> do let reqfile = allOperationsReqFile opts pkg vsn m req
-                exreqfile <- doesFileExist reqfile
-                if exreqfile
-                  then do printStatusMessage opts $
-                            "Reading all operation request '" ++ req ++
-                            "' from file"
-                          printDetailMessage opts $ reqfile
-                          cnt <- readFile reqfile
-                          case safeRead cnt of
-                            Nothing -> do removeFile reqfile --remove buggy file
-                                          queryAllOperations opts pkg vsn m reqs
-                            Just t  -> return (OutputTerm t)
+          -> do let mapfile = allOperationsReqMapFile opts pkg vsn m req
+                exmapfile <- doesFileExist mapfile
+                if exmapfile
+                  then do printDetailMessage opts $
+                            "Returning contents of '" ++ mapfile ++ "'..."
+                          return $ OutputFile mapfile
                   else do result <- queryAllOps
-                          writeFile reqfile (output2string result)
-                          printStatusMessage opts $ "All operation request '" ++
-                                                    req ++ "' cached in file"
-                          printDetailMessage opts $ reqfile
-                          return result
+                          case lookup req curryInfoRequest2CASS of
+                            Just (_,tomap) -> do
+                              writeFile mapfile (tomap (fromOutputTerm result))
+                              printStatusMessage opts $
+                                "All operation requests '" ++ req ++
+                                "' cached in file"
+                              printDetailMessage opts $ mapfile
+                              return $ OutputFile mapfile
+                            Nothing -> return result
     _     -> queryAllOps
  where
   queryAllOps = do

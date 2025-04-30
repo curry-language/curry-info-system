@@ -5,13 +5,14 @@
 
 module CurryInfo.Analysis where
 
+import Data.Map    ( Map, fromList )
 import JSON.Data
-import JSON.Parser (parseJSON)
+import JSON.Parser ( parseJSON )
 import JSON.Convert
 
 import CurryInfo.Checkout
 import CurryInfo.Commands
-import CurryInfo.Helper       ( quote )
+import CurryInfo.Helper       ( quote, safeRead )
 import CurryInfo.Paths
 import CurryInfo.RequestTypes
 import CurryInfo.Types
@@ -98,17 +99,43 @@ analyseWith anacmd opts pkg vsn mn ename ananame field constructor = do
         printDebugMessage opts $ "Result found: " ++ show result
         return (Just result)
 
--- Map a request name of CurryInfo to a CASS analysis name.
-curryInfoRequest2CASS :: [(String,String)]
+-- Representation of qualified names.
+type QName = (String,String)
+
+--- Map a request name of CurryInfo to a CASS analysis name together with
+--- an operation to transform a list of qualified names and values as
+--- Curry terms into a map representation (as used by CASS).
+curryInfoRequest2CASS :: [(String, (String, ([(String,String)] -> String)))]
 curryInfoRequest2CASS =
-  [ ("deterministic",     "Deterministic")
-  , ("demand",            "Demand")
-  , ("indeterministic",   "Indeterministic")
-  , ("solution-complete", "SolComplete")
-  , ("terminating",       "Terminating")
-  , ("totally-defined",   "Total")
-  , ("result-values",     "Values")
+  [ ("deterministic",     ("Deterministic",   toDetMap))
+  , ("demand",            ("Demand",          toDemandMap))
+  , ("indeterministic",   ("Indeterministic", toBoolMap))
+  , ("solution-complete", ("SolComplete",     toBoolMap))
+  , ("terminating",       ("Terminating",     toBoolMap))
+  , ("totally-defined",   ("Total",           toBoolMap))
+  , ("result-values",     ("Values",          toATypeMap))
   ]
+ where
+  toDetMap    ps = show (curryTerm2Map ps :: Map QName Deterministic)
+  toDemandMap ps = show (curryTerm2Map ps :: Map QName [Int])
+  toBoolMap   ps = show (curryTerm2Map ps :: Map QName Bool)
+  toATypeMap  ps = show (curryTerm2Map ps :: Map QName AType)
+
+--- Map a list of pairs consisting of qualified names as `show`n strings
+--- and values as `show`n strings into a map by reading both components.
+curryTerm2Map :: Read a => [(String,String)] -> Map QName a
+curryTerm2Map qnvs =
+  fromList (map (\(qn,v) -> (checkedRead qn, readFstVal (checkedRead v))) qnvs)
+ where
+  readFstVal :: Read a => [(String,String)] -> a
+  readFstVal v = case v of
+    [(_,s)] -> checkedRead s
+    _       -> error $ "curryTerm2Map: no unique result value in:\n" ++ show v
+
+  checkedRead :: Read a => String -> a
+  checkedRead s = case readsPrec 0 s of
+      [(x, "")] -> x
+      _         -> error $ "curryTerm2Map: Read error on: " ++ s
 
 -- Analyse an operation of a module with CASS where the name of the
 -- CurryInfo field is provided as the last argument.
@@ -116,11 +143,12 @@ analyseOperationWithCASS :: Options -> Package -> Version -> Module -> Operation
                          -> String -> IO (Maybe String)
 analyseOperationWithCASS opts pkg vsn mn o field =
   case lookup field curryInfoRequest2CASS of
-    Nothing    -> do printErrorMessage $ "No CASS analysis found for field " ++
-                                         quote field ++ "!"
-                     return Nothing
-    Just aname -> analyseWith (cmdCASS opts) opts pkg vsn mn o aname field
-                              (QueryOperation pkg vsn mn)
+    Nothing        -> do printErrorMessage $
+                           "No CASS analysis found for field " ++
+                           quote field ++ "!"
+                         return Nothing
+    Just (aname,_) -> analyseWith (cmdCASS opts) opts pkg vsn mn o aname field
+                                  (QueryOperation pkg vsn mn)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.

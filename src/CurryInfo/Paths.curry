@@ -33,12 +33,12 @@ objectDirectory opts (QueryOperation pkg vsn m _) = do
   objectDirectory opts (QueryModule pkg vsn m) </> "operations"
 
 --- Returns the file where information about a request of all operations
---- in a package/version/module are store.
-allOperationsReqFile :: Options -> Package -> Version -> Module -> String
-                     -> FilePath
-allOperationsReqFile opts pkg vsn mn req =
+--- in a package/version/module are stored as a Curry map (as used by CASS).
+allOperationsReqMapFile :: Options -> Package -> Version -> Module -> String
+                        -> FilePath
+allOperationsReqMapFile opts pkg vsn mn req =
   objectDirectory opts (QueryOperation pkg vsn mn "") </>
-  "ALL_" ++ req <.> ".txt"
+  "ALL_" ++ req <.> ".map"
 
 --- Gets the path of the JSON file containing all information about an object.
 objectJSONPath :: Options -> QueryObject -> FilePath
