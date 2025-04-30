@@ -489,22 +489,6 @@ generateOperationAnalysis aname analysis opts (CurryOperation pkg vsn m o) = do
   mres <- analysis opts pkg vsn m o aname
   processAnalysisResult opts mres
 
---- Generator function to create an information generator using CASS for
---- the analysis.
---- The first argument is a description of the analysis
---- and the second argument is the name of the analysis given to CASS
---- as an argument.
-generateOperationAnalysisWithCASS :: Show b => String
-  -> (Options -> Package -> Version -> Module -> Operation -> IO (Maybe b))
-  -> Generator CurryOperation b
-generateOperationAnalysisWithCASS desc analysis opts
-                                  (CurryOperation pkg vsn m o) = do
-  printDetailMessage opts $ "Generating " ++ desc ++ " analysis of operation '"
-    ++ o ++ "' of module '" ++ m ++ "' of version '" ++ vsn ++
-    "' of package '" ++ pkg ++ "'..."
-  mres <- analysis opts pkg vsn m o
-  processAnalysisResult opts mres
-
 --- This action prints messages about the result depending on the current
 --- options. It returns the result as a Maybe value.
 finishResult :: Options -> String -> IO (Maybe String)

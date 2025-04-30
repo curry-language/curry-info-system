@@ -224,20 +224,20 @@ checkDummyAndGetInfosConfig opts entityconfig dqo emptyent reqs req = do
             " does not contain field " ++ quote req
           getInfosConfig opts dqo reqs entityconfig emptyent
 
--- Return all entities of the query object.
+-- Return all entity names of the query object.
 queryAllEntities :: Options -> Package -> Version -> Module -> QueryObject
                  -> String -> IO (Maybe [String])
 queryAllEntities opts pkg vsn m entqobj entreq =
   query opts (QueryModule pkg vsn m) entreq >>=
     maybe (return Nothing)
-      (\opnames -> do
-          let qopnames = map fromQName opnames
+      (\enames -> do
+          let qenames = map fromQName enames
           mapM_ (\(mn,en) -> initializeObjectWithRealName opts
                               (setEName entqobj en) mn en)
-                (filter (not . null . fst) qopnames)
+                (filter (not . null . fst) qenames)
           stnames <- queryAllStoredEntities entqobj
           return $ Just $ 
-            filter (/= dummyEntityName) $ union stnames $ map snd qopnames)
+            filter (/= dummyEntityName) $ union stnames $ map snd qenames)
  where
   -- Return all entities of the query object currently stored in json files:
   queryAllStoredEntities :: QueryObject -> IO [String]
@@ -388,7 +388,8 @@ checkRequests opts reqs config cont = do
             generateOutputError opts err
 
 --- This action process the given requests for the given query object
---- w.r.t. to the configuration for the kind of query object and
+--- w.r.t. to the configuration for the kind of query object
+--- (specified by the last parameter of type `a`) and
 --- returns the output for the requests.
 getInfosConfig :: Show a => Options -> QueryObject -> [String]
                -> [RegisteredRequest a] -> a -> IO Output
@@ -564,7 +565,7 @@ extractRequest opts req extractor fields = do
     Just (jv, output) -> do
       printDetailMessage opts "Extraction succeeded."
       return $ Just (jv, output)
-  
+
 generateRequest :: Show a => Options -> String
                 -> (Options -> a -> IO (Maybe (JValue, String))) -> a
                 -> IO (Maybe (JValue, String))

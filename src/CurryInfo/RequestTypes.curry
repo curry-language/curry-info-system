@@ -81,6 +81,7 @@ type Precedence = Int
 
 ------------------------------------------------------------------------------
 --- Data type to represent determinism information.
+--- Taken from CASS analysis module `Analysis.Deterministic`.
 data Deterministic = NDet | Det
  deriving (Eq, Show, Read)
 

@@ -37,7 +37,7 @@ analyseWith :: (FilePath -> String -> Module
                                    -> (String, IO (Int, String, String)))
             -> Options -> Package -> Version -> Module -> String -> String
             -> String -> (String -> QueryObject) -> IO (Maybe String)
-analyseWith anacmd opts pkg vsn m ename ananame field constructor = do
+analyseWith anacmd opts pkg vsn mn ename ananame field constructor = do
   printDetailMessage opts $ "Starting analysis '" ++ ananame ++ "'..."
   mpath <- checkoutIfMissing opts pkg vsn
   case mpath of
@@ -45,7 +45,7 @@ analyseWith anacmd opts pkg vsn m ename ananame field constructor = do
       printDetailMessage opts "Analysis failed."
       return Nothing
     Just path -> do
-      (_, output, _) <- runCmd opts (anacmd path ananame m)
+      (_, output, _) <- runCmd opts (anacmd path ananame mn)
       printDetailMessage opts "Analysis finished."
       printDebugMessage opts "Parsing analysis output..."
       case parseJSON output of
@@ -65,7 +65,7 @@ analyseWith anacmd opts pkg vsn m ename ananame field constructor = do
         _ -> do
           printErrorMessage $
             "Could not parse JSON output of analysis '" ++ ananame ++
-            "' of module '" ++ m ++ "'!"
+            "' of module '" ++ mn ++ "'!"
           printErrorMessage "Analysis output:"
           printErrorMessage output
           printDetailMessage opts $ "Analysis'" ++ ananame ++ "' failed."
@@ -114,34 +114,34 @@ curryInfoRequest2CASS =
 -- CurryInfo field is provided as the last argument.
 analyseOperationWithCASS :: Options -> Package -> Version -> Module -> Operation
                          -> String -> IO (Maybe String)
-analyseOperationWithCASS opts pkg vsn m o field =
+analyseOperationWithCASS opts pkg vsn mn o field =
   case lookup field curryInfoRequest2CASS of
     Nothing    -> do printErrorMessage $ "No CASS analysis found for field " ++
                                          quote field ++ "!"
                      return Nothing
-    Just aname -> analyseWith (cmdCASS opts) opts pkg vsn m o aname field
-                              (QueryOperation pkg vsn m)
+    Just aname -> analyseWith (cmdCASS opts) opts pkg vsn mn o aname field
+                              (QueryOperation pkg vsn mn)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.
 analyseFailFree :: Options -> Package -> Version -> Module -> Operation
                 -> IO (Maybe String)
-analyseFailFree opts pkg vsn m o =
-  analyseWith (cmdCallTypes opts ["-v1"]) opts pkg vsn m o
-              "FailFree" "failfree" (QueryOperation pkg vsn m)
+analyseFailFree opts pkg vsn mn o =
+  analyseWith (cmdCallTypes opts ["-v1"]) opts pkg vsn mn o
+              "FailFree" "failfree" (QueryOperation pkg vsn mn)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the in/out types for the given module.
 analyseIOTypes :: Options -> Package -> Version -> Module -> Operation
                -> IO (Maybe String)
-analyseIOTypes opts pkg vsn m o =
-  analyseWith (cmdCallTypes opts ["-v0", "--iotypes"]) opts pkg vsn m o
-               "IOType" "iotype" (QueryOperation pkg vsn m)
+analyseIOTypes opts pkg vsn mn o =
+  analyseWith (cmdCallTypes opts ["-v0", "--iotypes"]) opts pkg vsn mn o
+               "IOType" "iotype" (QueryOperation pkg vsn mn)
 
 -- This action initiates a call to CASS to compute the 'UnsafeModule' analysis
 -- for the given module in the given path.
 analyseUnsafeModuleWithCASS :: Options -> Package -> Version -> Module
                             -> IO (Maybe String)
-analyseUnsafeModuleWithCASS opts pkg vsn m =
-  analyseWith (cmdCASS opts) opts pkg vsn m m
+analyseUnsafeModuleWithCASS opts pkg vsn mn =
+  analyseWith (cmdCASS opts) opts pkg vsn mn mn
               "UnsafeModule" "unsafe" (QueryModule pkg vsn)

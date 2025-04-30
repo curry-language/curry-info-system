@@ -22,3 +22,4 @@ cd $CACHEDIR
 echo "Downloading $TARURL..."
 curl -sSL $TARURL | tar xz
 echo "Downloaded contents installed in ~/$CACHEDIR"
+touch $HOME/$CACHEDIR
