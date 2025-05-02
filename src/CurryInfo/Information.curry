@@ -70,7 +70,7 @@ getAllPackageNames opts = do
                  withColor opts green "packages: " ++ unwords contents
     OutJSON -> OutputJSON $ JObject $ toJObject $
                   [("packages", JArray (map JString contents))]
-    OutTerm -> OutputTerm [("packages", show contents)]
+    OutTerm -> OutputTerm [("", [("packages", unwords contents)])]
 
 ------------------------------------------------------------------------------
 --- This action process the given requests for the given query object and
@@ -275,24 +275,23 @@ queryAllOperations :: Options -> Package -> Version -> Module -> [String]
                    -> IO Output
 queryAllOperations opts pkg vsn m reqs = do
   case reqs of
-    [req] | req `elem` map fst curryInfoRequest2CASS &&
-            optOutFormat opts == OutTerm
-          -> do let mapfile = allOperationsReqMapFile opts pkg vsn m req
-                exmapfile <- doesFileExist mapfile
-                if exmapfile
-                  then do printDetailMessage opts $
-                            "Returning contents of '" ++ mapfile ++ "'..."
-                          return $ OutputFile mapfile
-                  else do result <- queryAllOps
-                          case lookup req curryInfoRequest2CASS of
-                            Just (_,tomap) -> do
-                              writeFile mapfile (tomap (fromOutputTerm result))
-                              printStatusMessage opts $
-                                "All operation requests '" ++ req ++
-                                "' cached in file"
-                              printDetailMessage opts $ mapfile
-                              return $ OutputFile mapfile
-                            Nothing -> return result
+    [req] | optOutFormat opts == OutTerm
+      -> case lookup req curryInfoRequest2CASS of
+           Nothing        -> queryAllOps
+           Just (_,tomap) -> do
+             let mapfile = allOperationsReqMapFile opts pkg vsn m req
+             exmapfile <- doesFileExist mapfile
+             if exmapfile
+               then do printDetailMessage opts $
+                         "Returning contents of '" ++ mapfile ++ "'..."
+                       return $ OutputFile mapfile
+               else do result <- queryAllOps
+                       writeFile mapfile (tomap (fromOutputTerm result))
+                       printStatusMessage opts $
+                         "All operation requests '" ++ req ++
+                         "' cached in file"
+                       printDetailMessage opts $ mapfile
+                       return $ OutputFile mapfile
     _     -> queryAllOps
  where
   queryAllOps = do
@@ -325,9 +324,9 @@ query opts obj req = do
   printDebugMessage opts $ "Query result: " ++ show res
   case res of
     -- OutputTerm [("obj", [("req", "res")])]
-    OutputTerm [(_, x)] -> case lookup req (read x) of
-                              Nothing -> return Nothing
-                              Just y  -> return (Just (read y))
+    OutputTerm [(_,rs)] -> case lookup req rs of
+                             Nothing -> return Nothing
+                             Just y  -> return (Just (read y))
     _                   -> return Nothing
 
 --- Combines a sequence of output into a single output in the required format.
@@ -347,10 +346,10 @@ combineOutput opts outs = case optOutFormat opts of
     OutputJSON jv -> jv
     _             -> JString $ "ERROR IN JSON OUTPUT FORMAT: " ++ show out
 
-fromOutputTerm :: Output -> [(String, String)]
+fromOutputTerm :: Output -> CurryOutputTerm
 fromOutputTerm out = case out of
   OutputTerm ts -> ts
-  _             -> [("ERROR", "ERROR IN TERM OUTPUT FORMAT: " ++ show out)]
+  _             -> [("ERROR", [("ERROR","in fromOutputTerm: " ++ show out)])]
 
 --- When the given files does not exist, execute the given Boolean action,
 --- other return `True`.
@@ -371,7 +370,7 @@ checkRequests opts reqs config cont = do
     then cont
     else do let err = "Request" ++
                       (if length unknownrequests == 1
-                         then " " ++ head unknownrequests ++ " is"
+                         then " '" ++ head unknownrequests ++ "' is"
                          else "s " ++ unwords unknownrequests ++ " are") ++
                       " unknown!"
             printDetailMessage opts err
@@ -579,23 +578,23 @@ createOutput :: Options -> QueryObject -> [(String, RequestResult)]
 createOutput opts obj results = case optOutFormat opts of
   OutText -> OutputText $ unlines $
               (if outputSingleEntity then []
-                                     else [object2StringTuple obj]) ++
+                                     else [showQueryObject obj]) ++
               map (\(r, ir) -> withColor opts green (r ++ ": ") ++ 
                   fromRequestResult (withColor opts red "?") id (flip const) ir)
                   results
   OutJSON -> OutputJSON $ JObject $ toJObject $
-                [("object", (JString . object2StringTuple) obj),
-                  ("results",
+                [("object", (JString . showQueryObject) obj),
+                  ("requests",
                    JObject $ toJObject
                      (map (\(r, ir) ->
                               (r, fromRequestResult JNull JString
                                         (\_ s -> JString s) ir))
                           results))]
   OutTerm -> OutputTerm
-                [(object2StringTuple obj,
-                  show (map (\(r, ir) ->
-                                (r, fromRequestResult "?" id (flip const) ir))
-                            results))]
+                [(showQueryObject obj,
+                  map (\(r, ir) ->
+                           (r, fromRequestResult "?" id (flip const) ir))
+                      results)]
  where
   -- generate output for a single entity?
   outputSingleEntity = not

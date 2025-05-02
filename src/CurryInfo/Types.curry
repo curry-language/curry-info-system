@@ -50,13 +50,22 @@ data Options = Options
 
 ------------------------------------------------------------------------------
 --- The type of output data in various formats.
+--- Each element of a list in `OutputTerm` has the object identifier in the
+--- first component (e..g., `"base 3.3.0 Prelude", see `showQueryObject`)
+--- and a list of request name / value pairs in the second component.
 data Output
-  = OutputText String
-  | OutputJSON JValue
-  | OutputTerm [(String, String)]
+  = OutputText  String
+  | OutputJSON  JValue
+  | OutputTerm  CurryOutputTerm
   | OutputError String
-  | OutputFile FilePath  -- output the contents of a file
+  | OutputFile  FilePath  -- output the contents of a file
   deriving Show
+
+--- The type of output terms in `CurryTerm` output format.
+--- Each element of the list has the object identifier in the
+--- first component (e..g., `"base 3.3.0 Prelude", see `showQueryObject`)
+--- and a list of request name / value pairs in the second component.
+type CurryOutputTerm = [(String, [(String,String)])]
 
 --- Transform a given output to a string.
 getOutputString :: Output -> IO String
@@ -210,20 +219,15 @@ errorRequestObject (QueryOperation pkg vsn m o) req =
   " of module " ++ m ++ " of version " ++ vsn ++ " of package " ++
   pkg ++ " could not be read."
 
---- Transforms an object into a string of tuples with the various components.
+--- Shows a query objects as a list of its components.
 --- For entities inside a module, only the module name and entitiy name
---- is printed.
-object2StringTuple :: QueryObject -> String
-object2StringTuple (QueryPackage pkg) = show pkg
-object2StringTuple (QueryVersion pkg vsn) =
-  parenthesize (intercalate ", " [show pkg, show vsn])
-object2StringTuple (QueryModule pkg vsn m) =
-  parenthesize (intercalate ", " [show pkg, show vsn, show m])
-object2StringTuple (QueryType _ _ m t) =
-  parenthesize (intercalate ", " [show m, show t])
-object2StringTuple (QueryClass _ _ m c) =
-  parenthesize (intercalate ", " [show m, show c])
-object2StringTuple (QueryOperation _ _ m o) =
-  parenthesize (intercalate ", " [show m, show o])
+--- is shown.
+showQueryObject :: QueryObject -> String
+showQueryObject (QueryPackage pkg)       = pkg
+showQueryObject (QueryVersion pkg vsn)   = unwords [pkg,vsn]
+showQueryObject (QueryModule pkg vsn m)  = unwords [pkg, vsn, m]
+showQueryObject (QueryType _ _ m t)      = unwords [m, t]
+showQueryObject (QueryClass _ _ m c)     = unwords [m, c]
+showQueryObject (QueryOperation _ _ m o) = unwords [m, o]
 
 ------------------------------------------------------------------------------

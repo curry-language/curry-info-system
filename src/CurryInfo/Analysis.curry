@@ -105,7 +105,7 @@ type QName = (String,String)
 --- Map a request name of CurryInfo to a CASS analysis name together with
 --- an operation to transform a list of qualified names and values as
 --- Curry terms into a map representation (as used by CASS).
-curryInfoRequest2CASS :: [(String, (String, ([(String,String)] -> String)))]
+curryInfoRequest2CASS :: [(String, (String, (CurryOutputTerm -> String)))]
 curryInfoRequest2CASS =
   [ ("deterministic",     ("Deterministic",   toDetMap))
   , ("demand",            ("Demand",          toDemandMap))
@@ -121,21 +121,23 @@ curryInfoRequest2CASS =
   toBoolMap   ps = show (curryTerm2Map ps :: Map QName Bool)
   toATypeMap  ps = show (curryTerm2Map ps :: Map QName AType)
 
---- Map a list of pairs consisting of qualified names as `show`n strings
---- and values as `show`n strings into a map by reading both components.
-curryTerm2Map :: Read a => [(String,String)] -> Map QName a
+--- Map a `CurryOutputTerm` representing results for a list of operations
+--- (i.e., where the first components contains qualified names) and
+--- values for a _single_ request into a map from QNames to request values.
+curryTerm2Map :: Read a => CurryOutputTerm -> Map QName a
 curryTerm2Map qnvs =
-  fromList (map (\(qn,v) -> (checkedRead qn, readFstVal (checkedRead v))) qnvs)
+  fromList (map (\(qn,v) -> (readQName qn, readSingleRequestValue v)) qnvs)
  where
-  readFstVal :: Read a => [(String,String)] -> a
-  readFstVal v = case v of
-    [(_,s)] -> checkedRead s
+  readSingleRequestValue :: Read a => [(String,String)] -> a
+  readSingleRequestValue v = case v of
+    [(_,s)] -> case reads s of
+                 [(x, "")] -> x
+                 _         -> error $ "curryTerm2Map: Read error on: " ++ s
     _       -> error $ "curryTerm2Map: no unique result value in:\n" ++ show v
 
-  checkedRead :: Read a => String -> a
-  checkedRead s = case readsPrec 0 s of
-      [(x, "")] -> x
-      _         -> error $ "curryTerm2Map: Read error on: " ++ s
+  readQName s = case words s of
+    [mn,en] -> (mn,en)
+    _       -> error $ "curryTerm2Map: no qualified name found: " ++ s
 
 -- Analyse an operation of a module with CASS where the name of the
 -- CurryInfo field is provided as the last argument.
