@@ -59,6 +59,7 @@ defaultOptions = Options
   , optClass         = Nothing
   , optOperation     = Nothing
   , optOutFormat     = OutText
+  , optOutAsMap      = False
   , optOutFile       = ""
   , optHTMLDir       = ""
   , optClean         = False
@@ -116,6 +117,10 @@ processOptions banner argv = do
   when (optHelp opts)     (printUsage True  >> exitWith 0)
   when (optRequests opts) (printUsage False >> exitWith 0)
   when (optShowVersion opts) (putStrLn banner >> exitWith 0)
+  when (optOutAsMap opts && not (optAllOperations opts && length args == 1)) $ do
+    putStrLn $ "Output format 'CurryMap' only allowed for '--alloperations'" ++
+               " and single request!"
+    exitWith 1
   when (optCGI opts) $ do
     when (optServer opts || not (null (optOutFile opts))) $ do
       putStrLn "Options '--server' or '--output' not allowed in CGI mode!"
@@ -315,11 +320,8 @@ options =
   , Option "" ["alloperations"]
        (NoArg (\opts -> opts { optAllOperations = True }))
        "process requests for all operations in module"
-  , Option "" ["format"]
-       (ReqArg (\args opts -> opts { optOutFormat =
-                                       maybe OutText id (safeRead args) })
-          "<format>")
-       "output format: Text (default), JSON, CurryTerm"
+  , Option "" ["format"] (ReqArg checkFormat "<format>")
+       "output format:\nText (default), JSON, CurryTerm, CurryMap"
   , Option "" ["output"]
        (ReqArg (\arg opts -> opts { optOutFile = arg }) "<f>")
        "write results to file <f> (default: stdout)"
@@ -354,21 +356,27 @@ options =
        (ReqArg (\arg opts -> opts { optCacheRoot = arg }) "<dir>")
        ("root of the local cache\n(default: " ++ defaultCacheRoot ++ ")")
   ]
-  where
-    safeReadNat opttrans s opts = case readNat s of
-      [(n, "")] -> opttrans n opts
-      _         -> helpError "Illegal number argument"
-    
-    checkVerb n opts =
-      if n >= 0 && n <= 3
-        then opts { optVerb = n }
-        else helpError "Illegal verbosity level"
+ where
+  checkFormat arg opts
+    | arg == "CurryMap" = opts { optOutFormat = OutTerm, optOutAsMap = True }
+    | otherwise         = case reads arg of
+                            [(f,"")] -> opts { optOutFormat = f }
+                            _        -> helpError $ "Illegal format: " ++ arg
 
-    checkForce n opts =
-      if n >= 0 && n <= 2
-        then opts { optForce = n }
-        else helpError "Illegal force level"
+  safeReadNat opttrans s opts = case readNat s of
+    [(n, "")] -> opttrans n opts
+    _         -> helpError "Illegal number argument"
+  
+  checkVerb n opts =
+    if n >= 0 && n <= 3
+      then opts { optVerb = n }
+      else helpError "Illegal verbosity level"
 
-    helpError s = error $ s ++ " (try `--help' for help)"
+  checkForce n opts =
+    if n >= 0 && n <= 2
+      then opts { optForce = n }
+      else helpError "Illegal force level"
+
+  helpError s = error $ s ++ " (try `--help' for help)"
 
 ------------------------------------------------------------------------------

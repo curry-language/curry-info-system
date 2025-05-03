@@ -129,11 +129,11 @@ curryTerm2Map qnvs =
   fromList (map (\(qn,v) -> (readQName qn, readSingleRequestValue v)) qnvs)
  where
   readSingleRequestValue :: Read a => [(String,String)] -> a
-  readSingleRequestValue v = case v of
+  readSingleRequestValue rvs = case rvs of
     [(_,s)] -> case reads s of
-                 [(x, "")] -> x
+                 [(v, "")] -> v
                  _         -> error $ "curryTerm2Map: Read error on: " ++ s
-    _       -> error $ "curryTerm2Map: no unique result value in:\n" ++ show v
+    _       -> error $ "curryTerm2Map: no unique result value in:\n" ++ show rvs
 
   readQName s = case words s of
     [mn,en] -> (mn,en)

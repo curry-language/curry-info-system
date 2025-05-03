@@ -275,9 +275,9 @@ queryAllOperations :: Options -> Package -> Version -> Module -> [String]
                    -> IO Output
 queryAllOperations opts pkg vsn m reqs = do
   case reqs of
-    [req] | optOutFormat opts == OutTerm
+    [req] | optOutFormat opts == OutTerm && optOutAsMap opts
       -> case lookup req curryInfoRequest2CASS of
-           Nothing        -> queryAllOps
+           Nothing        -> printErrorMessage curryMapMsg >> queryAllOps
            Just (_,tomap) -> do
              let mapfile = allOperationsReqMapFile opts pkg vsn m req
              exmapfile <- doesFileExist mapfile
@@ -294,6 +294,9 @@ queryAllOperations opts pkg vsn m reqs = do
                        return $ OutputFile mapfile
     _     -> queryAllOps
  where
+  curryMapMsg =
+   "Use output format 'CurryTerm' ('CurryMap' only supported for CASS analyses)"
+
   queryAllOps = do
     mos <- queryAllEntities opts pkg vsn m (QueryOperation pkg vsn m "?")
                             "operations"

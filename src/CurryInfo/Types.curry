@@ -31,6 +31,7 @@ data Options = Options
   , optClass          :: Maybe String -- the requested type class
   , optOperation      :: Maybe String -- the requested operation
   , optOutFormat      :: OutFormat    -- the output format
+  , optOutAsMap       :: Bool         -- output as map (`--format=CurryMap`)?
   , optOutFile        :: String       -- possible file name to store output
   , optHTMLDir        :: String       -- directory to generate HTML cache copy?
   , optClean          :: Bool         -- clean up information
