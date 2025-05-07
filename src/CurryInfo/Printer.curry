@@ -107,12 +107,14 @@ pTypeDocumentation :: Printer Reference
 pTypeDocumentation = printDocumentation
 
 pTypeConstructors :: Printer [Constructor]
-pTypeConstructors _ cons = return (show cons)
+pTypeConstructors opts cs
+  | isTextFormat opts = return$ codeText opts (show cs)
+  | otherwise         = return (show cs)
 
 pTypeDefinition :: Printer Reference
 pTypeDefinition = printSourceCode
 
--- TYPECLASS
+-- CLASS
 
 pClassName :: Printer Class
 pClassName _ = return
@@ -121,7 +123,9 @@ pClassDocumentation :: Printer Reference
 pClassDocumentation  = printDocumentation
 
 pClassMethods :: Printer [Method]
-pClassMethods _ ms = return (show ms)
+pClassMethods opts ms
+  | isTextFormat opts = return $ codeText opts (show ms)
+  | otherwise         = return (show ms)
 
 pClassDefinition :: Printer Reference
 pClassDefinition = printSourceCode
@@ -138,28 +142,27 @@ pOperationSourceCode :: Printer Reference
 pOperationSourceCode = printSourceCode
 
 pOperationSignature :: Printer Signature
-pOperationSignature _ = return
+pOperationSignature opts s
+  | isTextFormat opts = return $ codeText opts s
+  | otherwise         = return s
 
 pOperationInfix :: Printer (Maybe Infix)
 pOperationInfix opts inf
-  | isTextFormat opts = return $ maybe "no fixity defined" (map toLower . show)
-                                       inf
+  | isTextFormat opts = return $ italicText opts $
+                          maybe "no fixity defined" (map toLower . show) inf
   | otherwise         = return $ show inf
 
 pOperationPrecedence :: Printer (Maybe Precedence)
 pOperationPrecedence opts p
-  | isTextFormat opts = return $ maybe "no precedence defined" show p
+  | isTextFormat opts = return $ italicText opts $
+                          maybe "no precedence defined" show p
   | otherwise         = return $ show p
 
 pOperationCASSDeterministic :: Printer String
-pOperationCASSDeterministic opts s
-  | isTextFormat opts = return $ maybeRead s prettyDeterministic s
-  | otherwise         = return s
+pOperationCASSDeterministic opts s = returnItalicText opts prettyDeterministic s
 
 pOperationCASSDemand :: Printer String
-pOperationCASSDemand opts s
-  | isTextFormat opts = return $ maybeRead s prettyDemand s
-  | otherwise         = return s
+pOperationCASSDemand opts s = returnItalicText opts prettyDemand s
  where
   prettyDemand :: [Int] -> String
   prettyDemand ds = case ds of
@@ -168,59 +171,74 @@ pOperationCASSDemand opts s
     _   -> "arguments " ++ unwords (map show ds)
 
 pOperationCASSIndeterministic :: Printer String
-pOperationCASSIndeterministic opts s
-  | isTextFormat opts = return $ maybeRead s prettyIndet s
-  | otherwise         = return s
+pOperationCASSIndeterministic opts s = returnItalicText opts prettyIndet s
  where
   prettyIndet True  = "might be indeterministic"
   prettyIndet False = "referentially transparent operation"
 
 pOperationCASSSolComplete :: Printer String
-pOperationCASSSolComplete opts s
-  | isTextFormat opts = return $ maybeRead s prettySolComplete s
-  | otherwise         = return s
+pOperationCASSSolComplete opts s = returnItalicText opts prettySolComplete s
  where
   prettySolComplete True  = "operationally complete operation"
   prettySolComplete False = "operation might suspend on free variables"
 
 pOperationCASSTerminating :: Printer String
-pOperationCASSTerminating opts s
-  | isTextFormat opts = return $ maybeRead s prettyTerminate s
-  | otherwise         = return s
+pOperationCASSTerminating opts s = returnItalicText opts prettyTerminate s
  where
   prettyTerminate True  = "yes"
   prettyTerminate False = "possibly non-terminating"
 
 pOperationCASSTotal :: Printer String
-pOperationCASSTotal opts s
-  | isTextFormat opts = return $ maybeRead s prettyTotal s
-  | otherwise         = return s
+pOperationCASSTotal opts s = returnItalicText opts prettyTotal s
  where
   prettyTotal True  = "reducible on all ground data terms"
   prettyTotal False = "possibly non-reducible on same data term"
 
 pOperationCASSValues :: Printer String
-pOperationCASSValues opts s
-  | isTextFormat opts = return $ maybeRead s prettyAType s
-  | otherwise         = return s
+pOperationCASSValues opts s = returnCodeText opts prettyAType s
 
 pOperationFailFree :: Printer String
 pOperationFailFree opts s
   | isTextFormat opts
-  = case s of
-     c1:c2:cs | [c1,c2] == "0:" -> return $ maybeRead cs showACallType cs
-              | [c1,c2] == "1:" -> return $ maybeRead cs showFuncDeclAsLambda cs
-     _                          -> return s
+  = return $ case s of
+     c1:c2:cs
+       | [c1,c2] == "0:" -> codeText opts $ maybeRead cs showACallType cs
+       | [c1,c2] == "1:" -> codeText opts $ maybeRead cs showFuncDeclAsLambda cs
+     _                   -> s
   | otherwise
   = return s
 
 pOperationIOType :: Printer String
-pOperationIOType opts s
-  | isTextFormat opts = return $ maybeRead s showIOT s
+pOperationIOType opts s = returnCodeText opts showIOT s
+
+-- If the output format is text, read the argument string, pretty print it
+-- (with second argument), and return it as code text.
+-- Otherwise, just return the argument string.
+returnCodeText :: Read a => Options -> (a -> String) -> String -> IO String
+returnCodeText opts pp s
+  | isTextFormat opts = return $ codeText opts $ maybeRead s pp s
+  | otherwise         = return s
+
+-- If the output format is text, read the argument string, pretty print it
+-- (with the second argument), and return it as italic text.
+-- Otherwise, just return the argument string.
+returnItalicText :: Read a => Options -> (a -> String) -> String -> IO String
+returnItalicText opts pp s
+  | isTextFormat opts = return $ italicText opts $ maybeRead s pp s
   | otherwise         = return s
 
 ------------------------------------------------------------------------------
 -- Auxililiaries.
+
+--- Show text in code font if markdown option is used.
+codeText :: Options -> String -> String
+codeText opts s | optMarkdown opts = "`" ++ s ++ "`"
+                | otherwise        = s
+
+-- Show text in italic font if markdown option is used.
+italicText :: Options -> String -> String
+italicText opts s | optMarkdown opts = "_" ++ s ++ "_"
+                  | otherwise        = s
 
 -- Is the output format `Text`?
 isTextFormat :: Options -> Bool
@@ -245,10 +263,13 @@ pSortedStringList opts ws =
 printDocumentation :: Options -> Reference -> IO String
 printDocumentation opts ref =
   fmap (if isTextFormat opts
-          then concatMap ("\n" ++) . map id {- stripDocCmt -} . lines
+          then if optMarkdown opts
+                 then \s -> "  " ++ unlines' (map stripDocCmt (lines s))
+                 else unlines' . map stripDocCmt . lines
           else id)
        (printFromReference opts ref)
  where
+  unlines' = concatMap ("\n" ++)
   stripDocCmt s | take 4 s == "--- " = drop 4 s
                 | take 3 s == "-- "  = drop 3 s
                 | take 3 s == "---"  = drop 3 s
@@ -260,9 +281,12 @@ printSourceCode :: Options -> Reference -> IO String
 printSourceCode opts ref = do
   slice <- printFromReference opts ref
   return $ if isTextFormat opts
-             then "\n" ++ removeLastCR slice
+             then "\n" ++ withMarkdown (removeLastCR slice)
              else slice
  where
+  withMarkdown s | optMarkdown opts = "```curry\n" ++ s ++ "\n```"
+                 | otherwise        = s
+
   removeLastCR s | null s         = s
                  | last s == '\n' = init s
                  | otherwise      = s

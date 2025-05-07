@@ -3,7 +3,7 @@
 ------------------------------------------------------------------------------
 
 module CurryInfo.Options
-  ( getDefaultOptions, getSilentOptions, getQueryOptions, withColor
+  ( getDefaultOptions, getSilentOptions, getQueryOptions
   , processOptions, getObject )
  where
 
@@ -41,10 +41,6 @@ printRequests :: String -> Configuration a -> String
 printRequests s conf =
   s ++ " requests:\n\n" ++ unlines (listRequests conf) ++ "\n\n"
 
---- Use some coloring (from System.Console.ANSI.Codes) if color option is on.
-withColor :: Options -> (String -> String) -> String -> String
-withColor opts coloring = if optColor opts then coloring else id
-
 --- The default options used by the tool.
 defaultOptions :: Options
 defaultOptions = Options
@@ -64,6 +60,7 @@ defaultOptions = Options
   , optHTMLDir       = ""
   , optClean         = False
   , optColor         = False
+  , optMarkdown      = False
   , optShowAll       = False
   , optCGI           = False
   , optServer        = False
@@ -331,6 +328,9 @@ options =
   , Option "" ["color"]
        (NoArg (\opts -> opts { optColor = True }))
        "use colors in text output"
+  , Option "" ["markdown"]
+       (NoArg (\opts -> opts { optMarkdown = True }))
+       "use markdown syntax in text output"
   , Option "" ["htmldir"]
        (ReqArg (\arg opts -> opts { optHTMLDir = arg }) "<d>")
        "generate HTML version of local cache into <d>"

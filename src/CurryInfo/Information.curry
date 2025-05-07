@@ -31,7 +31,7 @@ import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Reader
 import CurryInfo.Writer
-import CurryInfo.Options   ( getQueryOptions, withColor )
+import CurryInfo.Options   ( getQueryOptions )
 import CurryInfo.Verbosity ( printStatusMessage, printDetailMessage
                            , printDebugMessage, printErrorMessage )
 import CurryInfo.Generator ( readPackageJSON, getExportedModules
@@ -66,8 +66,7 @@ getAllPackageNames opts = do
   contents <- sort <$> getReducedDirectoryContents pkgdir
   printDebugMessage opts $ "Packages found: " ++ unwords contents
   return $ case optOutFormat opts of
-    OutText -> OutputText $
-                 withColor opts green "packages: " ++ unwords contents
+    OutText -> OutputText $ itemString opts "packages" ++ unwords contents
     OutJSON -> OutputJSON $ JObject $ toJObject $
                   [("packages", JArray (map JString contents))]
     OutTerm -> OutputTerm [("", [("packages", unwords contents)])]
@@ -582,8 +581,10 @@ createOutput opts obj results = case optOutFormat opts of
   OutText -> OutputText $ unlines $
               (if outputSingleEntity then []
                                      else [showQueryObject obj]) ++
-              map (\(r, ir) -> withColor opts green (r ++ ": ") ++ 
-                  fromRequestResult (withColor opts red "?") id (flip const) ir)
+              map (\(r, ir) -> 
+                    addLineBreak opts
+                     (itemString opts r ++
+                      fromRequestResult (warnText opts "?") id (flip const) ir))
                   results
   OutJSON -> OutputJSON $ JObject $ toJObject $
                 [("object", (JString . showQueryObject) obj),
@@ -602,4 +603,27 @@ createOutput opts obj results = case optOutFormat opts of
   -- generate output for a single entity?
   outputSingleEntity = not
     (optAllTypes opts || optAllClasses opts || optAllOperations opts)
-  
+
+------------------------------------------------------------------------------  
+-- Auxiliaries:
+
+--- Shows a string as an item (usually, the name of a request).
+--- Emphasize the string by using green if color option is used,
+--- bold if markdown option is used, or put `*` before, otherwise.
+itemString :: Options -> String -> String
+itemString opts s | optMarkdown opts = "__" ++ s ++ ":__" ++ " "
+                  | optColor opts    = green (s ++ ":")   ++ " "
+                  | otherwise        = "* " ++ (s ++ ":") ++ " "
+
+--- Show warning text by using red if color option is used or
+--- bold and italic if markdown option is used.
+warnText :: Options -> String -> String
+warnText opts s | optMarkdown opts = "***" ++ s ++ "***"
+                | optColor opts    = red s
+                | otherwise        = s
+
+-- Add a markdown line break, if required:
+addLineBreak :: Options -> String -> String
+addLineBreak opts s = s ++ if optMarkdown opts then "  " else ""
+
+------------------------------------------------------------------------------  

@@ -36,6 +36,7 @@ data Options = Options
   , optHTMLDir        :: String       -- directory to generate HTML cache copy?
   , optClean          :: Bool         -- clean up information
   , optColor          :: Bool         -- use colors in text output
+  , optMarkdown       :: Bool         -- use markdown syntax in text output
   , optShowAll        :: Bool         -- show all currently available infos
   , optCGI            :: Bool         -- run the tool in CGI mode
   , optServer         :: Bool         -- run the tool in server mode
