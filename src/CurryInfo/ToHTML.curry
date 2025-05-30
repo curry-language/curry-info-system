@@ -30,6 +30,7 @@ import System.FilePath          ( (</>), (<.>) )
 import System.Process           ( exitWith, system )
 
 import CurryInfo.ConfigPackage  ( getPackagePath )
+import CurryInfo.Configuration  ( requestsOfQueryObject )
 import CurryInfo.Helper         ( isCurryID, quote )
 import CurryInfo.Information    ( getInfos )
 import CurryInfo.Paths          ( jsonFile2Name, encodeFilePath, packagesPath )
@@ -116,7 +117,9 @@ directoryAsHTML opts (home,brand) d base dirs = do
                                   base (dirs ++ [sd])) subdirs
     hfiles <- dirElems2HTML cmt dirfiles
     hdirs  <- dirElems2HTML cmt subdirs
-    htmldoc <- subdirHtmlPage navobj (home,brand) d navobj (hfiles ++ hdirs)
+    let htmlroot = concat (take d (repeat "../"))
+    htmldoc <- subdirHtmlPage navobj (home,brand) htmlroot navobj
+                              (hfiles ++ hdirs)
     let htmlsrcfile = basedir </> "index.html"
     writeFile htmlsrcfile htmldoc
     printStatus opts $ htmlsrcfile ++ " written"
@@ -165,9 +168,10 @@ directoryAsHTML opts (home,brand) d base dirs = do
         let htmlopts = opts { optShowAll = True, optOutFormat = OutText
                             , optColor = True }
         infotxt <- getInfos htmlopts obj [] >>= getOutputString
-        let navobj = prettyObject obj
-        docs <- subdirHtmlPage navobj (home,brand) d navobj
-                               (structureText infotxt)
+        let navobj   = prettyObject obj
+            htmlroot = concat (take d (repeat "../"))
+        docs <- subdirHtmlPage navobj (home,brand) htmlroot navobj
+                               (structureText htmlroot obj infotxt)
         let htmlfile = encodeFilePath n <.> "html"
         writeFile (basedir </> htmlfile) docs
         return htmlfile
@@ -192,41 +196,49 @@ getRealFilesInDir base dirs = do
                     (jsonFile2Name fn)
 
 -- Use the coloring of CurryInfo results to structure the result text.
-structureText :: HTML a => String -> [a]
-structureText t =
+structureText :: HTML a => String -> QueryObject -> String -> [a]
+structureText htmlroot obj t =
   let (t1,rest) = upToEsc32 t
       start   = strip t1
       rows = (if null start then [] else [[[nbsp], [verbatim start]]]) ++
              if null rest then [] else text2table rest
   in  [table rows `addClass` "table table-striped table-sm"]
  where
- text2table s = -- the chars before `s` are "\ESC[32m"
-   let (colt,ds) = upToStop s
-       (cnt,es)  = upToEsc32 ds
-   in [[bold [htxt $ strip colt]], [verbatim $ stripCR cnt]] :
+  reqs = requestsOfQueryObject obj
+
+  text2table s = -- the chars before `s` are "\ESC[32m"
+    let (colt,ds) = upToStop s
+        (cnt,es)  = upToEsc32 ds
+    in [ [bold $ [htxt $ strip colt] ++
+                  -- add info button if description is available:
+                  maybe [] (\d -> [nbsp, infoIcon d])
+                        (lookup (stripCol colt) reqs) ]
+       , [verbatim $ stripCR cnt]] :
       if null es then [] else text2table es
 
- upToEsc32 xs = case xs of '\ESC':'[':'3':'2':'m':ys -> ([],ys)
+  upToEsc32 xs = case xs of '\ESC':'[':'3':'2':'m':ys -> ([],ys)
+                            []   -> ([],[])
+                            c:cs -> let (ys,zs) = upToEsc32 cs in (c:ys,zs)
+
+  upToStop xs = case xs of '\ESC':'[':'0':'m':ys -> ([],ys)
                            []   -> ([],[])
-                           c:cs -> let (ys,zs) = upToEsc32 cs in (c:ys,zs)
+                           c:cs -> let (ys,zs) = upToStop cs in (c:ys,zs)
 
- upToStop xs = case xs of '\ESC':'[':'0':'m':ys -> ([],ys)
-                          []   -> ([],[])
-                          c:cs -> let (ys,zs) = upToStop cs in (c:ys,zs)
+  strip    = reverse . dropWhile (==' ') . reverse . dropWhile (==' ')
+  stripCR  = reverse . dropWhile (=='\n') . reverse . dropWhile (=='\n')
+  stripCol = reverse . dropWhile (`elem` " :") . reverse . dropWhile (==' ')
 
- strip = reverse . dropWhile (==' ') . reverse . dropWhile (==' ')
- stripCR = reverse . dropWhile (=='\n') . reverse . dropWhile (=='\n')
-
+  infoIcon infotxt = image (htmlroot ++ "bt4/img/info-circle-fill.svg") "Info"
+                       `addAttr` ("title",infotxt)
 
 -- Generates a HTML page in a subdirectory of CurryInfo with a given page title,
 -- home brand, header and contents.
-subdirHtmlPage :: String -> (String,[BaseHtml]) -> Int -> String -> [BaseHtml]
-               -> IO String
-subdirHtmlPage pagetitle (home,brand) d headerinfo maindoc = do
+subdirHtmlPage :: String -> (String,[BaseHtml]) -> String -> String
+               -> [BaseHtml] -> IO String
+subdirHtmlPage pagetitle (home,brand) htmlroot headerinfo maindoc = do
   time <- getLocalTime
-  let base   = concat (take d (repeat "../"))
-      btbase = base ++ "bt4"
-      citar  = base ++ curryInfoCacheTar
+  let btbase = htmlroot ++ "bt4"
+      citar  = htmlroot ++ curryInfoCacheTar
       header = [h1 [htxt "CurryInfo: ", smallMutedText headerinfo]]
   return $ showHtmlPage $
     bootstrapPage (favIcon btbase) (cssIncludes btbase) (jsIncludes btbase)

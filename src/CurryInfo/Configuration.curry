@@ -103,6 +103,10 @@ operationConfiguration =
 --- requests.
 type Configuration a = [RegisteredRequest a]
 
+--- Maps a configuration into the list of requests names and descriptions.
+confReqs :: Configuration _ -> [(String,String)]
+confReqs conf = map (\r -> (request r, description r)) conf
+
 --- A registered requests consists of a request name, description, and
 --- operations to print and generate the data of the request.
 data RegisteredRequest a = RegisteredRequest
@@ -183,3 +187,15 @@ listRequests = map showReq
   showReq r =
     let req = request r
     in req ++ ":" ++ take (19 - length req) (repeat ' ') ++ description r
+
+--- Returns for a given `QueryObject` the list of corresponding request
+--- names and descriptions.
+requestsOfQueryObject :: QueryObject -> [(String,String)]
+requestsOfQueryObject (QueryPackage _)         = confReqs packageConfiguration
+requestsOfQueryObject (QueryVersion _ _)       = confReqs versionConfiguration
+requestsOfQueryObject (QueryModule  _ _ _)     = confReqs moduleConfiguration
+requestsOfQueryObject (QueryType _ _ _ _)      = confReqs typeConfiguration
+requestsOfQueryObject (QueryClass _ _ _ _)     = confReqs classConfiguration
+requestsOfQueryObject (QueryOperation _ _ _ _) = confReqs operationConfiguration
+
+------------------------------------------------------------------------------
