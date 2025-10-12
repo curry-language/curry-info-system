@@ -145,6 +145,20 @@ On the
 these web pages are nightly updated when new package versions arrive.
 
 
+Documentation
+-------------
+
+The motivation and ideas of CurryInfo are described in the following paper:
+
+> M. Hanus:
+> CurryInfo: Managing Analysis and Verification Information about Curry Packages,
+> Proc. of the 35th International Symposium on Logic-Based Program Synthesis
+> and Transformation (LOPSTR 2025),
+> Springer LNCS 16177, pp. 123-134, 2025,
+> DOI: [10.1007/978-3-032-04848-6\_8](https://doi.org/10.1007/978-3-032-04848-6\_8)
+
+
+
 Technical notes
 ---------------
 
