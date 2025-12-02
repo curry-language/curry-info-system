@@ -9,7 +9,7 @@ TARFILE := $(CURDIR)/WEBCURRYINFO.tgz
 WEBDIR=$(HOME)/public_html/curry/curry-info
 
 # Executable of the Curry Package Manager to install the tools
-TOOLCPM := /opt/kics2/kics2-3.3.0/bin/cypm
+TOOLCPM := /opt/kics2/kics2-3.5.0/bin/cypm
 
 # Binary of the tools used by the webapp:
 TOOLBINCYPM      = $(WEBDIR)/bin/cypm
