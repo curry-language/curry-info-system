@@ -43,7 +43,17 @@ curryInfoCacheTar :: String
 curryInfoCacheTar = "CURRYINFOCACHE.tgz"
 
 ------------------------------------------------------------------------------
---- Generate HTML pages for the CurryInfo cache.
+--- Generate HTML pages of the data stored in the CurryInfo cache.
+--- This is done with the following steps:
+---
+--- 1. The current CurryInfo cache is copied into the directory
+---    specified by `optHtmlDir`.
+--- 2. For all directories in the copy of the cache HTML index pages
+---    are generated: for each JSON file a human-readable HTML page is
+---    generated and an index file contains links to these HTML pages
+---    together with links to each subdirectory.
+--- 3. Finally, the file `index.html` and the directory `bt4` is copied
+---    from the `include` directory to the main HTML directory.
 generateCurryInfoHTML :: Options -> IO ()
 generateCurryInfoHTML opts = do
   htmldir <- getAbsolutePath (optHTMLDir opts)
