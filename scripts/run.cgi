@@ -3,7 +3,7 @@
 # run the Curry Info System on a web server.
 LANG=C.UTF-8
 export LANG
-ulimit -t 300
+ulimit -t 600
 export HOME=`pwd`
 export PATH=$HOME/bin:$PATH
 
