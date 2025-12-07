@@ -9,6 +9,7 @@ module CurryInfo.Options
 
 
 import Control.Monad      ( when, unless, filterM )
+import Data.Char          ( toLower )
 import Data.List          ( intercalate, intersperse, splitOn )
 import Data.Maybe         ( catMaybes )
 import Numeric            ( readNat )
@@ -358,10 +359,11 @@ options =
   ]
  where
   checkFormat arg opts
-    | arg == "CurryMap" = opts { optOutFormat = OutTerm, optOutAsMap = True }
-    | otherwise         = case reads arg of
-                            [(f,"")] -> opts { optOutFormat = f }
-                            _        -> helpError $ "Illegal format: " ++ arg
+    | map toLower arg == "currymap"
+    = opts { optOutFormat = OutTerm, optOutAsMap = True }
+    | otherwise
+    = case reads arg of [(f,"")] -> opts { optOutFormat = f }
+                        _        -> helpError $ "Illegal format: " ++ arg
 
   safeReadNat opttrans s opts = case readNat s of
     [(n, "")] -> opttrans n opts

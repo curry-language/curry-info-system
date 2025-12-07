@@ -87,6 +87,7 @@ instance Show OutFormat where
   show OutJSON = "JSON"
   show OutTerm = "CurryTerm"
 
+-- Support case-independent reading:
 instance Read OutFormat where
   readsPrec _ s = case map toLower s of
     "text"      -> [(OutText, "")]

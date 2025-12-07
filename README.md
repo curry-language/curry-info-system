@@ -1,5 +1,5 @@
-CurryInfo: A tool to manage analysis and verification information about Curry packages
-======================================================================================
+CurryInfo: Managing analysis and verification information about Curry packages
+==============================================================================
 
 This package contains the implementation of a tool to collect and
 provide analysis and verification information about Curry modules
@@ -24,22 +24,22 @@ Basic usage examples
 
 The following command outputs the list of
 all operations defined in the module `Data.List` of package `base`
-with version `3.3.0`:
+with version `3.4.0`:
 
-    > curry-info -p base -x 3.3.0 -m Data.List operations
+    > curry-info -p base -x 3.4.0 -m Data.List operations
 
 The following commands show the definitions of the type class `Ord`
 and signature and operation `lines` (defined in the `Prelude` of
-package `base` with version `3.3.0`), respectively:
+package `base` with version `3.4.0`), respectively:
 
-    > curry-info -p base -x 3.3.0 -m Prelude -c Ord definition
-    > curry-info -p base -x 3.3.0 -m Prelude -o lines signature
-    > curry-info -p base -x 3.3.0 -m Prelude -o lines definition
+    > curry-info -p base -x 3.4.0 -m Prelude -c Ord definition
+    > curry-info -p base -x 3.4.0 -m Prelude -o lines signature
+    > curry-info -p base -x 3.4.0 -m Prelude -o lines definition
 
 The package and version options can be omitted if the module is part
 of a package which can be found in the current load path.
 For instance, the previous commands can be shortened as follows
-(provided that the Curry system is based `base` package with version `3.3.0`):
+(provided that the Curry system is based `base` package with version `3.4.0`):
 
     > curry-info -m Prelude -c Ord definition
     > curry-info -m Prelude -o lines signature
@@ -171,7 +171,7 @@ Technical notes
   For instance, the following command generates determinism information
   for all operations of the prelude:
 
-      > curry-info -f2 -p base -x 3.3.0 -m Prelude -o '' cass-deterministic
+      > curry-info -f2 -p base -x 3.4.0 -m Prelude -o '' cass-deterministic
 
 - CurryInfo is designed as a generic and extensible system to collect and
   manage information about Curry entities. Thus, it is also possible to
@@ -179,10 +179,11 @@ Technical notes
 
 - The easiest way to use CurryInfo and the information stored in the central
   [CurryInfo server](https://cpm.curry-lang.org/curry-info/)
-  is provided by the tool `cpm-query`
-  (see Curry package [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html)).
+  is provided by the tool `cpm-query` (see Curry package
+  [cpm-query](https://cpm.curry-lang.org/pkgs/cpm-query.html)).
   CurryInfo provides also a socket connection with a specific
   [server protocol](specifications/ServerProtocol.md).
+
 
 Files
 -----
@@ -216,11 +217,11 @@ The contents of the cache directory has the following structure:
                             - *op*.json
 
 For instance, the information about the prelude operation `foldr1`
-contained in version 3.3.0 of the base` package is stored in file
+contained in version 3.4.0 of the base` package is stored in file
 
-`.../packages/base/versions/3.3.0/modules/Prelude/operations/foldr1.json`
+`.../packages/base/versions/3.4.0/modules/Prelude/operations/foldr1.json`
 
 To speed up the access to CASS-requests for all operations,
 CurryInfo also writes files named `ALL_<req>.txt` in `operations`
 directories. These files contains the `CurryTerm` output format
-of these requests.
+of these requests for all operations.
