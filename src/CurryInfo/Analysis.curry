@@ -5,7 +5,7 @@
 
 module CurryInfo.Analysis where
 
-import Data.Map    ( Map, fromList )
+import Data.Map    ( Map, fromList, toList )
 import JSON.Data
 import JSON.Parser ( parseJSON )
 import JSON.Convert
@@ -103,23 +103,33 @@ analyseWith anacmd opts pkg vsn mn ename ananame field constructor = do
 type QName = (String,String)
 
 --- Map a request name of CurryInfo to a CASS analysis name together with
---- an operation to transform a list of qualified names and values as
---- Curry terms into a map representation (as used by CASS).
-curryInfoRequest2CASS :: [(String, (String, (CurryOutputTerm -> String)))]
+--- operations to transform a list of qualified names and values as
+--- Curry terms into a map representation (as used by CASS) and vice versa.
+curryInfoRequest2CASS ::
+  [(String, (String, CurryOutputTerm -> String, String -> CurryOutputTerm))]
 curryInfoRequest2CASS =
-  [ ("deterministic",     ("Deterministic",   toDetMap))
-  , ("demand",            ("Demand",          toDemandMap))
-  , ("indeterministic",   ("Indeterministic", toBoolMap))
-  , ("solution-complete", ("SolComplete",     toBoolMap))
-  , ("terminating",       ("Terminating",     toBoolMap))
-  , ("totally-defined",   ("Total",           toBoolMap))
-  , ("result-values",     ("Values",          toATypeMap))
+  [ ("deterministic",     ("Deterministic",
+                           toDetMap, fromDetMap "deterministic"))
+  , ("demand",            ("Demand", toDemandMap, fromDemandMap "demand"))
+  , ("indeterministic",   ("Indeterministic",
+                           toBoolMap, fromBoolMap "indeterministic"))
+  , ("solution-complete", ("SolComplete",
+                           toBoolMap, fromBoolMap "solution-complete"))
+  , ("terminating",       ("Terminating",
+                           toBoolMap, fromBoolMap "terminating"))
+  , ("totally-defined",   ("Total", toBoolMap, fromBoolMap "totally-defined"))
+  , ("result-values",     ("Values", toATypeMap, fromATypeMap "result-values"))
   ]
  where
   toDetMap    ps = show (curryTerm2Map ps :: Map QName Deterministic)
   toDemandMap ps = show (curryTerm2Map ps :: Map QName [Int])
   toBoolMap   ps = show (curryTerm2Map ps :: Map QName Bool)
   toATypeMap  ps = show (curryTerm2Map ps :: Map QName AType)
+
+  fromDetMap    rq ms = map2CurryTerm rq (read ms :: Map QName Deterministic)
+  fromDemandMap rq ms = map2CurryTerm rq (read ms :: Map QName [Int])
+  fromBoolMap   rq ms = map2CurryTerm rq (read ms :: Map QName Bool)
+  fromATypeMap  rq ms = map2CurryTerm rq (read ms :: Map QName AType)
 
 --- Map a `CurryOutputTerm` representing results for a list of operations
 --- (i.e., where the first components contains qualified names) and
@@ -139,6 +149,13 @@ curryTerm2Map qnvs =
     [mn,en] -> (mn,en)
     _       -> error $ "curryTerm2Map: no qualified name found: " ++ s
 
+--- Transform a map from QNames to request values into a corresponding
+--- `CurryOutputTerm`. This is the inverse of operation `curryTerm2Map`
+--- where the first argument is the request identifier.
+map2CurryTerm :: Show a => String -> Map QName a -> CurryOutputTerm
+map2CurryTerm req qnmap =
+  map (\ ((mn,fn),aval) -> (mn ++ " " ++ fn, [(req,show aval)])) (toList qnmap)
+
 -- Analyse an operation of a module with CASS where the name of the
 -- CurryInfo field is provided as the last argument.
 analyseOperationWithCASS :: Options -> Package -> Version -> Module -> Operation
@@ -149,8 +166,8 @@ analyseOperationWithCASS opts pkg vsn mn o field =
                            "No CASS analysis found for field " ++
                            quote field ++ "!"
                          return Nothing
-    Just (aname,_) -> analyseWith (cmdCASS opts) opts pkg vsn mn o aname field
-                                  (QueryOperation pkg vsn mn)
+    Just (aname,_,_) -> analyseWith (cmdCASS opts) opts pkg vsn mn o aname field
+                                    (QueryOperation pkg vsn mn)
 
 -- This action initiates a call to the non-fail verification tool to compute
 -- the call types and non-fail conditions for the given module.

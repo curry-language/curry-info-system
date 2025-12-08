@@ -11,7 +11,7 @@ module CurryInfo.Options
 import Control.Monad      ( when, unless, filterM )
 import Data.Char          ( toLower )
 import Data.List          ( intercalate, intersperse, splitOn )
-import Data.Maybe         ( catMaybes )
+import Data.Maybe         ( catMaybes, isNothing )
 import Numeric            ( readNat )
 import System.Environment ( getEnv )
 
@@ -23,6 +23,7 @@ import System.Directory ( getDirectoryContents, doesFileExist
                         , removeDirectory )
 import System.FilePath  ( (</>) )
 
+import CurryInfo.Analysis  ( curryInfoRequest2CASS )
 import CurryInfo.RequestTypes
 import CurryInfo.Types
 import CurryInfo.Configuration
@@ -109,31 +110,34 @@ processOptions banner argv = do
   let (funopts, args, opterrors) = getOpt Permute options argv
       opts = foldl (flip id) defaultOptions funopts
   unless (null opterrors) $ do
-    putStr $ unlines $
+    printErr $ unlines $
       opterrors ++ ["Use option `--help' to see the list of all options"]
-    exitWith 1
   when (optHelp opts)     (printUsage True  >> exitWith 0)
   when (optRequests opts) (printUsage False >> exitWith 0)
   when (optShowVersion opts) (putStrLn banner >> exitWith 0)
-  when (optOutAsMap opts && not (optAllOperations opts && length args == 1)) $ do
-    putStrLn $ "Output format 'CurryMap' only allowed for '--alloperations'" ++
-               " and single request!"
-    exitWith 1
+  when (optOutAsMap opts) $ do
+    when (not (optAllOperations opts)) $
+      printErr "Output format 'CurryMap' only allowed for '--alloperations'!"
+    case args of
+      [req] -> when (isNothing (lookup req curryInfoRequest2CASS)) $
+         printErr "Output format 'CurryMap' only supported for CASS analyses!"
+      _     -> printErr
+                 "Output format 'CurryMap' only allowed for single request!"
   when (optCGI opts) $ do
-    when (optServer opts || not (null (optOutFile opts))) $ do
-      putStrLn "Options '--server' or '--output' not allowed in CGI mode!"
-      exitWith 1
+    when (optServer opts || not (null (optOutFile opts))) $
+      printErr "Options '--server' or '--output' not allowed in CGI mode!"
     raddr <- getEnv "REMOTE_ADDR"
     when (raddr `notElem` managerAddrs &&
           (optForce opts > 0 || optClean opts || optUpdate opts ||
            not (null (optHTMLDir opts)))) $ do
-      putStrLn $ "Options not allowed in CGI mode:\n" ++ unwords argv
-      exitWith 1
+      printErr $ "Options not allowed in CGI mode:\n" ++ unwords argv
   opts1 <- replaceHomeInOptions opts
   when (optClean opts1) (getObject opts1 >>= cleanObject opts1 >> exitWith 0)
   return (opts1, args)
  where
-  printUsage showall = putStr (banner ++ "\n" ++ usageText showall)
+  printErr emsg = putStrLn emsg >> exitWith 1
+
+  printUsage showall = putStr $ banner ++ "\n" ++ usageText showall
 
 -- IP address of cpm.curry-lang.org and cpm.curry-language.org
 -- from where data changes are allowed in CGI mode.

@@ -267,35 +267,33 @@ queryAllClasses opts pkg vsn m reqs = do
 
 -- Query all operations in the given package/version/module for the given
 -- requests.
--- If there is only one request computed by CASS in output format CurryTerm,
--- the result is stored in a cache file (see `allOperationsReqMapFile`)
--- for faster lookup when results are required by CASS.
+-- If there is only one request computed by CASS and the output format is
+-- CurryTerm or CurryMap, the result is stored and looked up in a cache file
+-- (see `allOperationsReqMapFile`).
+-- This provides more efficiency when CurryInfo is used by other tools.
 queryAllOperations :: Options -> Package -> Version -> Module -> [String]
                    -> IO Output
 queryAllOperations opts pkg vsn m reqs = do
   case reqs of
-    [req] | optOutFormat opts == OutTerm && optOutAsMap opts
+    [req] | optOutFormat opts == OutTerm
       -> case lookup req curryInfoRequest2CASS of
-           Nothing        -> printErrorMessage curryMapMsg >> queryAllOps
-           Just (_,tomap) -> do
+           Nothing                -> queryAllOps
+           Just (_,tomap,frommap) -> do
              let mapfile = allOperationsReqMapFile opts pkg vsn m req
              exmapfile <- doesFileExist mapfile
-             if exmapfile
-               then do printDetailMessage opts $
-                         "Returning contents of '" ++ mapfile ++ "'..."
-                       return $ OutputFile mapfile
-               else do result <- queryAllOps
-                       writeFile mapfile (tomap (fromOutputTerm result))
-                       printStatusMessage opts $
-                         "All operation requests '" ++ req ++
-                         "' cached in file"
-                       printDetailMessage opts $ mapfile
-                       return $ OutputFile mapfile
-    _     -> queryAllOps
+             unless exmapfile $ do
+               result <- queryAllOps
+               writeFile mapfile (tomap (fromOutputTerm result))
+               printDetailMessage opts $
+                 "All operation requests '" ++ req ++ "' cached in file\n" ++
+                 mapfile
+             printDetailMessage opts $
+               "Returning contents of '" ++ mapfile ++ "'..."
+             if optOutAsMap opts then return $ OutputFile mapfile
+                                 else do mapstr <- readFile mapfile
+                                         return $ OutputTerm (frommap mapstr)
+    _ -> queryAllOps
  where
-  curryMapMsg =
-   "Use output format 'CurryTerm' ('CurryMap' only supported for CASS analyses)"
-
   queryAllOps = do
     mos <- queryAllEntities opts pkg vsn m (QueryOperation pkg vsn m "?")
                             "operations"
@@ -331,7 +329,7 @@ query opts obj req = do
                              Just y  -> return (Just (read y))
     _                   -> return Nothing
 
---- Combines a sequence of output into a single output in the required format.
+--- Combines a sequence of outputs into a single output in the required format.
 combineOutput :: Options -> [Output] -> Output
 combineOutput opts outs = case optOutFormat opts of
     OutText -> OutputText (unlines (map fromOutputText outs))
@@ -348,6 +346,8 @@ combineOutput opts outs = case optOutFormat opts of
     OutputJSON jv -> jv
     _             -> JString $ "ERROR IN JSON OUTPUT FORMAT: " ++ show out
 
+--- Extracts the `CurryOutputTerm` from an output. An error is raised
+--- if the output does not contain a `CurryOutputTerm`.
 fromOutputTerm :: Output -> CurryOutputTerm
 fromOutputTerm out = case out of
   OutputTerm ts -> ts
